@@ -72,7 +72,7 @@ const HERO_SLIDES: HeroSlide[] = [
     pillLabel: 'Homes & Villas',
     icon: Home,
     query: 'house',
-    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=85&w=2400',
+    image: '/images/hero/house.jpg',
     badge: 'RLMUA Title & Deed Verified',
     badgeTone: 'emerald',
     headlinePrefix: 'The finest luxury',
@@ -104,7 +104,7 @@ const HERO_SLIDES: HeroSlide[] = [
     pillLabel: 'Titled Land',
     icon: MapIcon,
     query: 'land',
-    image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=85&w=1920',
+    image: '/images/hero/land.jpg',
     badge: 'UPI Cadastre Direct Match',
     badgeTone: 'emerald',
     headlinePrefix: 'Prime titled land &',
@@ -136,7 +136,7 @@ const HERO_SLIDES: HeroSlide[] = [
     pillLabel: 'Executive SUVs',
     icon: Car,
     query: 'vehicle',
-    image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=85&w=1920',
+    image: '/images/hero/car.jpg',
     badge: 'Yellow-Card & Customs Cleared',
     badgeTone: 'emerald',
     headlinePrefix: 'Certified executive',
@@ -168,7 +168,7 @@ const HERO_SLIDES: HeroSlide[] = [
     pillLabel: 'Bikes & Fleets',
     icon: Bike,
     query: 'vehicle',
-    image: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&q=85&w=1920',
+    image: '/images/hero/motorbike.jpg',
     badge: 'RURA & Commercial Fleet Ready',
     badgeTone: 'orange',
     headlinePrefix: 'High-performance',
@@ -290,12 +290,12 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#05070b]">
       {/* ━━━ 01 — CINEMATIC FULL-BLEED HERO BACKGROUND CAROUSEL ━━━ */}
       <section 
-        className="relative min-h-[92vh] sm:min-h-screen flex flex-col justify-between px-4 pt-8 pb-6 sm:px-8 lg:px-12 lg:pt-12 lg:pb-10 overflow-hidden w-full"
+        className="relative isolate min-h-[92vh] sm:min-h-screen flex flex-col justify-between px-4 pt-8 pb-6 sm:px-8 lg:px-12 lg:pt-12 lg:pb-10 overflow-hidden w-full"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
         {/* Full-bleed edge-to-edge background images for entire hero */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           {HERO_SLIDES.map((slide, idx) => (
             <div
               key={slide.id}
@@ -311,16 +311,15 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
                   "w-full h-full object-cover object-center transition-transform duration-7000 ease-out",
                   activeSlide === idx ? "scale-105" : "scale-100"
                 )}
-                loading={idx === 0 ? "eager" : "lazy"}
+                loading="eager"
               />
             </div>
           ))}
 
           {/* Balanced cinematic overlays - image stays clearly visible & stunning across the entire hero */}
-          <div className="absolute inset-0 bg-black/45" />
-          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#05070b]/90 via-[#05070b]/40 to-transparent pointer-events-none" />
-          <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-[#05070b] via-[#05070b]/70 to-transparent pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/30 pointer-events-none" />
+          <div className="absolute inset-0 bg-black/35" />
+          <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-[#05070b]/80 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#05070b] via-[#05070b]/60 to-transparent pointer-events-none" />
 
           {/* Brand ambient glows */}
           <div className="absolute top-1/4 left-1/4 h-[350px] w-[350px] sm:h-[500px] sm:w-[500px] rounded-full bg-emerald-500/[0.08] blur-[150px] pointer-events-none" />
@@ -328,7 +327,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
         </div>
 
         {/* TOP ROW: Category Switcher Pills */}
-        <div className="mx-auto w-full max-w-7xl flex items-center justify-center">
+        <div className="relative z-10 mx-auto w-full max-w-7xl flex items-center justify-center">
           <div className="inline-flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar py-2 px-3 rounded-full bg-black/50 backdrop-blur-xl border border-white/15 shadow-2xl">
             {HERO_SLIDES.map((slide, idx) => {
               const Icon = slide.icon;
@@ -356,7 +355,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
         </div>
 
         {/* CENTER ROW: Grand Architectural Headline, Subtitle, and Floating Search */}
-        <div className="mx-auto w-full max-w-4xl text-center space-y-5 my-auto py-6 sm:py-10">
+        <div className="relative z-10 mx-auto w-full max-w-4xl text-center space-y-5 my-auto py-6 sm:py-10">
           {/* Trust Badge */}
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-black/60 px-4 py-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 backdrop-blur-xl shadow-xl">
             <ShieldCheck size={15} className="shrink-0" />
@@ -426,7 +425,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
         </div>
 
         {/* BOTTOM ROW: Panoramic Floating Glass Asset Dossier & Controls */}
-        <div className="mx-auto max-w-7xl w-full pt-4">
+        <div className="relative z-10 mx-auto max-w-7xl w-full pt-4">
           <div className="rounded-2xl border border-white/20 bg-black/60 p-4 sm:p-5 backdrop-blur-2xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
             
             {/* Active Asset Showcase Info */}
