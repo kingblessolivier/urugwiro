@@ -72,7 +72,7 @@ const HERO_SLIDES: HeroSlide[] = [
     pillLabel: 'Homes & Villas',
     icon: Home,
     query: 'house',
-    image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&q=85&w=1920',
+    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=85&w=2400',
     badge: 'RLMUA Title & Deed Verified',
     badgeTone: 'emerald',
     headlinePrefix: 'The finest luxury',
@@ -288,309 +288,235 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#05070b]">
-      {/* ━━━ 01 — CINEMATIC MULTI-CATEGORY HERO CAROUSEL ━━━ */}
+      {/* ━━━ 01 — CINEMATIC FULL-BLEED HERO BACKGROUND CAROUSEL ━━━ */}
       <section 
-        className="relative min-h-[calc(100vh-4rem)] flex items-center px-4 py-10 sm:py-14 lg:px-12 lg:py-16 overflow-hidden w-full"
+        className="relative min-h-[92vh] sm:min-h-screen flex flex-col justify-between px-4 pt-8 pb-6 sm:px-8 lg:px-12 lg:pt-12 lg:pb-10 overflow-hidden w-full"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
-        {/* Full-bleed stacked background images with Ken Burns & crossfade */}
+        {/* Full-bleed edge-to-edge background images for entire hero */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
           {HERO_SLIDES.map((slide, idx) => (
             <div
               key={slide.id}
               className={cn(
-                "absolute inset-0 transition-all duration-1000 ease-out",
-                activeSlide === idx
-                  ? "opacity-100 scale-100"
-                  : "opacity-0 scale-105 pointer-events-none"
+                "absolute inset-0 transition-opacity duration-1000 ease-in-out",
+                activeSlide === idx ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
             >
               <img
                 src={slide.image}
                 alt={slide.category}
-                className="w-full h-full object-cover object-center brightness-75 contrast-105"
+                className={cn(
+                  "w-full h-full object-cover object-center transition-transform duration-7000 ease-out",
+                  activeSlide === idx ? "scale-105" : "scale-100"
+                )}
                 loading={idx === 0 ? "eager" : "lazy"}
               />
             </div>
           ))}
 
-          {/* Multi-stop dark gradient masks for guaranteed contrast & zero white bleed */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#05070b] via-[#05070b]/95 md:via-[#05070b]/85 to-[#05070b]/40 lg:to-[#05070b]/20" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#05070b] via-transparent to-[#05070b]/80" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#05070b]/90 via-transparent to-[#05070b]" />
+          {/* Balanced cinematic overlays - image stays clearly visible & stunning across the entire hero */}
+          <div className="absolute inset-0 bg-black/45" />
+          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#05070b]/90 via-[#05070b]/40 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-[#05070b] via-[#05070b]/70 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/30 pointer-events-none" />
 
-          {/* Brand glowing orbs matching logo */}
-          <div className="absolute top-20 left-1/4 h-[350px] w-[350px] sm:h-[500px] sm:w-[500px] rounded-full bg-emerald-500/[0.08] blur-[150px] pointer-events-none" />
-          <div className="absolute bottom-20 right-1/4 h-[300px] w-[300px] sm:h-[450px] sm:w-[450px] rounded-full bg-[#f98604]/[0.06] blur-[140px] pointer-events-none" />
+          {/* Brand ambient glows */}
+          <div className="absolute top-1/4 left-1/4 h-[350px] w-[350px] sm:h-[500px] sm:w-[500px] rounded-full bg-emerald-500/[0.08] blur-[150px] pointer-events-none" />
+          <div className="absolute bottom-1/4 right-1/4 h-[300px] w-[300px] sm:h-[450px] sm:w-[450px] rounded-full bg-[#f98604]/[0.06] blur-[140px] pointer-events-none" />
         </div>
 
-        <div className="mx-auto max-w-7xl w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            
-            {/* Left Column: Category Switcher, Dynamic Headline, Subtitle, Search, Controls */}
-            <div className="lg:col-span-7 space-y-6 sm:space-y-7">
-              
-              {/* Category Pills Switcher */}
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-                {HERO_SLIDES.map((slide, idx) => {
-                  const Icon = slide.icon;
-                  const isActive = activeSlide === idx;
-                  return (
-                    <button
-                      key={slide.id}
-                      type="button"
-                      onClick={() => setActiveSlide(idx)}
-                      className={cn(
-                        "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer",
-                        isActive
-                          ? slide.highlightTone === 'orange'
-                            ? "bg-[#f98604]/20 border border-[#f98604]/50 text-[#fb923c] shadow-lg shadow-[#f98604]/20"
-                            : "bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 shadow-lg shadow-emerald-500/20"
-                          : "bg-black/40 border border-white/10 text-zinc-400 hover:text-white hover:bg-white/[0.08] backdrop-blur-md"
-                      )}
-                    >
-                      <Icon size={14} />
-                      <span>{slide.pillLabel}</span>
-                    </button>
-                  );
-                })}
+        {/* TOP ROW: Category Switcher Pills */}
+        <div className="mx-auto w-full max-w-7xl flex items-center justify-center">
+          <div className="inline-flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar py-2 px-3 rounded-full bg-black/50 backdrop-blur-xl border border-white/15 shadow-2xl">
+            {HERO_SLIDES.map((slide, idx) => {
+              const Icon = slide.icon;
+              const isActive = activeSlide === idx;
+              return (
+                <button
+                  key={slide.id}
+                  type="button"
+                  onClick={() => setActiveSlide(idx)}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer",
+                    isActive
+                      ? slide.highlightTone === 'orange'
+                        ? "bg-[#f98604] text-white shadow-lg shadow-[#f98604]/40"
+                        : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/40"
+                      : "text-zinc-300 hover:text-white hover:bg-white/10"
+                  )}
+                >
+                  <Icon size={16} />
+                  <span>{slide.pillLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* CENTER ROW: Grand Architectural Headline, Subtitle, and Floating Search */}
+        <div className="mx-auto w-full max-w-4xl text-center space-y-5 my-auto py-6 sm:py-10">
+          {/* Trust Badge */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-black/60 px-4 py-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 backdrop-blur-xl shadow-xl">
+            <ShieldCheck size={15} className="shrink-0" />
+            <span>{currentSlide.badge}</span>
+          </div>
+
+          {/* Main Headline */}
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.12] tracking-tight text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.9)]">
+            <span>{currentSlide.headlinePrefix} </span>
+            <span className={cn(
+              "transition-colors duration-500",
+              currentSlide.highlightTone === 'orange'
+                ? "text-[#fb923c] drop-shadow-[0_0_35px_rgba(249,134,4,0.6)]"
+                : "text-emerald-400 drop-shadow-[0_0_35px_rgba(8,126,57,0.6)]"
+            )}>
+              {currentSlide.headlineHighlight}
+            </span>
+            <br className="hidden sm:inline" />
+            <span className="text-zinc-300"> {currentSlide.headlineSuffix}</span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-sm sm:text-lg leading-relaxed text-zinc-200 max-w-2xl mx-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] font-medium">
+            {currentSlide.subtitle}
+          </p>
+
+          {/* Floating Luxury Glass Search Bar */}
+          <form onSubmit={submitSearch} className="relative max-w-2xl mx-auto pt-2">
+            <div className="flex flex-col sm:flex-row gap-2 rounded-2xl border border-white/25 bg-black/70 p-2 sm:p-2.5 backdrop-blur-2xl shadow-2xl hover:border-emerald-400/50 transition-all">
+              <div className="flex flex-1 items-center gap-3 px-3 sm:px-4">
+                <Search size={20} className="text-zinc-400 shrink-0" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onFocus={() => setIsPaused(true)}
+                  onBlur={() => setIsPaused(false)}
+                  placeholder={currentSlide.searchPlaceholder}
+                  className="w-full bg-transparent py-2.5 sm:py-3 text-white outline-none placeholder:text-zinc-400 text-base sm:text-sm"
+                />
               </div>
-
-              {/* Trust Badge */}
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/[0.08] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-400 backdrop-blur-md">
-                <ShieldCheck size={14} className="shrink-0" />
-                <span>{currentSlide.badge}</span>
-              </div>
-
-              {/* Headline */}
-              <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold leading-[1.12] tracking-tight text-white min-h-[120px] sm:min-h-[140px] flex flex-col justify-center">
-                <span>{currentSlide.headlinePrefix}</span>
-                <span className={cn(
-                  "transition-colors duration-500",
-                  currentSlide.highlightTone === 'orange'
-                    ? "text-[#fb923c] drop-shadow-[0_0_25px_rgba(249,134,4,0.35)]"
-                    : "text-emerald-400 drop-shadow-[0_0_25px_rgba(8,126,57,0.35)]"
-                )}>
-                  {currentSlide.headlineHighlight}
-                </span>
-                <span className="text-zinc-400 text-2xl sm:text-4xl md:text-5xl">{currentSlide.headlineSuffix}</span>
-              </h1>
-
-              {/* Subtitle */}
-              <p className="text-sm sm:text-base leading-relaxed text-zinc-300 max-w-xl min-h-[48px]">
-                {currentSlide.subtitle}
-              </p>
-
-              {/* Search Bar */}
-              <form onSubmit={submitSearch} className="relative max-w-2xl">
-                <div className="flex flex-col gap-2 rounded-2xl border border-white/15 bg-black/40 p-2 backdrop-blur-xl sm:flex-row hover:border-white/25 transition-colors shadow-2xl">
-                  <div className="flex flex-1 items-center gap-3 px-3 sm:px-4">
-                    <Search size={18} className="text-zinc-400 shrink-0" />
-                    <input
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      onFocus={() => setIsPaused(true)}
-                      onBlur={() => setIsPaused(false)}
-                      placeholder={currentSlide.searchPlaceholder}
-                      className="w-full bg-transparent py-2.5 sm:py-3 text-white outline-none placeholder:text-zinc-500 text-base sm:text-sm"
-                    />
-                  </div>
-                  <Button
-                    variant="primary"
-                    className="w-full sm:w-auto rounded-xl px-7 py-3 font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95 shadow-lg shadow-emerald-500/25 text-sm"
-                  >
-                    Search
-                  </Button>
-                </div>
-
-                {/* Popular Tags */}
-                <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar py-1 sm:flex-wrap text-xs text-zinc-400">
-                  <span className="font-semibold text-zinc-500 shrink-0">Popular:</span>
-                  {currentSlide.popularTags.map((term) => (
-                    <button
-                      key={term}
-                      type="button"
-                      onClick={() => {
-                        setQuery(term);
-                        onExplore(term);
-                      }}
-                      className="shrink-0 rounded-lg bg-black/40 border border-white/10 px-2.5 py-1 text-zinc-300 hover:text-emerald-400 hover:border-emerald-500/30 transition-all backdrop-blur-sm"
-                    >
-                      {term}
-                    </button>
-                  ))}
-                </div>
-              </form>
-
-              {/* Slide Controls & Trust Stats */}
-              <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-white/10">
-                {/* Carousel Navigation Buttons & Indicators */}
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setActiveSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
-                      aria-label="Previous category"
-                      className="h-9 w-9 rounded-full bg-black/50 border border-white/15 text-zinc-300 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all cursor-pointer backdrop-blur-md"
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
-                      aria-label="Next category"
-                      className="h-9 w-9 rounded-full bg-black/50 border border-white/15 text-zinc-300 hover:text-white hover:bg-white/10 flex items-center justify-center transition-all cursor-pointer backdrop-blur-md"
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-
-                  {/* Indicators */}
-                  <div className="flex items-center gap-1.5">
-                    {HERO_SLIDES.map((_, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setActiveSlide(idx)}
-                        aria-label={`Slide ${idx + 1}`}
-                        className={cn(
-                          "h-1.5 rounded-full transition-all duration-300 cursor-pointer",
-                          activeSlide === idx
-                            ? "w-7 bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.6)]"
-                            : "w-2 bg-white/20 hover:bg-white/40"
-                        )}
-                      />
-                    ))}
-                  </div>
-
-                  <span className="text-[11px] text-zinc-500 font-mono pl-1">
-                    0{activeSlide + 1} / 0{HERO_SLIDES.length}
-                  </span>
-                </div>
-
-                {/* Trust Stats */}
-                <div className="flex items-center gap-4 sm:gap-6 text-left">
-                  {[
-                    { value: totalListings > 0 ? `${totalListings}+` : '1,200+', label: 'Verified' },
-                    { value: '99.4%', label: 'UPI Accuracy' },
-                    { value: 'Escrow', label: 'Protected' },
-                  ].map(({ value, label }) => (
-                    <div key={label} className="flex flex-col">
-                      <span className="text-sm sm:text-base font-bold text-white leading-tight">{value}</span>
-                      <span className="text-[10px] text-zinc-400 leading-tight">{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
+              <Button
+                variant="primary"
+                className="w-full sm:w-auto rounded-xl px-8 py-3 font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95 shadow-lg shadow-emerald-500/30 text-sm cursor-pointer"
+              >
+                Search
+              </Button>
             </div>
 
-            {/* Right Column: Floating Frosted Glass Spotlight Dossier Card */}
-            <div className="hidden lg:block lg:col-span-5">
-              <div className="relative group">
-                {/* Glow behind card */}
-                <div className={cn(
-                  "absolute -inset-1 rounded-3xl blur-2xl opacity-40 transition-all duration-700",
-                  currentSlide.highlightTone === 'orange' ? "bg-[#f98604]/30" : "bg-emerald-500/30"
-                )} />
+            {/* Popular Search Chips */}
+            <div className="mt-3 flex items-center justify-center gap-2 overflow-x-auto no-scrollbar py-1 flex-wrap text-xs text-zinc-300">
+              <span className="font-semibold text-zinc-400 shrink-0">Popular:</span>
+              {currentSlide.popularTags.map((term) => (
+                <button
+                  key={term}
+                  type="button"
+                  onClick={() => {
+                    setQuery(term);
+                    onExplore(term);
+                  }}
+                  className="shrink-0 rounded-lg bg-black/60 border border-white/15 px-3 py-1 text-zinc-300 hover:text-emerald-300 hover:border-emerald-400/40 hover:bg-black/80 transition-all backdrop-blur-md cursor-pointer"
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+          </form>
+        </div>
 
-                {/* Dossier Card */}
-                <div className="relative rounded-3xl border border-white/20 bg-black/50 p-6 backdrop-blur-2xl shadow-2xl space-y-5 transition-all">
-                  {/* Card Header */}
-                  <div className="flex items-center justify-between">
-                    <div className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] border border-white/10 px-3 py-1 text-[10px] font-bold tracking-widest text-zinc-300 uppercase">
-                      <Sparkles size={12} className={currentSlide.highlightTone === 'orange' ? "text-[#fb923c]" : "text-emerald-400"} />
-                      <span>{currentSlide.spotlight.category}</span>
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
-                      <BadgeCheck size={12} /> {currentSlide.spotlight.badge}
-                    </span>
-                  </div>
+        {/* BOTTOM ROW: Panoramic Floating Glass Asset Dossier & Controls */}
+        <div className="mx-auto max-w-7xl w-full pt-4">
+          <div className="rounded-2xl border border-white/20 bg-black/60 p-4 sm:p-5 backdrop-blur-2xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            {/* Active Asset Showcase Info */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5 w-full md:w-auto">
+              <div className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 px-3 py-1.5 text-xs font-bold text-emerald-400 uppercase tracking-wider shrink-0">
+                <BadgeCheck size={15} />
+                <span>{currentSlide.spotlight.badge}</span>
+              </div>
+              
+              <div className="space-y-0.5 text-left">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] uppercase font-bold tracking-widest text-zinc-400">{currentSlide.spotlight.category}</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="text-xs text-emerald-400 font-semibold">{currentSlide.spotlight.tag}</span>
+                </div>
+                <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2">
+                  <span>{currentSlide.spotlight.title}</span>
+                  <span className="text-xs font-normal text-zinc-400">({currentSlide.spotlight.location})</span>
+                </h3>
+              </div>
 
-                  {/* Card Image preview */}
-                  <div className="relative h-44 w-full rounded-2xl overflow-hidden border border-white/10 group-hover:border-white/20 transition-all">
-                    <img
-                      src={currentSlide.image}
-                      alt={currentSlide.spotlight.title}
-                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                    <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
-                      <span className="text-xs font-semibold text-white bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/15">
-                        {currentSlide.spotlight.tag}
-                      </span>
-                    </div>
-                  </div>
+              {/* Specs Pills */}
+              <div className="hidden lg:flex items-center gap-2">
+                {currentSlide.spotlight.specs.map((s, i) => (
+                  <span key={i} className="text-xs font-medium text-zinc-300 bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">
+                    {s.value}
+                  </span>
+                ))}
+              </div>
+            </div>
 
-                  {/* Asset Details */}
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-bold text-white tracking-tight leading-snug">
-                      {currentSlide.spotlight.title}
-                    </h3>
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                      <MapPin size={13} className="text-emerald-400 shrink-0" />
-                      <span>{currentSlide.spotlight.location}</span>
-                    </div>
-                  </div>
-
-                  {/* Specs Grid */}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    {currentSlide.spotlight.specs.map((spec, sIdx) => (
-                      <div
-                        key={sIdx}
-                        className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-left backdrop-blur-sm"
-                      >
-                        <span className="block text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
-                          {spec.label}
-                        </span>
-                        <span className="block text-xs font-semibold text-zinc-200 mt-0.5 truncate">
-                          {spec.value}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Price & Action Row */}
-                  <div className="pt-3 border-t border-white/10 flex items-center justify-between">
-                    <div>
-                      <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                        Indicative Value
-                      </span>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-lg font-extrabold text-white">
-                          {currentSlide.spotlight.priceRwf}
-                        </span>
-                        <span className="text-xs text-zinc-500">
-                          ({currentSlide.spotlight.priceUsd})
-                        </span>
-                      </div>
-                    </div>
-
-                    <Button
-                      variant="primary"
-                      onClick={() => onExplore(currentSlide.query)}
-                      className={cn(
-                        "rounded-xl px-4 py-2.5 text-xs font-bold text-white transition-all shadow-lg flex items-center gap-1.5 cursor-pointer",
-                        currentSlide.highlightTone === 'orange'
-                          ? "bg-[#f98604] hover:bg-[#db6803] shadow-[#f98604]/25"
-                          : "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/25"
-                      )}
-                    >
-                      <span>Explore {currentSlide.pillLabel}</span>
-                      <ArrowRight size={14} />
-                    </Button>
-                  </div>
+            {/* Price, Explore CTA & Carousel Controls */}
+            <div className="flex items-center justify-between md:justify-end gap-4 w-full md:w-auto border-t md:border-t-0 border-white/10 pt-3 md:pt-0">
+              {/* Indicative Value */}
+              <div className="text-left md:text-right">
+                <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Indicative Value</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-base sm:text-lg font-extrabold text-white">{currentSlide.spotlight.priceRwf}</span>
+                  <span className="text-[11px] text-zinc-400">({currentSlide.spotlight.priceUsd})</span>
                 </div>
               </div>
+
+              {/* Explore Button */}
+              <Button
+                variant="primary"
+                onClick={() => onExplore(currentSlide.query)}
+                className={cn(
+                  "rounded-xl px-4 py-2.5 text-xs font-bold text-white transition-all shadow-lg flex items-center gap-1.5 cursor-pointer shrink-0",
+                  currentSlide.highlightTone === 'orange'
+                    ? "bg-[#f98604] hover:bg-[#db6803] shadow-[#f98604]/30"
+                    : "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/30"
+                )}
+              >
+                <span>Explore</span>
+                <ArrowRight size={14} />
+              </Button>
+
+              {/* Prev / Next Controls */}
+              <div className="flex items-center gap-2 pl-2 border-l border-white/15">
+                <button
+                  type="button"
+                  onClick={() => setActiveSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
+                  aria-label="Previous slide"
+                  className="h-9 w-9 rounded-full bg-white/10 border border-white/15 text-zinc-200 hover:text-white hover:bg-white/20 flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
+                  aria-label="Next slide"
+                  className="h-9 w-9 rounded-full bg-white/10 border border-white/15 text-zinc-200 hover:text-white hover:bg-white/20 flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <ChevronRight size={16} />
+                </button>
+
+                {/* Counter */}
+                <span className="text-xs text-zinc-400 font-mono px-1">
+                  0{activeSlide + 1}/0{HERO_SLIDES.length}
+                </span>
+              </div>
+
             </div>
 
           </div>
         </div>
 
-        {/* Scroll indicator */}
-        <div className="hidden sm:flex absolute bottom-4 left-1/2 -translate-x-1/2 flex-col items-center gap-1 text-zinc-600 animate-bounce pointer-events-none">
-          <ChevronDown size={18} />
+        {/* Subtle scroll indicator */}
+        <div className="hidden sm:flex absolute bottom-2 left-1/2 -translate-x-1/2 flex-col items-center text-zinc-500 animate-bounce pointer-events-none">
+          <ChevronDown size={16} />
         </div>
       </section>
 
