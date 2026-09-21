@@ -117,9 +117,9 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
         {/* Background treatment */}
         <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-b from-[#05070b] via-[#071210] to-[#05070b]" />
-          <div className="absolute top-20 left-1/4 h-[350px] w-[350px] sm:h-[500px] sm:w-[500px] rounded-full bg-emerald-500/[0.04] blur-[150px]" />
-          <div className="absolute bottom-20 right-1/4 h-[300px] w-[300px] sm:h-[400px] sm:w-[400px] rounded-full bg-emerald-600/[0.03] blur-[130px]" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[450px] w-[450px] sm:h-[600px] sm:w-[600px] rounded-full bg-emerald-500/[0.02] blur-[200px]" />
+          <div className="absolute top-20 left-1/4 h-[350px] w-[350px] sm:h-[500px] sm:w-[500px] rounded-full bg-emerald-500/[0.05] blur-[150px]" />
+          <div className="absolute bottom-20 right-1/4 h-[300px] w-[300px] sm:h-[400px] sm:w-[400px] rounded-full bg-[#f98604]/[0.04] blur-[140px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[450px] w-[450px] sm:h-[600px] sm:w-[600px] rounded-full bg-emerald-600/[0.02] blur-[200px]" />
         </div>
 
         <div className="mx-auto max-w-7xl w-full">

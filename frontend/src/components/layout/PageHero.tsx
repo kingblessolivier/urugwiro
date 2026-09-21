@@ -8,10 +8,10 @@ interface PageHeroProps {
 
 export const PageHero: React.FC<PageHeroProps> = ({ eyebrow, title, description }) => (
   <section className="relative overflow-hidden border-b border-white/[0.06]">
-    {/* Ambient glow */}
+    {/* Ambient glow matching logo green and sun orange */}
     <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-      <div className="absolute top-0 left-1/3 h-80 w-80 rounded-full bg-emerald-500/[0.04] blur-[100px]" />
-      <div className="absolute bottom-0 right-1/4 h-60 w-60 rounded-full bg-emerald-500/[0.03] blur-[80px]" />
+      <div className="absolute top-0 left-1/3 h-80 w-80 rounded-full bg-emerald-500/[0.05] blur-[110px]" />
+      <div className="absolute bottom-0 right-1/4 h-72 w-72 rounded-full bg-[#f98604]/[0.05] blur-[100px]" />
     </div>
 
     <div className="mx-auto max-w-7xl px-5 pt-32 pb-16 lg:px-8 lg:pt-40 lg:pb-20">

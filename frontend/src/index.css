@@ -5,11 +5,22 @@
   --color-bg-deep: #05070b;
   --color-bg-surface: #080c14;
   --color-bg-elevated: #0f1422;
-  --color-brand-emerald: #10b981;
-  --color-brand-emerald-glow: rgba(16, 185, 129, 0.2);
+  --color-brand-emerald: #087e39;
+  --color-brand-emerald-glow: rgba(8, 126, 57, 0.3);
+  --color-brand-sun: #f98604;
+  --color-brand-sun-glow: rgba(249, 134, 4, 0.3);
   --color-text-main: #ffffff;
   --color-text-muted: #9ca3af;
   --color-text-dim: #6b7280;
+
+  /* Official Urugwiro Logo Brand Palette */
+  --color-logo-green: #087e39;
+  --color-logo-green-deep: #037233;
+  --color-logo-green-light: #0ea349;
+  --color-logo-sun: #f98604;
+  --color-logo-sun-light: #fb923c;
+  --color-logo-sun-deep: #db6803;
+  --color-logo-navy: #18273a;
 
   /* Luxury Transitions */
   --transition-luxury: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);

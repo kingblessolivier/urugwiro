@@ -80,7 +80,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             {/* Ambient Background Glows */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 <div className="absolute top-1/2 right-1/4 -translate-y-1/2 h-[350px] w-[350px] sm:h-[500px] sm:w-[500px] rounded-full bg-emerald-500/[0.06] blur-[140px]" />
-                <div className="absolute bottom-10 left-1/4 h-[280px] w-[280px] sm:h-[400px] sm:w-[400px] rounded-full bg-blue-500/[0.04] blur-[140px]" />
+                <div className="absolute bottom-10 left-1/4 h-[280px] w-[280px] sm:h-[400px] sm:w-[400px] rounded-full bg-[#f98604]/[0.05] blur-[140px]" />
             </div>
 
             {/* Split Luxury Container (80% Width on Desktop) */}
