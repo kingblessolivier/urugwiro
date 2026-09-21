@@ -1,0 +1,264 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}About Us - Urugwiro Properties{% endblock %}
+
+{% block content %}
+<style>
+    :root{--primary:#2D5A27;--primary-dark:#1e7e34;--primary-light:#d4edda;--secondary:#2f4f4f;--accent:#20c997;--radius:16px;--transition:all .4s cubic-bezier(.4,0,.2,1)}
+
+    .about-hero{margin-top:76px;padding:80px 0 70px;background:linear-gradient(160deg,#1a2f2f 0%,var(--secondary) 50%,var(--primary-dark) 100%);position:relative;overflow:hidden;text-align:center;color:#fff}
+    .about-hero::before{content:'';position:absolute;width:400px;height:400px;top:-100px;right:-100px;background:radial-gradient(circle,rgba(40,167,69,.15) 0%,transparent 70%);border-radius:50%}
+    .about-hero::after{content:'';position:absolute;width:300px;height:300px;bottom:-80px;left:-80px;background:radial-gradient(circle,rgba(32,201,151,.12) 0%,transparent 70%);border-radius:50%}
+    .about-hero-inner{position:relative;z-index:2}
+    .about-hero h1{font-size:2.8rem;font-weight:800;margin-bottom:16px}
+    .about-hero p{color:rgba(255,255,255,.65);font-size:1.1rem;max-width:550px;margin:0 auto;line-height:1.7}
+
+    .sec{padding:90px 0}.sec-light{background:#f0f2f5}.sec-white{background:#fff}
+    .sec-heading{text-align:center;margin-bottom:50px}
+    .sec-tag{display:inline-flex;align-items:center;gap:6px;background:var(--primary-light);color:var(--primary-dark);padding:6px 16px;border-radius:50px;font-size:.76rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:14px}
+    .sec-title{font-size:2rem;font-weight:800;color:var(--secondary);margin-bottom:14px}
+    .sec-subtitle{color:#6c757d;font-size:1rem;max-width:520px;margin:0 auto;line-height:1.7}
+
+    .story-card{background:#fff;border-radius:var(--radius);overflow:hidden;border:1px solid #e9ecef;transition:var(--transition)}
+    .story-card:hover{box-shadow:0 16px 40px rgba(0,0,0,.08);border-color:transparent;transform:translateY(-4px)}
+    .story-img{height:280px;overflow:hidden}
+    .story-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+    .story-card:hover .story-img img{transform:scale(1.05)}
+    .story-body{padding:30px}
+    .story-body h3{font-size:1.3rem;font-weight:700;color:var(--secondary);margin-bottom:14px}
+    .story-body p{color:#6c757d;line-height:1.8;font-size:.95rem;margin:0}
+
+    .timeline{position:relative;padding:20px 0}
+    .timeline::before{content:'';position:absolute;top:0;bottom:0;left:50%;width:2px;background:#e9ecef;transform:translateX(-50%)}
+    .tl-item{position:relative;margin-bottom:40px;width:50%;padding-right:40px}
+    .tl-item:nth-child(even){margin-left:50%;padding-right:0;padding-left:40px}
+    .tl-dot{position:absolute;top:8px;width:14px;height:14px;border-radius:50%;background:var(--primary);border:3px solid #fff;box-shadow:0 0 0 3px var(--primary-light);z-index:2}
+    .tl-item:nth-child(odd) .tl-dot{right:-7px}
+    .tl-item:nth-child(even) .tl-dot{left:-7px}
+    .tl-year{display:inline-block;background:var(--primary);color:#fff;padding:4px 14px;border-radius:50px;font-size:.78rem;font-weight:700;margin-bottom:10px}
+    .tl-content{background:#fff;border-radius:12px;padding:20px;border:1px solid #e9ecef;transition:var(--transition)}
+    .tl-content:hover{box-shadow:0 8px 20px rgba(0,0,0,.06)}
+    .tl-content h4{font-size:1.05rem;font-weight:700;color:var(--secondary);margin-bottom:8px}
+    .tl-content p{font-size:.88rem;color:#6c757d;margin:0;line-height:1.6}
+
+    .val-card{background:#fff;border-radius:var(--radius);padding:28px;border:1px solid #e9ecef;transition:var(--transition);height:100%;position:relative;overflow:hidden}
+    .val-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--accent));transform:scaleX(0);transition:transform .4s ease;transform-origin:left}
+    .val-card:hover::before{transform:scaleX(1)}
+    .val-card:hover{transform:translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,.08);border-color:transparent}
+    .val-icon{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;margin-bottom:18px}
+    .val-card h4{font-size:1.05rem;font-weight:700;color:var(--secondary);margin-bottom:8px}
+    .val-card p{font-size:.88rem;color:#6c757d;line-height:1.65;margin:0}
+
+    .about-stats{background:linear-gradient(135deg,var(--secondary),var(--primary-dark));padding:60px 0;position:relative;overflow:hidden}
+    .about-stats::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="40" cy="40" r="1.5" fill="rgba(255,255,255,.04)"/></svg>');background-size:40px 40px}
+    .about-stat{text-align:center;position:relative;z-index:2;padding:20px}
+    .about-stat-val{font-size:2.4rem;font-weight:800;color:#fff;margin-bottom:4px}
+    .about-stat-lbl{color:rgba(255,255,255,.6);font-size:.85rem;font-weight:500}
+
+    .team-card{text-align:center;transition:var(--transition)}
+    .team-card:hover{transform:translateY(-8px)}
+    .team-img-wrap{position:relative;width:140px;height:140px;margin:0 auto 20px;border-radius:50%;overflow:hidden;border:4px solid #e9ecef;transition:var(--transition)}
+    .team-card:hover .team-img-wrap{border-color:var(--primary)}
+    .team-img-wrap img{width:100%;height:100%;object-fit:cover}
+    .team-card h4{font-size:1.05rem;font-weight:700;color:var(--secondary);margin-bottom:4px}
+    .team-card p{color:var(--primary);font-weight:600;font-size:.85rem;margin-bottom:12px}
+    .team-socials{display:flex;justify-content:center;gap:8px}
+    .team-socials a{width:34px;height:34px;border-radius:50%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;color:#6c757d;font-size:.85rem;transition:var(--transition);text-decoration:none}
+    .team-socials a:hover{background:var(--primary);color:#fff;transform:translateY(-2px)}
+
+    .about-cta{padding:80px 0;text-align:center}
+    .about-cta h3{font-size:1.8rem;font-weight:800;color:var(--secondary);margin-bottom:14px}
+    .about-cta p{color:#6c757d;max-width:500px;margin:0 auto 30px;line-height:1.7}
+    .btn-about-cta{display:inline-flex;align-items:center;gap:8px;background:var(--secondary);color:#fff;padding:14px 32px;border-radius:50px;font-weight:600;text-decoration:none;transition:var(--transition)}
+    .btn-about-cta:hover{background:var(--primary);transform:translateY(-3px);box-shadow:0 8px 25px rgba(40,167,69,.3);color:#fff}
+
+    .reveal{opacity:0;transform:translateY(30px);transition:opacity .6s ease,transform .6s ease}
+    .reveal.visible{opacity:1;transform:translateY(0)}
+
+    @media(max-width:768px){
+        .about-hero h1{font-size:2rem}
+        .timeline::before{left:20px}
+        .tl-item,.tl-item:nth-child(even){width:100%;padding-left:50px;padding-right:0;margin-left:0}
+        .tl-item .tl-dot,.tl-item:nth-child(even) .tl-dot{left:13px;right:auto}
+        .sec{padding:60px 0}
+        .about-stat-val{font-size:1.8rem}
+    }
+</style>
+
+<!-- Hero -->
+<section class="about-hero">
+    <div class="container">
+        <div class="about-hero-inner">
+            <h1>About Urugwiro</h1>
+            <p>Revolutionizing property management with innovative solutions for owners, tenants, and real estate professionals across Rwanda.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Our Story -->
+<section class="sec sec-light">
+    <div class="container">
+        <div class="sec-heading">
+            <div class="sec-tag"><i class="fas fa-book-open"></i> Our Story</div>
+            <h2 class="sec-title">Who We Are</h2>
+            <p class="sec-subtitle">A user-friendly platform that streamlines property management with efficiency, transparency, and innovation.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-6 reveal">
+                <div class="story-card">
+                    <div class="story-img">
+                        <img src="{% static 'images/mission.jpg' %}" alt="Our Mission" loading="lazy">
+                    </div>
+                    <div class="story-body">
+                        <h3><i class="fas fa-bullseye me-2" style="color:var(--primary)"></i>Our Mission</h3>
+                        <p>To simplify property management and create a seamless experience for everyone involved. We foster trust and transparency in real estate transactions, equipping users with essential tools for success.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 reveal">
+                <div class="story-card">
+                    <div class="story-img">
+                        <img src="{% static 'images/history.jpg' %}" alt="Our History" loading="lazy">
+                    </div>
+                    <div class="story-body">
+                        <h3><i class="fas fa-history me-2" style="color:var(--primary)"></i>Our History</h3>
+                        <p>Founded in 2020, Urugwiro bridges the gap between property management and technology. Our founders recognized the challenges faced by property owners and tenants, creating innovative solutions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Timeline -->
+<section class="sec sec-white">
+    <div class="container">
+        <div class="sec-heading">
+            <div class="sec-tag"><i class="fas fa-road"></i> Our Journey</div>
+            <h2 class="sec-title">Key Milestones</h2>
+        </div>
+        <div class="timeline">
+            <div class="tl-item reveal">
+                <div class="tl-dot"></div>
+                <div class="tl-year">2020</div>
+                <div class="tl-content">
+                    <h4>Company Founded</h4>
+                    <p>Urugwiro Properties was born from a vision to transform property management in Rwanda.</p>
+                </div>
+            </div>
+            <div class="tl-item reveal">
+                <div class="tl-dot"></div>
+                <div class="tl-year">2021</div>
+                <div class="tl-content">
+                    <h4>Platform Launch</h4>
+                    <p>Launched our digital platform with core features for property listing and tenant management.</p>
+                </div>
+            </div>
+            <div class="tl-item reveal">
+                <div class="tl-dot"></div>
+                <div class="tl-year">2022</div>
+                <div class="tl-content">
+                    <h4>Rapid Growth</h4>
+                    <p>Reached 1,000+ properties and became the fastest growing property management platform.</p>
+                </div>
+            </div>
+            <div class="tl-item reveal">
+                <div class="tl-dot"></div>
+                <div class="tl-year">2023</div>
+                <div class="tl-content">
+                    <h4>Advanced Analytics</h4>
+                    <p>Introduced market insights, secure payments, and real-time communication tools.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats -->
+<section class="about-stats">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3 col-6"><div class="about-stat reveal"><div class="about-stat-val">1,500+</div><div class="about-stat-lbl">Properties Managed</div></div></div>
+            <div class="col-md-3 col-6"><div class="about-stat reveal"><div class="about-stat-val">500+</div><div class="about-stat-lbl">Happy Clients</div></div></div>
+            <div class="col-md-3 col-6"><div class="about-stat reveal"><div class="about-stat-val">50+</div><div class="about-stat-lbl">RE Partners</div></div></div>
+            <div class="col-md-3 col-6"><div class="about-stat reveal"><div class="about-stat-val">4.8★</div><div class="about-stat-lbl">User Rating</div></div></div>
+        </div>
+    </div>
+</section>
+
+<!-- Values -->
+<section class="sec sec-light">
+    <div class="container">
+        <div class="sec-heading">
+            <div class="sec-tag"><i class="fas fa-heart"></i> Core Values</div>
+            <h2 class="sec-title">What We Stand For</h2>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6"><div class="val-card reveal"><div class="val-icon"><i class="fas fa-gem"></i></div><h4>Integrity</h4><p>We operate with honesty and transparency in all our dealings, building trust with every interaction.</p></div></div>
+            <div class="col-lg-4 col-md-6"><div class="val-card reveal"><div class="val-icon"><i class="fas fa-lightbulb"></i></div><h4>Innovation</h4><p>Continuously improving our platform with cutting-edge technology to stay ahead of the curve.</p></div></div>
+            <div class="col-lg-4 col-md-6"><div class="val-card reveal"><div class="val-icon"><i class="fas fa-users"></i></div><h4>Customer Focus</h4><p>Our users' success is our primary measure of achievement. We build for you.</p></div></div>
+            <div class="col-lg-4 col-md-6"><div class="val-card reveal"><div class="val-icon"><i class="fas fa-handshake"></i></div><h4>Collaboration</h4><p>Building strong partnerships with all stakeholders in the real estate ecosystem.</p></div></div>
+            <div class="col-lg-4 col-md-6"><div class="val-card reveal"><div class="val-icon"><i class="fas fa-shield-alt"></i></div><h4>Excellence</h4><p>Striving for the highest standards in everything we do, from code to customer care.</p></div></div>
+            <div class="col-lg-4 col-md-6"><div class="val-card reveal"><div class="val-icon"><i class="fas fa-globe-africa"></i></div><h4>Community</h4><p>Contributing to the growth and development of communities across Rwanda and beyond.</p></div></div>
+        </div>
+    </div>
+</section>
+
+<!-- Team -->
+<section class="sec sec-white">
+    <div class="container">
+        <div class="sec-heading">
+            <div class="sec-tag"><i class="fas fa-user-tie"></i> Leadership</div>
+            <h2 class="sec-title">Our Team</h2>
+            <p class="sec-subtitle">Meet the passionate professionals driving innovation in property management.</p>
+        </div>
+        <div class="row g-4 justify-content-center">
+            <div class="col-lg-4 col-md-6">
+                <div class="team-card reveal">
+                    <div class="team-img-wrap"><img src="{% static 'images/elbost.jpg' %}" alt="Elbost UZWINAYO"></div>
+                    <h4>Elbost UZWINAYO</h4>
+                    <p>CEO & Founder</p>
+                    <div class="team-socials"><a href="#"><i class="fab fa-linkedin-in"></i></a><a href="#"><i class="fab fa-twitter"></i></a><a href="#"><i class="fas fa-envelope"></i></a></div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="team-card reveal">
+                    <div class="team-img-wrap"><img src="{% static 'images/olivier.jpg' %}" alt="NSENGIMANA Olivier"></div>
+                    <h4>NSENGIMANA Olivier</h4>
+                    <p>CTO</p>
+                    <div class="team-socials"><a href="#"><i class="fab fa-linkedin-in"></i></a><a href="#"><i class="fab fa-github"></i></a><a href="#"><i class="fas fa-envelope"></i></a></div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="team-card reveal">
+                    <div class="team-img-wrap"><img src="{% static 'images/ismail.jpg' %}" alt="GIHOZO Ismail"></div>
+                    <h4>GIHOZO Ismail</h4>
+                    <p>Head of Operations</p>
+                    <div class="team-socials"><a href="#"><i class="fab fa-linkedin-in"></i></a><a href="#"><i class="fab fa-twitter"></i></a><a href="#"><i class="fas fa-envelope"></i></a></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="about-cta sec-light">
+    <div class="container">
+        <h3>Join Us on Our Journey!</h3>
+        <p>We're always looking for fresh talent and innovative ideas. If you're passionate about property management and technology, get in touch!</p>
+        <a href="{% url 'contact' %}" class="btn-about-cta"><i class="fas fa-envelope"></i> Contact Us</a>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const reveals = document.querySelectorAll('.reveal');
+    const obs = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible') });
+    }, {threshold:.1});
+    reveals.forEach(el => obs.observe(el));
+});
+</script>
+{% endblock %}
+

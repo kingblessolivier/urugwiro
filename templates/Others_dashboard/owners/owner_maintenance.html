@@ -1,0 +1,93 @@
+{% extends 'Others_dashboard/owners/owner_base.html' %}
+
+{% block title %}Maintenance Requests | Owner{% endblock %}
+{% block topbar_title %}Maintenance Requests{% endblock %}
+{% block breadcrumb %}<a href="{% url 'owner_dashboard' user.id %}">Home</a> / Maintenance{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <h4 style="display:flex;align-items:center;gap:10px;margin:0">
+        <span class="material-symbols-outlined" style="color:var(--md-sys-color-primary)">build</span>
+        Maintenance Requests
+    </h4>
+</div>
+
+<!-- Stats -->
+<div class="m3-metrics mb-4" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+    <div class="m3-metric">
+        <div class="m3-metric-icon m3-icon-primary"><span class="material-symbols-outlined">list</span></div>
+        <div><div class="m3-metric-val">{{ maintenance_requests|length }}</div><div class="m3-metric-label">Total</div></div>
+    </div>
+    <div class="m3-metric">
+        <div class="m3-metric-icon m3-icon-warning"><span class="material-symbols-outlined">warning</span></div>
+        <div>
+            <div class="m3-metric-val">{% with open_count=0 %}{{ maintenance_requests|length }}{% endwith %}</div>
+            <div class="m3-metric-label">Properties</div>
+        </div>
+    </div>
+</div>
+
+<div class="m3-card">
+    <div class="m3-card-header">
+        <h5><span class="material-symbols-outlined">assignment</span>Requests for Your Properties</h5>
+    </div>
+    <div class="m3-card-body" style="padding:0">
+        {% if maintenance_requests %}
+        {% for req in maintenance_requests %}
+        <div class="d-flex align-items-center gap-3 px-4 py-3 flex-wrap" style="border-bottom:1px solid var(--md-sys-color-outline-variant)">
+            <!-- Icon -->
+            <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--md-sys-color-secondary),var(--md-sys-color-tertiary));color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <span class="material-symbols-outlined" style="font-size:20px">build</span>
+            </div>
+
+            <!-- Info -->
+            <div style="flex:1;min-width:200px">
+                <div style="font:500 .95rem/1.3 Inter,sans-serif;color:var(--md-sys-color-on-surface)">{{ req.title }}</div>
+                <div style="font:var(--md-sys-typescale-body-small);color:var(--md-sys-color-on-surface-variant);margin-top:2px">
+                    <span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle">apartment</span> {{ req.property.name }}
+                    &nbsp;·&nbsp;
+                    <span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle">person</span> {{ req.tenant.name }}
+                </div>
+                <div style="font:var(--md-sys-typescale-label-small);color:var(--md-sys-color-on-surface-variant);margin-top:3px">
+                    Submitted: {{ req.request_date|date:"M j, Y" }}
+                    {% if req.completion_date %} · Completed: {{ req.completion_date|date:"M j, Y" }}{% endif %}
+                </div>
+                {% if req.description %}
+                <div style="font:var(--md-sys-typescale-body-small);color:var(--md-sys-color-on-surface-variant);margin-top:4px">{{ req.description|truncatechars:120 }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Status badge + update form -->
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                {% if req.status == 'open' %}
+                <span class="m3-badge" style="background:var(--md-sys-color-error-container);color:var(--md-sys-color-on-error-container);padding:4px 10px;border-radius:999px;font:600 .75rem/1 Inter,sans-serif">Open</span>
+                {% elif req.status == 'in_progress' %}
+                <span class="m3-badge" style="background:var(--md-sys-color-secondary-container);color:var(--md-sys-color-on-secondary-container);padding:4px 10px;border-radius:999px;font:600 .75rem/1 Inter,sans-serif">In Progress</span>
+                {% elif req.status == 'completed' %}
+                <span class="m3-badge" style="background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-on-tertiary-container);padding:4px 10px;border-radius:999px;font:600 .75rem/1 Inter,sans-serif">Completed</span>
+                {% endif %}
+
+                <form method="post" action="{% url 'owner_update_maintenance' user.id req.id %}" class="d-flex align-items-center gap-1">
+                    {% csrf_token %}
+                    <select name="status" class="form-select form-select-sm" style="width:130px;border-radius:8px">
+                        <option value="open" {% if req.status == 'open' %}selected{% endif %}>Open</option>
+                        <option value="in_progress" {% if req.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                        <option value="completed" {% if req.status == 'completed' %}selected{% endif %}>Completed</option>
+                    </select>
+                    <button type="submit" class="m3-btn-filled m3-btn-sm" title="Update status">
+                        <span class="material-symbols-outlined" style="font-size:16px">check</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="m3-empty">
+            <span class="material-symbols-outlined">build</span>
+            <p>No maintenance requests for your properties.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

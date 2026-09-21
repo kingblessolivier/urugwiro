@@ -1,0 +1,26 @@
+import React from 'react';
+
+export interface DashboardStat {
+  label: string;
+  value: string | number;
+  change: string;
+  trend: 'up' | 'down';
+  icon: React.ReactNode;
+}
+
+export interface ListingActivity {
+  id: string;
+  title: string;
+  views: number;
+  inquiries: number;
+  status: 'Active' | 'Pending' | 'Sold';
+  updatedAt: string;
+}
+
+export interface Notification {
+  id: string;
+  type: 'offer' | 'message' | 'system' | 'verification';
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+}

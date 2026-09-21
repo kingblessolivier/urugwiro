@@ -1,0 +1,708 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}Updates - Urugwiro Properties{% endblock %}
+
+{% block content %}
+<style>
+    /* Updates Page Styles */
+    .updates-hero {
+        background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+        color: white;
+        padding: 100px 0 80px;
+        text-align: center;
+        margin-top: 80px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .updates-hero:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: url('{% static 'images/pattern.png' %}') repeat;
+        opacity: 0.1;
+    }
+
+    .updates-hero-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .updates-hero h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .updates-hero p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    /* Updates Section */
+    .updates-section {
+        padding: 80px 0;
+        background: var(--light-bg);
+    }
+
+    .updates-header {
+        text-align: center;
+        margin-bottom: 50px;
+    }
+
+    .section-title {
+        position: relative;
+        margin-bottom: 50px;
+        font-weight: 700;
+        color: var(--secondary-color);
+    }
+
+    .section-title:after {
+        content: '';
+        position: absolute;
+        bottom: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 4px;
+        background: var(--primary-color);
+        border-radius: 2px;
+    }
+
+    .updates-filter {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 40px;
+    }
+
+    .filter-btn {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 8px 20px;
+        border-radius: 25px;
+        font-weight: 500;
+        transition: var(--transition);
+        cursor: pointer;
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+        background: var(--primary-color);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+    }
+
+    /* Update Cards */
+    .update-card {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        transition: var(--transition);
+        margin-bottom: 30px;
+        border: none;
+        height: 100%;
+    }
+
+    .update-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .update-header {
+        padding: 25px 25px 15px;
+        border-bottom: 1px solid #eaeaea;
+        position: relative;
+    }
+
+    .update-badge {
+        position: absolute;
+        top: 20px;
+        right: 25px;
+        background: var(--primary-color);
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .update-title {
+        color: var(--secondary-color);
+        font-weight: 600;
+        margin-bottom: 10px;
+        font-size: 1.3rem;
+        line-height: 1.4;
+    }
+
+    .update-meta {
+        display: flex;
+        align-items: center;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .update-meta i {
+        margin-right: 8px;
+        color: var(--primary-color);
+    }
+
+    .update-date {
+        margin-right: 20px;
+        display: flex;
+        align-items: center;
+    }
+
+    .update-body {
+        padding: 20px 25px 25px;
+    }
+
+    .update-description {
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    .update-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .update-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .tag {
+        background: rgba(40, 167, 69, 0.1);
+        color: var(--primary-color);
+        padding: 4px 12px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .btn-read-more {
+        background: var(--secondary-color);
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 5px;
+        font-weight: 500;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .btn-read-more:hover {
+        background: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Featured Update */
+    .featured-update {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        margin-bottom: 50px;
+        border: 3px solid var(--primary-color);
+        position: relative;
+    }
+
+    .featured-badge {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: var(--primary-color);
+        color: white;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-weight: 600;
+        z-index: 2;
+    }
+
+    .featured-update-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    @media (min-width: 992px) {
+        .featured-update-content {
+            flex-direction: row;
+        }
+    }
+
+    .featured-update-image {
+        flex: 1;
+        min-height: 300px;
+        background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 4rem;
+    }
+
+    .featured-update-details {
+        flex: 1;
+        padding: 30px;
+    }
+
+    .featured-update-title {
+        color: var(--secondary-color);
+        font-weight: 700;
+        font-size: 1.8rem;
+        margin-bottom: 15px;
+    }
+
+    .featured-update-meta {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        color: #6c757d;
+    }
+
+    .featured-update-description {
+        color: #555;
+        line-height: 1.7;
+        margin-bottom: 25px;
+        font-size: 1.1rem;
+    }
+
+    .btn-featured {
+        background: var(--secondary-color);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 5px;
+        font-weight: 600;
+        transition: var(--transition);
+    }
+
+    .btn-featured:hover {
+        background: var(--primary-color);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    /* No Updates State */
+    .no-updates {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: var(--shadow);
+    }
+
+    .no-updates i {
+        font-size: 4rem;
+        color: #dee2e6;
+        margin-bottom: 20px;
+    }
+
+    .no-updates h3 {
+        color: var(--secondary-color);
+        margin-bottom: 15px;
+    }
+
+    .no-updates p {
+        color: #6c757d;
+        margin-bottom: 25px;
+    }
+
+    /* Pagination */
+    .pagination-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 50px;
+    }
+
+    .pagination .page-link {
+        color: var(--secondary-color);
+        border: 1px solid #dee2e6;
+        padding: 10px 15px;
+        margin: 0 5px;
+        border-radius: 5px;
+        transition: var(--transition);
+    }
+
+    .pagination .page-link:hover {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .pagination .page-item.active .page-link {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+    }
+
+    /* Subscription Section */
+    .subscription-section {
+        background: white;
+        padding: 80px 0;
+        text-align: center;
+    }
+
+    .subscription-content {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .subscription-title {
+        color: var(--secondary-color);
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+
+    .subscription-text {
+        color: #6c757d;
+        margin-bottom: 30px;
+    }
+
+    .subscription-form {
+        display: flex;
+        max-width: 500px;
+        margin: 0 auto;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        border-radius: 50px;
+        overflow: hidden;
+    }
+
+    .subscription-form input {
+        flex: 1;
+        border: none;
+        padding: 15px 25px;
+        font-size: 1rem;
+    }
+
+    .subscription-form button {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        font-weight: 600;
+        transition: var(--transition);
+    }
+
+    .subscription-form button:hover {
+        background: #218838;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-on-scroll {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .animate-on-scroll.animated {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .updates-hero h1 {
+            font-size: 2.3rem;
+        }
+        
+        .updates-hero p {
+            font-size: 1.1rem;
+        }
+        
+        .update-header {
+            padding: 20px 20px 10px;
+        }
+        
+        .update-body {
+            padding: 15px 20px 20px;
+        }
+        
+        .update-actions {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        
+        .subscription-form {
+            flex-direction: column;
+            border-radius: 10px;
+        }
+        
+        .subscription-form input {
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .subscription-form button {
+            border-radius: 0 0 10px 10px;
+        }
+    }
+</style>
+
+<!-- Hero Section -->
+<section class="updates-hero">
+    <div class="container">
+        <div class="updates-hero-content">
+            <h1>Stay Updated</h1>
+            <p>Get the latest news, announcements, and important updates from Urugwiro Properties</p>
+        </div>
+    </div>
+</section>
+
+<!-- Updates Section -->
+<section class="updates-section">
+    <div class="container">
+        <div class="updates-header">
+            <h2 class="section-title">Latest Updates</h2>
+            <p class="text-muted">Stay informed about new features, property listings, and important announcements</p>
+        </div>
+
+        <!-- Updates Filter -->
+        <div class="updates-filter">
+            <button class="filter-btn active" data-filter="all">All Updates</button>
+            <button class="filter-btn" data-filter="announcement">Announcements</button>
+            <button class="filter-btn" data-filter="maintenance">Maintenance</button>
+            <button class="filter-btn" data-filter="feature">New Features</button>
+            <button class="filter-btn" data-filter="property">Property Listings</button>
+        </div>
+
+        <!-- Featured Update -->
+        {% if updates %}
+        <div class="featured-update animate-on-scroll">
+            <div class="featured-badge">Featured</div>
+            <div class="featured-update-content">
+                <div class="featured-update-image">
+                    <i class="bi bi-megaphone"></i>
+                </div>
+                <div class="featured-update-details">
+                    <h3 class="featured-update-title">{{ updates.0.title }}</h3>
+                    <div class="featured-update-meta">
+                        <span class="update-date">
+                            <i class="bi bi-calendar me-1"></i>
+                            {{ updates.0.created_at|date:"F j, Y" }} - {{ updates.0.end_date|date:"F j, Y" }}
+                        </span>
+                    </div>
+                    <p class="featured-update-description">{{ updates.0.description }}</p>
+                    <button class="btn-featured">
+                        <i class="bi bi-arrow-right me-2"></i>Read Full Update
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Updates Grid -->
+        <div class="row">
+            {% for update in updates %}
+            {% if forloop.counter0 > 0 %} <!-- Skip the first one as it's featured -->
+            <div class="col-lg-6 mb-4">
+                <div class="update-card animate-on-scroll">
+                    <div class="update-header">
+                        <div class="update-badge">
+                            {% if forloop.counter0 == 1 %}New{% else %}Update{% endif %}
+                        </div>
+                        <h4 class="update-title">{{ update.title }}</h4>
+                        <div class="update-meta">
+                            <span class="update-date">
+                                <i class="bi bi-calendar me-1"></i>
+                                {{ update.created_at|date:"M j, Y" }}
+                            </span>
+                            <span class="update-date">
+                                <i class="bi bi-clock me-1"></i>
+                                Until {{ update.end_date|date:"M j, Y" }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="update-body">
+                        <p class="update-description">{{ update.description }}</p>
+                        <div class="update-actions">
+                            <div class="update-tags">
+                                <span class="tag">Announcement</span>
+                                <span class="tag">Important</span>
+                            </div>
+                            <button class="btn-read-more">
+                                <i class="bi bi-arrow-right me-1"></i>Read More
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% empty %}
+            <div class="col-12">
+                <div class="no-updates animate-on-scroll">
+                    <i class="bi bi-inbox"></i>
+                    <h3>No Updates Available</h3>
+                    <p>There are no updates at the moment. Please check back later for the latest news and announcements.</p>
+                    <button class="btn btn-primary" onclick="window.location.href='{% url 'index' %}'">
+                        <i class="bi bi-house me-2"></i>Return to Home
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if updates.has_other_pages %}
+        <div class="pagination-container">
+            <nav aria-label="Updates pagination">
+                <ul class="pagination">
+                    {% if updates.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ updates.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for i in updates.paginator.page_range %}
+                    <li class="page-item {% if updates.number == i %}active{% endif %}">
+                        <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                    </li>
+                    {% endfor %}
+
+                    {% if updates.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ updates.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Subscription Section -->
+<section class="subscription-section">
+    <div class="container">
+        <div class="subscription-content animate-on-scroll">
+            <h3 class="subscription-title">Never Miss an Update</h3>
+            <p class="subscription-text">Subscribe to our newsletter and get the latest updates delivered directly to your inbox</p>
+            <form class="subscription-form">
+                <input type="email" class="form-control" placeholder="Enter your email address" required>
+                <button type="submit" class="btn">
+                    <i class="bi bi-envelope me-2"></i>Subscribe
+                </button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Scroll animation
+        const animatedElements = document.querySelectorAll('.animate-on-scroll');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animated');
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        animatedElements.forEach(element => {
+            observer.observe(element);
+        });
+
+        // Filter functionality
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const updateCards = document.querySelectorAll('.update-card');
+        
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                const filterValue = this.getAttribute('data-filter');
+                
+                // Filter updates (in a real app, this would be done server-side)
+                // For now, we'll just simulate filtering with a simple animation
+                updateCards.forEach(card => {
+                    if (filterValue === 'all') {
+                        card.style.display = 'block';
+                        setTimeout(() => {
+                            card.style.opacity = '1';
+                            card.style.transform = 'translateY(0)';
+                        }, 100);
+                    } else {
+                        card.style.opacity = '0.5';
+                        card.style.transform = 'translateY(10px)';
+                        setTimeout(() => {
+                            card.style.display = 'none';
+                        }, 300);
+                    }
+                });
+                
+                // Show message if no updates match filter
+                if (filterValue !== 'all' && updateCards.length > 0) {
+                    setTimeout(() => {
+                        const visibleCards = document.querySelectorAll('.update-card[style*="display: block"]');
+                        if (visibleCards.length === 0) {
+                            // In a real app, you would show a "no results" message
+                            console.log('No updates match the selected filter');
+                        }
+                    }, 350);
+                }
+            });
+        });
+
+        // Read more functionality
+        const readMoreButtons = document.querySelectorAll('.btn-read-more, .btn-featured');
+        readMoreButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // In a real application, this would navigate to a detailed update page
+                // For now, we'll just show an alert
+                alert('In a real application, this would open the full update details.');
+            });
+        });
+
+        // Subscription form
+        const subscriptionForm = document.querySelector('.subscription-form');
+        subscriptionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const emailInput = this.querySelector('input[type="email"]');
+            const email = emailInput.value;
+            
+            if (email) {
+                // Simulate subscription success
+                alert(`Thank you for subscribing with ${email}! You'll receive our latest updates.`);
+                emailInput.value = '';
+            }
+        });
+    });
+</script>
+
+{% endblock %}

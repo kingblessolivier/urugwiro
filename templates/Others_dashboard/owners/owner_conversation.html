@@ -1,0 +1,169 @@
+{% extends 'Others_dashboard/owners/owner_base.html' %}
+{% load static %}
+
+{% block title %}Chat with {{ contact.get_full_name|default:contact.username }} | Owner{% endblock %}
+
+{% block topbar_title %}Messages{% endblock %}
+{% block breadcrumb %}<a href="{% url 'owner_dashboard' user.id %}">Home</a> / <a href="{% url 'owner_messages' user.id %}">Messages</a> / {{ contact.get_full_name|default:contact.username }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Chat Layout ── */
+.chat-wrapper{display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:480px;border-radius:var(--md-sys-shape-corner-large);overflow:hidden;border:1px solid var(--md-sys-color-outline-variant)}
+.chat-header{display:flex;align-items:center;gap:14px;padding:14px 20px;background:var(--md-sys-color-surface-container-low);border-bottom:1px solid var(--md-sys-color-outline-variant);flex-shrink:0}
+.chat-header-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--md-sys-color-primary),var(--md-sys-color-tertiary));color:#fff;display:flex;align-items:center;justify-content:center;font:600 1.1rem/1 Inter,sans-serif;flex-shrink:0;position:relative}
+.chat-header-avatar .online-dot{position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;background:#2D5A27;border:2px solid var(--md-sys-color-surface-container-low);display:none}
+.chat-header-avatar .online-dot.show{display:block}
+.chat-header-info{flex:1;min-width:0}
+.chat-header-name{font:var(--md-sys-typescale-title-medium);color:var(--md-sys-color-on-surface)}
+.chat-header-meta{font:var(--md-sys-typescale-label-small);color:var(--md-sys-color-on-surface-variant)}
+.chat-header-meta #contactStatus{font-weight:600}
+.ws-status{font-size:.72rem;padding:3px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:4px}
+.ws-online{background:#E8F5E9;color:#2D5A27}
+.ws-offline{background:#FFF3E0;color:#E65100}
+
+/* ── Messages Area ── */
+.chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px;background:var(--md-sys-color-surface)}
+.chat-messages::-webkit-scrollbar{width:4px}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--md-sys-color-outline-variant);border-radius:4px}
+
+/* ── Bubbles ── */
+.bubble-row{display:flex;align-items:flex-end;gap:8px}
+.bubble-row.mine{flex-direction:row-reverse}
+.bubble-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 .8rem/1 Inter,sans-serif;flex-shrink:0}
+.bubble{max-width:72%;padding:10px 14px;border-radius:18px;font:var(--md-sys-typescale-body-medium);line-height:1.55;position:relative;word-break:break-word}
+.bubble.mine{background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary);border-bottom-right-radius:4px}
+.bubble.theirs{background:var(--md-sys-color-surface-container);color:var(--md-sys-color-on-surface);border-bottom-left-radius:4px}
+.bubble-time{font:var(--md-sys-typescale-label-small);color:var(--md-sys-color-on-surface-variant);margin-top:3px;padding:0 4px}
+.bubble-row.mine .bubble-time{text-align:right}
+.delete-btn{display:none;background:none;border:none;color:rgba(255,255,255,.55);cursor:pointer;padding:2px 4px;font-size:14px;line-height:1;vertical-align:middle}
+.bubble-row.mine:hover .delete-btn{display:inline-flex}
+
+/* ── Typing Indicator ── */
+.typing-indicator{display:none;align-items:center;gap:8px;padding:4px 0}
+.typing-dots{display:flex;gap:3px}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--md-sys-color-on-surface-variant);animation:typingBounce 1.2s infinite}
+.typing-dots span:nth-child(2){animation-delay:.2s}
+.typing-dots span:nth-child(3){animation-delay:.4s}
+.typing-name{font:var(--md-sys-typescale-label-small);color:var(--md-sys-color-on-surface-variant)}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+
+/* ── Compose Box ── */
+.chat-compose{border-top:1px solid var(--md-sys-color-outline-variant);padding:14px 20px;background:var(--md-sys-color-surface-container-low);flex-shrink:0}
+.chat-compose-inner{display:flex;gap:10px;align-items:flex-end}
+.chat-input{flex:1;resize:none;border:1.5px solid var(--md-sys-color-outline-variant);border-radius:22px;padding:10px 16px;font:var(--md-sys-typescale-body-medium);background:var(--md-sys-color-surface);color:var(--md-sys-color-on-surface);outline:none;transition:border-color .2s;max-height:120px;min-height:44px}
+.chat-input:focus{border-color:var(--md-sys-color-primary)}
+.chat-input::placeholder{color:var(--md-sys-color-on-surface-variant)}
+.chat-send-btn{width:44px;height:44px;border-radius:50%;background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.chat-send-btn:hover{background:var(--md-sys-color-primary);filter:brightness(1.1);transform:scale(1.05)}
+.chat-send-btn:active{transform:scale(.95)}
+
+/* ── Empty State ── */
+.chat-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin:auto;padding:40px;text-align:center;color:var(--md-sys-color-on-surface-variant)}
+.chat-empty .material-symbols-outlined{font-size:56px;opacity:.4}
+.chat-empty p{font:var(--md-sys-typescale-body-large);margin:0}
+
+/* ── Animations ── */
+@keyframes bubbleIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bubbleOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.9)}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="m3-card chat-wrapper" id="chatWrapper">
+
+    <!-- Chat Header -->
+    <div class="chat-header">
+        <a href="{% url 'owner_messages' user.id %}" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;border:1.5px solid var(--md-sys-color-outline-variant);color:var(--md-sys-color-on-surface);text-decoration:none;flex-shrink:0;transition:background .15s" onmouseover="this.style.background='var(--md-sys-color-surface-container-high)'" onmouseout="this.style.background='transparent'">
+            <span class="material-symbols-outlined" style="font-size:20px">arrow_back</span>
+        </a>
+        <div class="chat-header-avatar">
+            {{ contact.username|slice:":1"|upper }}
+            <span class="online-dot" id="onlineDot"></span>
+        </div>
+        <div class="chat-header-info">
+            <div class="chat-header-name">{{ contact.get_full_name|default:contact.username }}</div>
+            <div class="chat-header-meta">{{ contact.role }} <span id="contactStatus"></span></div>
+        </div>
+        <span class="ws-status ws-offline" id="wsStatus">
+            <span class="material-symbols-outlined" style="font-size:12px;vertical-align:middle">wifi_off</span> Connecting…
+        </span>
+    </div>
+
+    <!-- Messages Area -->
+    <div class="chat-messages" id="chatMessages">
+        <!-- Typing Indicator -->
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="bubble-avatar" style="background:linear-gradient(135deg,var(--md-sys-color-secondary),var(--md-sys-color-tertiary));color:#fff;width:30px;height:30px">
+                {{ contact.username|slice:":1"|upper }}
+            </div>
+            <div class="typing-dots"><span></span><span></span><span></span></div>
+            <span class="typing-name">typing…</span>
+        </div>
+
+        <!-- Empty State -->
+        <div class="chat-empty" id="emptyState" {% if thread_messages %}style="display:none"{% endif %}>
+            <span class="material-symbols-outlined">chat_bubble_outline</span>
+            <p>No messages yet — say hello!</p>
+        </div>
+
+        {% if thread_messages %}
+        {% for msg in thread_messages %}
+        <div class="bubble-row {% if msg.sender == user %}mine{% else %}theirs{% endif %}" id="msg-{{ msg.id }}">
+            <div class="bubble-avatar" style="background:linear-gradient(135deg,{% if msg.sender == user %}var(--md-sys-color-primary),var(--md-sys-color-tertiary){% else %}var(--md-sys-color-secondary),var(--md-sys-color-tertiary){% endif %});color:#fff">
+                {{ msg.sender.username|slice:":1"|upper }}
+            </div>
+            <div>
+                <div class="bubble {% if msg.sender == user %}mine{% else %}theirs{% endif %}">
+                    <span>{{ msg.content }}</span>
+                    {% if msg.sender == user %}
+                    <button class="delete-btn" title="Delete" onclick="window._chat._deleteMessage({{ msg.id }})">
+                        <span class="material-symbols-outlined" style="font-size:14px">delete</span>
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="bubble-time">{{ msg.sent_date|date:"M j, g:i a" }}{% if msg.sender == user %}<span class="read-tag"> · {% if msg.is_read %}Read{% else %}Sent{% endif %}</span>{% endif %}</div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Compose -->
+    <div class="chat-compose">
+        <div class="chat-compose-inner">
+            <textarea id="chatInput" class="chat-input" rows="1" placeholder="Write a message…" autocomplete="off"></textarea>
+            <button id="chatSendBtn" class="chat-send-btn" title="Send">
+                <span class="material-symbols-outlined" style="font-size:22px">send</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/chat-ws.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var ta = document.getElementById('chatInput');
+    ta.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+    var msgs = document.getElementById('chatMessages');
+    msgs.scrollTop = msgs.scrollHeight;
+
+    window._chat = new PHChat({
+        userId: {{ user.id }},
+        contactId: {{ contact.id }},
+        userAvatar: '{{ user.username|slice:":1"|upper }}',
+        contactAvatar: '{{ contact.username|slice:":1"|upper }}',
+        messagesEl: msgs,
+        inputEl: ta,
+        sendBtn: document.getElementById('chatSendBtn'),
+        statusEl: document.getElementById('wsStatus'),
+        typingEl: document.getElementById('typingIndicator'),
+        emptyEl: document.getElementById('emptyState'),
+        contactStatusEl: document.getElementById('contactStatus'),
+    });
+});
+</script>
+{% endblock %}

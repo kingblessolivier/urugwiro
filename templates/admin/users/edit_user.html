@@ -1,0 +1,79 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+
+{% block topbar_title %}Edit User{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / <a href="{% url 'admin_users' %}">Users</a> / Edit{% endblock %}
+
+{% block content %}
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="m3-card" style="max-width:800px;margin:0 auto">
+    <div class="m3-card-header" style="background:var(--md-sys-color-primary);border:none">
+        <h5 style="color:#fff;margin:0"><span class="material-symbols-outlined" style="color:#fff">edit</span> Edit User</h5>
+    </div>
+    <div class="m3-card-body" style="padding:32px">
+        <form id="editUserForm" method="POST" action="{% url 'edit_user' user.id %}" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="username" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">person</span> Username</label>
+                    <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="email" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">mail</span> Email</label>
+                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="password" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">lock</span> Password</label>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="Leave blank to keep current">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="confirmPassword" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">lock</span> Confirm Password</label>
+                    <input type="password" class="form-control" id="confirmPassword" name="confirm_password" placeholder="Confirm new password">
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="role" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">badge</span> Role</label>
+                    <select class="form-select" id="role" name="role" required>
+                        <option selected disabled>Select role</option>
+                        <option value="Admin" {% if user.role == 'Admin' %}selected{% endif %}>Admin</option>
+                        <option value="Owner" {% if user.role == 'Owner' %}selected{% endif %}>Owner</option>
+                        <option value="Tenant" {% if user.role == 'Tenant' %}selected{% endif %}>Tenant</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="joinDate" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">calendar_today</span> Join Date</label>
+                    <input type="date" class="form-control" id="joinDate" name="join_date" value="{{ user.join_date|date:'Y-m-d' }}" required>
+                </div>
+            </div>
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="isActive" name="is_active" {% if user.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="isActive">Is Active</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="isStaff" name="is_staff" {% if user.is_staff %}checked{% endif %}>
+                        <label class="form-check-label" for="isStaff">Is Staff</label>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-center gap-2">
+                <a href="{% url 'admin_users' %}" class="m3-btn-outlined"><span class="material-symbols-outlined" style="font-size:18px">arrow_back</span> Go Back</a>
+                <button type="submit" class="m3-btn-filled"><span class="material-symbols-outlined" style="font-size:18px">save</span> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

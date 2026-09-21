@@ -1,0 +1,489 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+{% load static %}
+
+{% block title %}Reports & Analytics{% endblock %}
+
+{% block topbar_title %}Reports & Analytics{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / Reports{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Page layout ─────────────────────────────────────── */
+.rep-grid{display:grid;gap:20px}
+.rep-grid-2{grid-template-columns:repeat(2,1fr)}
+.rep-grid-3{grid-template-columns:repeat(3,1fr)}
+.rep-grid-4{grid-template-columns:repeat(4,1fr)}
+
+/* ── Cards ───────────────────────────────────────────── */
+.rep-card{background:#fff;border-radius:16px;padding:20px 24px;box-shadow:0 2px 12px rgba(0,0,0,.07)}
+.rep-card-title{font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#6c757d;margin-bottom:4px}
+.rep-card-val{font-size:2rem;font-weight:800;color:#1a1a2e;line-height:1.1}
+.rep-card-sub{font-size:.8rem;color:#6c757d;margin-top:4px}
+.rep-card-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rep-card-icon .material-symbols-outlined{font-size:22px}
+
+/* KPI colour accents */
+.acc-green{background:#e8f5e9;color:#2e7d32}
+.acc-blue{background:#e3f2fd;color:#1565c0}
+.acc-amber{background:#fff8e1;color:#f57f17}
+.acc-red{background:#fce4ec;color:#c62828}
+.acc-purple{background:#f3e5f5;color:#6a1b9a}
+.acc-teal{background:#e0f2f1;color:#00695c}
+
+/* ── Section header ──────────────────────────────────── */
+.rep-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.rep-section-title{font-size:1rem;font-weight:700;color:#1a1a2e;display:flex;align-items:center;gap:8px}
+.rep-section-title .material-symbols-outlined{font-size:20px;color:var(--md-sys-color-primary,#2D5A27)}
+.rep-export-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:600;border:1.5px solid var(--md-sys-color-primary,#2D5A27);color:var(--md-sys-color-primary,#2D5A27);background:transparent;cursor:pointer;text-decoration:none;transition:.2s}
+.rep-export-btn:hover{background:var(--md-sys-color-primary,#2D5A27);color:#fff}
+
+/* ── Chart containers ────────────────────────────────── */
+.rep-chart-wrap{position:relative;height:260px}
+.rep-chart-wrap-sm{position:relative;height:200px}
+
+/* ── Top properties table ────────────────────────────── */
+.rep-table{width:100%;border-collapse:collapse}
+.rep-table th{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#6c757d;padding:6px 12px;border-bottom:2px solid #f0f0f0;text-align:left}
+.rep-table td{padding:10px 12px;font-size:.875rem;border-bottom:1px solid #f8f8f8;color:#333}
+.rep-table tr:last-child td{border-bottom:none}
+.rep-table tr:hover td{background:#fafff8}
+.rep-rank{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#e8f5e9;color:#2e7d32;font-size:.75rem;font-weight:700}
+
+/* ── Progress bars ───────────────────────────────────── */
+.rep-progress-row{margin-bottom:10px}
+.rep-progress-label{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:4px;color:#444}
+.rep-progress-track{height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden}
+.rep-progress-fill{height:100%;border-radius:4px;transition:width .8s ease}
+
+/* ── Maintenance donut legend ────────────────────────── */
+.rep-legend{display:flex;flex-direction:column;gap:8px;justify-content:center}
+.rep-legend-item{display:flex;align-items:center;gap:8px;font-size:.85rem;color:#444}
+.rep-legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+
+/* ── Date range badge ────────────────────────────────── */
+.rep-date-badge{font-size:.75rem;color:#6c757d;background:#f5f5f5;padding:3px 10px;border-radius:20px}
+
+@media(max-width:900px){
+  .rep-grid-4{grid-template-columns:repeat(2,1fr)}
+  .rep-grid-3{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:600px){
+  .rep-grid-2,.rep-grid-3,.rep-grid-4{grid-template-columns:1fr}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:1400px;margin:0 auto">
+
+  <!-- ── Page toolbar ─────────────────────────────────── -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+    <div>
+      <h1 style="font-size:1.5rem;font-weight:800;color:#1a1a2e;margin:0">Reports &amp; Analytics</h1>
+      <p style="color:#6c757d;font-size:.875rem;margin:4px 0 0">Platform overview as of {{ today }}</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="{% url 'admin_reports_export' 'payments' %}" class="rep-export-btn">
+        <span class="material-symbols-outlined" style="font-size:16px">download</span>Payments CSV
+      </a>
+      <a href="{% url 'admin_reports_export' 'properties' %}" class="rep-export-btn">
+        <span class="material-symbols-outlined" style="font-size:16px">download</span>Properties CSV
+      </a>
+      <a href="{% url 'admin_reports_export' 'tenants' %}" class="rep-export-btn">
+        <span class="material-symbols-outlined" style="font-size:16px">download</span>Tenants CSV
+      </a>
+      <a href="{% url 'admin_reports_export' 'maintenance' %}" class="rep-export-btn">
+        <span class="material-symbols-outlined" style="font-size:16px">download</span>Maintenance CSV
+      </a>
+    </div>
+  </div>
+
+  <!-- ── KPI Row ───────────────────────────────────────── -->
+  <div class="rep-grid rep-grid-4" style="margin-bottom:24px">
+    <!-- Total Revenue -->
+    <div class="rep-card" style="display:flex;align-items:flex-start;gap:16px">
+      <div class="rep-card-icon acc-green"><span class="material-symbols-outlined">payments</span></div>
+      <div>
+        <div class="rep-card-title">Total Revenue</div>
+        <div class="rep-card-val">R {{ total_revenue|floatformat:0 }}</div>
+        <div class="rep-card-sub">All-time collected</div>
+      </div>
+    </div>
+    <!-- Total Properties -->
+    <div class="rep-card" style="display:flex;align-items:flex-start;gap:16px">
+      <div class="rep-card-icon acc-blue"><span class="material-symbols-outlined">apartment</span></div>
+      <div>
+        <div class="rep-card-title">Properties</div>
+        <div class="rep-card-val">{{ total_properties }}</div>
+        <div class="rep-card-sub">{{ avail_properties }} available · {{ rented_properties }} rented</div>
+      </div>
+    </div>
+    <!-- Tenants -->
+    <div class="rep-card" style="display:flex;align-items:flex-start;gap:16px">
+      <div class="rep-card-icon acc-purple"><span class="material-symbols-outlined">people</span></div>
+      <div>
+        <div class="rep-card-title">Tenants</div>
+        <div class="rep-card-val">{{ total_tenants }}</div>
+        <div class="rep-card-sub">{{ active_leases }} active leases</div>
+      </div>
+    </div>
+    <!-- Expiring leases -->
+    <div class="rep-card" style="display:flex;align-items:flex-start;gap:16px">
+      <div class="rep-card-icon acc-amber"><span class="material-symbols-outlined">event_busy</span></div>
+      <div>
+        <div class="rep-card-title">Expiring Soon</div>
+        <div class="rep-card-val">{{ expiring_soon }}</div>
+        <div class="rep-card-sub">Leases ending within 30 days</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Second KPI row ────────────────────────────────── -->
+  <div class="rep-grid rep-grid-4" style="margin-bottom:28px">
+    <div class="rep-card" style="display:flex;align-items:flex-start;gap:16px">
+      <div class="rep-card-icon acc-teal"><span class="material-symbols-outlined">build</span></div>
+      <div>
+        <div class="rep-card-title">Maintenance</div>
+        <div class="rep-card-val">{{ maint_total }}</div>
+        <div class="rep-card-sub">{{ maint_open }} open · {{ maint_in_progress }} in progress</div>
+      </div>
+    </div>
+    <div class="rep-card" style="display:flex;align-items:flex-start;gap:16px">
+      <div class="rep-card-icon acc-green"><span class="material-symbols-outlined">real_estate_agent</span></div>
+      <div>
+        <div class="rep-card-title">Sale Properties</div>
+        <div class="rep-card-val">{{ sale_listed }}</div>
+        <div class="rep-card-sub">{{ sale_sold }} sold · {{ sale_pending }} pending</div>
+      </div>
+    </div>
+    <div class="rep-card" style="display:flex;align-items:flex-start;gap:16px">
+      <div class="rep-card-icon acc-blue"><span class="material-symbols-outlined">local_offer</span></div>
+      <div>
+        <div class="rep-card-title">Offers</div>
+        <div class="rep-card-val">{{ offers_pending }}</div>
+        <div class="rep-card-sub">{{ offers_accepted }} accepted · {{ offers_rejected }} rejected</div>
+      </div>
+    </div>
+    <div class="rep-card" style="display:flex;align-items:flex-start;gap:16px">
+      <div class="rep-card-icon acc-red"><span class="material-symbols-outlined">help</span></div>
+      <div>
+        <div class="rep-card-title">Enquiries</div>
+        <div class="rep-card-val">{{ total_enquiries }}</div>
+        <div class="rep-card-sub">{{ unread_enquiries }} unread · {{ total_visits }} visits</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Revenue chart + Top properties ───────────────── -->
+  <div class="rep-grid rep-grid-2" style="margin-bottom:24px">
+
+    <!-- Revenue over time -->
+    <div class="rep-card">
+      <div class="rep-section-header">
+        <div class="rep-section-title">
+          <span class="material-symbols-outlined">show_chart</span>Monthly Revenue
+        </div>
+        <span class="rep-date-badge">All time</span>
+      </div>
+      <div class="rep-chart-wrap">
+        <canvas id="revenueChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Top 5 properties by revenue -->
+    <div class="rep-card">
+      <div class="rep-section-header">
+        <div class="rep-section-title">
+          <span class="material-symbols-outlined">leaderboard</span>Top Properties by Revenue
+        </div>
+        <a href="{% url 'admin_reports_export' 'payments' %}" class="rep-export-btn">
+          <span class="material-symbols-outlined" style="font-size:14px">download</span>CSV
+        </a>
+      </div>
+      {% if top_properties %}
+      <table class="rep-table">
+        <thead>
+          <tr><th>#</th><th>Property</th><th style="text-align:right">Revenue (R)</th></tr>
+        </thead>
+        <tbody>
+          {% for p in top_properties %}
+          <tr>
+            <td><span class="rep-rank">{{ forloop.counter }}</span></td>
+            <td>{{ p.property__name|default:"—" }}</td>
+            <td style="text-align:right;font-weight:600;color:#2e7d32">{{ p.total|floatformat:0 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p style="color:#6c757d;text-align:center;padding:40px 0;font-size:.875rem">No payment data yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── User growth + Property types ─────────────────── -->
+  <div class="rep-grid rep-grid-2" style="margin-bottom:24px">
+
+    <!-- User growth -->
+    <div class="rep-card">
+      <div class="rep-section-header">
+        <div class="rep-section-title">
+          <span class="material-symbols-outlined">person_add</span>User Registrations
+        </div>
+        <span class="rep-date-badge">By month</span>
+      </div>
+      <div class="rep-chart-wrap">
+        <canvas id="userChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Property types donut -->
+    <div class="rep-card">
+      <div class="rep-section-header">
+        <div class="rep-section-title">
+          <span class="material-symbols-outlined">pie_chart</span>Property Types
+        </div>
+        <a href="{% url 'admin_reports_export' 'properties' %}" class="rep-export-btn">
+          <span class="material-symbols-outlined" style="font-size:14px">download</span>CSV
+        </a>
+      </div>
+      <div style="display:flex;align-items:center;gap:24px">
+        <div class="rep-chart-wrap-sm" style="flex:0 0 200px">
+          <canvas id="propTypeChart"></canvas>
+        </div>
+        <div id="propTypeLegend" class="rep-legend" style="flex:1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Maintenance + Leases breakdown ───────────────── -->
+  <div class="rep-grid rep-grid-2" style="margin-bottom:24px">
+
+    <!-- Maintenance status -->
+    <div class="rep-card">
+      <div class="rep-section-header">
+        <div class="rep-section-title">
+          <span class="material-symbols-outlined">construction</span>Maintenance Status
+        </div>
+        <a href="{% url 'admin_reports_export' 'maintenance' %}" class="rep-export-btn">
+          <span class="material-symbols-outlined" style="font-size:14px">download</span>CSV
+        </a>
+      </div>
+      <div style="display:flex;align-items:center;gap:24px">
+        <div class="rep-chart-wrap-sm" style="flex:0 0 200px">
+          <canvas id="maintChart"></canvas>
+        </div>
+        <div class="rep-legend" style="flex:1">
+          <div class="rep-legend-item"><div class="rep-legend-dot" style="background:#ef5350"></div><span>Open ({{ maint_open }})</span></div>
+          <div class="rep-legend-item"><div class="rep-legend-dot" style="background:#fb8c00"></div><span>In Progress ({{ maint_in_progress }})</span></div>
+          <div class="rep-legend-item"><div class="rep-legend-dot" style="background:#2D5A27"></div><span>Completed ({{ maint_completed }})</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leases & tenants breakdown -->
+    <div class="rep-card">
+      <div class="rep-section-header">
+        <div class="rep-section-title">
+          <span class="material-symbols-outlined">description</span>Leases Overview
+        </div>
+        <a href="{% url 'admin_reports_export' 'leases' %}" class="rep-export-btn">
+          <span class="material-symbols-outlined" style="font-size:14px">download</span>CSV
+        </a>
+      </div>
+      {% with total_leases as tl %}
+      <div class="rep-progress-row">
+        <div class="rep-progress-label"><span>Active leases</span><span>{{ active_leases }} / {{ tl }}</span></div>
+        <div class="rep-progress-track"><div class="rep-progress-fill" style="width:{% if tl %}{% widthratio active_leases tl 100 %}{% else %}0{% endif %}%;background:#2D5A27"></div></div>
+      </div>
+      <div class="rep-progress-row">
+        <div class="rep-progress-label"><span>Expiring in 30 days</span><span>{{ expiring_soon }} / {{ tl }}</span></div>
+        <div class="rep-progress-track"><div class="rep-progress-fill" style="width:{% if tl %}{% widthratio expiring_soon tl 100 %}{% else %}0{% endif %}%;background:#fb8c00"></div></div>
+      </div>
+      {% endwith %}
+      <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
+        <div style="background:#f8fff8;border-radius:12px;padding:14px 8px">
+          <div style="font-size:1.4rem;font-weight:800;color:#2e7d32">{{ total_leases }}</div>
+          <div style="font-size:.75rem;color:#6c757d;margin-top:2px">Total Leases</div>
+        </div>
+        <div style="background:#f8fff8;border-radius:12px;padding:14px 8px">
+          <div style="font-size:1.4rem;font-weight:800;color:#1565c0">{{ active_leases }}</div>
+          <div style="font-size:.75rem;color:#6c757d;margin-top:2px">Active</div>
+        </div>
+        <div style="background:#fff8e1;border-radius:12px;padding:14px 8px">
+          <div style="font-size:1.4rem;font-weight:800;color:#f57f17">{{ expiring_soon }}</div>
+          <div style="font-size:.75rem;color:#6c757d;margin-top:2px">Expiring Soon</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Marketplace summary ───────────────────────────── -->
+  <div class="rep-card" style="margin-bottom:24px">
+    <div class="rep-section-header">
+      <div class="rep-section-title">
+        <span class="material-symbols-outlined">storefront</span>Marketplace Summary
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:16px;text-align:center">
+      <div style="background:#f8fff8;border-radius:12px;padding:16px 8px">
+        <div style="font-size:1.6rem;font-weight:800;color:#2e7d32">{{ sale_listed }}</div>
+        <div style="font-size:.75rem;color:#6c757d;margin-top:4px">Listed</div>
+      </div>
+      <div style="background:#e3f2fd;border-radius:12px;padding:16px 8px">
+        <div style="font-size:1.6rem;font-weight:800;color:#1565c0">{{ sale_pending }}</div>
+        <div style="font-size:.75rem;color:#6c757d;margin-top:4px">Pending Sale</div>
+      </div>
+      <div style="background:#e8f5e9;border-radius:12px;padding:16px 8px">
+        <div style="font-size:1.6rem;font-weight:800;color:#2e7d32">{{ sale_sold }}</div>
+        <div style="font-size:.75rem;color:#6c757d;margin-top:4px">Sold</div>
+      </div>
+      <div style="background:#fff8e1;border-radius:12px;padding:16px 8px">
+        <div style="font-size:1.6rem;font-weight:800;color:#f57f17">{{ offers_pending }}</div>
+        <div style="font-size:.75rem;color:#6c757d;margin-top:4px">Offers Pending</div>
+      </div>
+      <div style="background:#e8f5e9;border-radius:12px;padding:16px 8px">
+        <div style="font-size:1.6rem;font-weight:800;color:#2e7d32">{{ offers_accepted }}</div>
+        <div style="font-size:.75rem;color:#6c757d;margin-top:4px">Offers Accepted</div>
+      </div>
+      <div style="background:#fce4ec;border-radius:12px;padding:16px 8px">
+        <div style="font-size:1.6rem;font-weight:800;color:#c62828">{{ offers_rejected }}</div>
+        <div style="font-size:.75rem;color:#6c757d;margin-top:4px">Offers Rejected</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /max-width wrapper -->
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function(){
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.color = '#6c757d';
+
+  var revenueLabels = {{ revenue_labels|safe }};
+  var revenueData   = {{ revenue_data|safe }};
+  var userLabels    = {{ user_labels|safe }};
+  var userData      = {{ user_data|safe }};
+  var propTypeLabels= {{ prop_type_labels|safe }};
+  var propTypeData  = {{ prop_type_data|safe }};
+
+  var COLORS = ['#2D5A27','#1e88e5','#fb8c00','#8e24aa','#00897b','#e53935','#6d4c41','#00acc1'];
+
+  // ── Revenue line chart ──────────────────────────────
+  var rCtx = document.getElementById('revenueChart');
+  if(rCtx){
+    new Chart(rCtx, {
+      type: 'line',
+      data: {
+        labels: revenueLabels,
+        datasets:[{
+          label: 'Revenue (R)',
+          data: revenueData,
+          borderColor: '#2D5A27',
+          backgroundColor: 'rgba(67,160,71,.12)',
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointBackgroundColor: '#2D5A27',
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{grid:{color:'rgba(0,0,0,.05)'}},
+          y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{callback:function(v){return 'R'+v.toLocaleString()}}}
+        }
+      }
+    });
+  }
+
+  // ── User growth bar chart ───────────────────────────
+  var uCtx = document.getElementById('userChart');
+  if(uCtx){
+    new Chart(uCtx, {
+      type: 'bar',
+      data: {
+        labels: userLabels,
+        datasets:[{
+          label: 'New Users',
+          data: userData,
+          backgroundColor: 'rgba(30,136,229,.75)',
+          borderRadius: 6,
+          borderSkipped: false
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{grid:{display:false}},
+          y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{stepSize:1}}
+        }
+      }
+    });
+  }
+
+  // ── Property types doughnut ─────────────────────────
+  var ptCtx = document.getElementById('propTypeChart');
+  if(ptCtx){
+    new Chart(ptCtx, {
+      type: 'doughnut',
+      data: {
+        labels: propTypeLabels,
+        datasets:[{
+          data: propTypeData,
+          backgroundColor: COLORS,
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        cutout:'68%',
+        plugins:{legend:{display:false}}
+      }
+    });
+    // Custom legend
+    var leg = document.getElementById('propTypeLegend');
+    if(leg){
+      propTypeLabels.forEach(function(label,i){
+        var item = document.createElement('div');
+        item.className = 'rep-legend-item';
+        item.innerHTML = '<div class="rep-legend-dot" style="background:'+COLORS[i%COLORS.length]+'"></div>'
+          + '<span>'+ label +' ('+ propTypeData[i] +')</span>';
+        leg.appendChild(item);
+      });
+    }
+  }
+
+  // ── Maintenance doughnut ────────────────────────────
+  var mCtx = document.getElementById('maintChart');
+  if(mCtx){
+    new Chart(mCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Open','In Progress','Completed'],
+        datasets:[{
+          data: [{{ maint_open }}, {{ maint_in_progress }}, {{ maint_completed }}],
+          backgroundColor: ['#ef5350','#fb8c00','#2D5A27'],
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        cutout:'68%',
+        plugins:{legend:{display:false}}
+      }
+    });
+  }
+
+})();
+</script>
+{% endblock %}

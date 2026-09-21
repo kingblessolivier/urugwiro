@@ -1,0 +1,779 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}Contact Us - Urugwiro Properties{% endblock %}
+
+{% block content %}
+<style>
+    /* Custom CSS Variables - Consistent with Base Template */
+    :root {
+        --primary-color: #2D5A27;
+        --secondary-color: #2f4f4f;
+        --accent-color: #20c997;
+        --light-bg: #f8f9fa;
+        --dark-text: #343a40;
+        --shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
+    }
+
+    /* Contact Page Styles */
+    .contact-hero {
+        background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+        color: white;
+        padding: 100px 0 80px;
+        margin-top: 80px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .contact-hero:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: url('{% static "images/pattern.png" %}') repeat;
+        opacity: 0.1;
+    }
+
+    .contact-hero-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .contact-hero h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .contact-hero p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    /* Contact Section */
+    .contact-section {
+        padding: 80px 0;
+        background: var(--light-bg);
+    }
+
+    .contact-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .section-title {
+        position: relative;
+        margin-bottom: 50px;
+        font-weight: 700;
+        color: var(--secondary-color);
+        text-align: center;
+    }
+
+    .section-title:after {
+        content: '';
+        position: absolute;
+        bottom: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 4px;
+        background: var(--primary-color);
+        border-radius: 2px;
+    }
+
+    /* Contact Cards */
+    .contact-card {
+        background: white;
+        border-radius: 15px;
+        padding: 40px 30px;
+        text-align: center;
+        box-shadow: var(--shadow);
+        transition: var(--transition);
+        height: 100%;
+        border: none;
+        margin-bottom: 30px;
+    }
+
+    .contact-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .contact-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 25px;
+        font-size: 2rem;
+        color: white;
+        transition: var(--transition);
+    }
+
+    .contact-card:hover .contact-icon {
+        transform: scale(1.1) rotate(5deg);
+    }
+
+    .contact-card h3 {
+        color: var(--secondary-color);
+        font-weight: 600;
+        margin-bottom: 15px;
+        font-size: 1.4rem;
+    }
+
+    .contact-card p {
+        color: #6c757d;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    .contact-link {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .contact-link:hover {
+        color: var(--secondary-color);
+        transform: translateX(5px);
+    }
+
+    /* Contact Form */
+    .contact-form-container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        margin-bottom: 30px;
+    }
+
+    .form-header {
+        background: var(--secondary-color);
+        color: white;
+        padding: 25px 30px;
+    }
+
+    .form-header h3 {
+        margin: 0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-header i {
+        margin-right: 10px;
+    }
+
+    .form-body {
+        padding: 30px;
+    }
+
+    .form-group {
+        margin-bottom: 25px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--secondary-color);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-label i {
+        margin-right: 8px;
+        color: var(--primary-color);
+    }
+
+    .form-control {
+        border: 1px solid #eaeaea;
+        border-radius: 8px;
+        padding: 12px 15px;
+        font-size: 1rem;
+        transition: var(--transition);
+        width: 100%;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+
+    .btn-submit {
+        background: var(--secondary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 30px;
+        font-weight: 600;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .btn-submit:hover {
+        background: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Contact Info */
+    .contact-info-container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: var(--shadow);
+        padding: 30px;
+        height: 100%;
+    }
+
+    .info-section {
+        margin-bottom: 30px;
+    }
+
+    .info-section h4 {
+        color: var(--secondary-color);
+        font-weight: 600;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+    }
+
+    .info-section h4 i {
+        margin-right: 10px;
+        color: var(--primary-color);
+    }
+
+    .info-item {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+
+    .info-icon {
+        background: var(--light-bg);
+        color: var(--primary-color);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+
+    .info-content {
+        flex: 1;
+    }
+
+    .info-content strong {
+        color: var(--secondary-color);
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .info-content a {
+        color: #6c757d;
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .info-content a:hover {
+        color: var(--primary-color);
+    }
+
+    /* Support Hours */
+    .hours-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .hours-list li {
+        padding: 8px 0;
+        border-bottom: 1px solid #eaeaea;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .hours-list li:last-child {
+        border-bottom: none;
+    }
+
+    .hours-list .day {
+        font-weight: 500;
+        color: var(--secondary-color);
+    }
+
+    .hours-list .time {
+        color: #6c757d;
+    }
+
+    /* Newsletter Section */
+    .newsletter-section {
+        padding: 80px 0;
+        background: white;
+        text-align: center;
+    }
+
+    .newsletter-content {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .newsletter-title {
+        color: var(--secondary-color);
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+
+    .newsletter-text {
+        color: #6c757d;
+        margin-bottom: 30px;
+    }
+
+    .newsletter-form {
+        display: flex;
+        max-width: 500px;
+        margin: 0 auto;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        border-radius: 50px;
+        overflow: hidden;
+    }
+
+    .newsletter-form input {
+        flex: 1;
+        border: none;
+        padding: 15px 25px;
+        font-size: 1rem;
+    }
+
+    .newsletter-form button {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        font-weight: 600;
+        transition: var(--transition);
+    }
+
+    .newsletter-form button:hover {
+        background: #218838;
+    }
+
+    /* Alert Styles */
+    .alert-container {
+        margin-bottom: 25px;
+    }
+
+    /* Map Section */
+    .map-section {
+        padding: 80px 0;
+        background: var(--light-bg);
+    }
+
+    .map-container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        height: 400px;
+    }
+
+    .map-placeholder {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 992px) {
+        .contact-hero h1 {
+            font-size: 2.5rem;
+        }
+        
+        .contact-card {
+            padding: 30px 20px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .contact-hero {
+            padding: 80px 0 60px;
+        }
+        
+        .contact-hero h1 {
+            font-size: 2.2rem;
+        }
+        
+        .contact-hero p {
+            font-size: 1.1rem;
+        }
+        
+        .contact-section {
+            padding: 60px 0;
+        }
+        
+        .form-body {
+            padding: 25px;
+        }
+        
+        .contact-info-container {
+            padding: 25px;
+        }
+        
+        .newsletter-form {
+            flex-direction: column;
+            border-radius: 10px;
+        }
+        
+        .newsletter-form input {
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .newsletter-form button {
+            border-radius: 0 0 10px 10px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .contact-hero h1 {
+            font-size: 2rem;
+        }
+        
+        .form-header {
+            padding: 20px 25px;
+        }
+        
+        .form-body {
+            padding: 20px;
+        }
+        
+        .contact-info-container {
+            padding: 20px;
+        }
+        
+        .info-item {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .info-icon {
+            margin-right: 0;
+            margin-bottom: 10px;
+        }
+    }
+</style>
+
+<!-- Contact Hero Section -->
+<section class="contact-hero">
+    <div class="container">
+        <div class="contact-hero-content">
+            <h1>Contact Us</h1>
+            <p>We're here to help! Get in touch with our team for any questions or inquiries about our properties and services.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section class="contact-section">
+    <div class="container contact-container">
+        <h2 class="section-title">Get in Touch</h2>
+        
+        <!-- Contact Cards -->
+        <div class="row mb-5">
+            <div class="col-md-4">
+                <div class="contact-card">
+                    <div class="contact-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h3>Email Us</h3>
+                    <p>Send us an email and we'll respond as quickly as possible</p>
+                    <a href="mailto:support@urugwiro.com" class="contact-link">
+                        support@urugwiro.com <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="contact-card">
+                    <div class="contact-icon">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <h3>Call Us</h3>
+                    <p>Speak directly with our customer support team</p>
+                    <a href="tel:+250788123456" class="contact-link">
+                        +250 788 123 456 <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="contact-card">
+                    <div class="contact-icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <h3>Visit Us</h3>
+                    <p>Come visit our office during business hours</p>
+                    <a href="#map" class="contact-link">
+                        View Location <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Contact Form -->
+            <div class="col-lg-8 mb-4">
+                <div class="contact-form-container">
+                    <div class="form-header">
+                        <h3><i class="fas fa-paper-plane"></i> Send us a Message</h3>
+                    </div>
+                    <div class="form-body">
+                        <div class="alert-container">
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-triangle{% endif %} me-2"></i>
+                                            <div>{{ message }}</div>
+                                        </div>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        
+                        <form action="customer_message" method="POST">
+                            {% csrf_token %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="name" class="form-label">
+                                            <i class="fas fa-user"></i> Full Name
+                                        </label>
+                                        <input type="text" class="form-control" id="name" name="name" placeholder="Enter your full name" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="email" class="form-label">
+                                            <i class="fas fa-envelope"></i> Email Address
+                                        </label>
+                                        <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email address" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="message" class="form-label">
+                                    <i class="fas fa-comment"></i> Your Message
+                                </label>
+                                <textarea class="form-control" id="message" name="message" rows="6" placeholder="Tell us how we can help you..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn-submit">
+                                <i class="fas fa-paper-plane me-2"></i> Send Message
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contact Information -->
+            <div class="col-lg-4">
+                <div class="contact-info-container">
+                    <div class="info-section">
+                        <h4><i class="fas fa-info-circle"></i> Contact Information</h4>
+                        <div class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div class="info-content">
+                                <strong>Email</strong>
+                                <a href="mailto:support@urugwiro.com">support@urugwiro.com</a>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <div class="info-content">
+                                <strong>Phone</strong>
+                                <a href="tel:+250788123456">+250 788 123 456</a>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <div class="info-content">
+                                <strong>Address</strong>
+                                <span>KG 123 St, Kigali Heights<br>Kigali, Rwanda</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h4><i class="fas fa-clock"></i> Support Hours</h4>
+                        <ul class="hours-list">
+                            <li>
+                                <span class="day">Monday - Friday</span>
+                                <span class="time">9:00 AM - 6:00 PM</span>
+                            </li>
+                            <li>
+                                <span class="day">Saturday</span>
+                                <span class="time">10:00 AM - 2:00 PM</span>
+                            </li>
+                            <li>
+                                <span class="day">Sunday</span>
+                                <span class="time">Closed</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h4><i class="fas fa-headset"></i> Emergency Support</h4>
+                        <p class="text-muted small">For urgent property-related issues outside business hours, please call:</p>
+                        <div class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-phone-alt"></i>
+                            </div>
+                            <div class="info-content">
+                                <strong>Emergency Line</strong>
+                                <a href="tel:+250788999999">+250 788 999 999</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Map Section -->
+<section class="map-section" id="map">
+    <div class="container">
+        <h2 class="section-title">Find Us</h2>
+        <div class="map-container">
+            <div class="map-placeholder">
+                <div class="text-center">
+                    <i class="fas fa-map-marked-alt mb-3" style="font-size: 3rem;"></i>
+                    <h4>Our Location</h4>
+                    <p>KG 123 St, Kigali Heights, Kigali, Rwanda</p>
+                    <a href="https://maps.google.com?q=KG+123+St,+Kigali+Heights,+Kigali,+Rwanda" target="_blank" class="btn btn-light mt-3">
+                        <i class="fas fa-external-link-alt me-2"></i> Open in Google Maps
+                    </a>
+                </div>
+            </div>
+            <!-- In a real application, you would embed a Google Maps iframe here -->
+            <!--
+            <iframe 
+                src="https://www.google.com/maps/embed?pb=..." 
+                width="100%" 
+                height="100%" 
+                style="border:0;" 
+                allowfullscreen="" 
+                loading="lazy">
+            </iframe>
+            -->
+        </div>
+    </div>
+</section>
+
+<!-- Newsletter Section -->
+<section class="newsletter-section">
+    <div class="container">
+        <div class="newsletter-content">
+            <h3 class="newsletter-title">Stay Updated</h3>
+            <p class="newsletter-text">Subscribe to our newsletter for the latest property listings, market insights, and company updates.</p>
+            <form action="#" method="POST" class="newsletter-form">
+                {% csrf_token %}
+                <input type="email" class="form-control" placeholder="Enter your email address" aria-label="Email address" name="email" required>
+                <button type="submit" class="btn">
+                    <i class="fas fa-paper-plane me-2"></i> Subscribe
+                </button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- JavaScript for Form Enhancement -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form validation enhancement
+        const contactForm = document.querySelector('form[action="customer_message"]');
+        if (contactForm) {
+            contactForm.addEventListener('submit', function(e) {
+                // Basic validation - in a real app, you might want more comprehensive validation
+                const name = document.getElementById('name').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const message = document.getElementById('message').value.trim();
+                
+                if (!name || !email || !message) {
+                    e.preventDefault();
+                    alert('Please fill in all required fields.');
+                    return;
+                }
+                
+                // Email validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    e.preventDefault();
+                    alert('Please enter a valid email address.');
+                    return;
+                }
+                
+                // If everything is valid, you could show a loading state here
+                const submitButton = contactForm.querySelector('button[type="submit"]');
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Sending...';
+                submitButton.disabled = true;
+            });
+        }
+        
+        // Auto-dismiss alerts after 5 seconds
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                if (alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            }, 5000);
+        });
+        
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    });
+</script>
+
+{% endblock %}

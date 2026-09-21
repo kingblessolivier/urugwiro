@@ -1,0 +1,42 @@
+{% extends 'Others_dashboard/agents/agent_base.html' %}
+{% block title %}Schedule Visit | Urugwiro{% endblock %}
+{% block topbar_title %}Schedule Site Visit{% endblock %}
+{% block breadcrumb %}<a href="{% url 'agent_dashboard' user.id %}">Home</a> / <a href="{% url 'agent_assigned_properties' user.id %}">Properties</a> / Schedule Visit{% endblock %}
+
+{% block content %}
+<!-- Page Hero -->
+<div class="m3-dash-hero m3-slide-up">
+    <div class="m3-dash-hero-inner">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2><span class="material-symbols-outlined" style="font-size:28px;vertical-align:middle">calendar_today</span> Schedule Visit</h2>
+                <p>Set up a site visit for "{{ property.title }}"</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="m3-card m3-slide-up" style="animation-delay:.15s">
+            <div class="m3-card-header"><h5><span class="material-symbols-outlined">event</span>Visit Details</h5></div>
+            <div class="m3-card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label fw-medium"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">{% if field.name == 'scheduled_date' %}schedule{% elif field.name == 'notes' %}notes{% elif field.name == 'visitor' %}person{% else %}info{% endif %}</span> {{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors.0 }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="m3-btn-filled"><span class="material-symbols-outlined">check</span>Schedule Visit</button>
+                        <a href="{% url 'agent_assigned_properties' user.id %}" class="m3-btn-outlined">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

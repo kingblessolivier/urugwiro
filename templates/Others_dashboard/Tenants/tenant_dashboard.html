@@ -1,0 +1,211 @@
+{% extends 'Others_dashboard/Tenants/tenant_base.html' %}
+
+{% block title %}Tenant Dashboard | Urugwiro{% endblock %}
+
+{% block content %}
+<!-- Dashboard Hero -->
+<div class="m3-dash-hero m3-slide-up">
+    <div class="m3-dash-hero-inner">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2>Welcome, <span>{{ user.username }}</span> 👋</h2>
+                <p>Your tenant dashboard — account overview and quick actions.</p>
+            </div>
+            {% if next_expiry %}
+            <div style="text-align:right">
+                <div style="font:var(--md-sys-typescale-label-small);color:rgba(255,255,255,.5)">Next contract expires in</div>
+                <div style="font:600 1.8rem/1 'Inter',sans-serif;color:var(--md-sys-color-inverse-primary)">{{ next_expiry.days_left }} days</div>
+                <div style="font:var(--md-sys-typescale-body-small);color:rgba(255,255,255,.45)">on {{ next_expiry.end_date|date:"F j, Y" }}</div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="m3-dash-hero-actions">
+            <a href="{% url 'tenant_properties' user.id %}" class="m3-btn-filled m3-btn-sm" style="background:var(--md-sys-color-inverse-primary);color:#0f1f14"><span class="material-symbols-outlined" style="font-size:18px">apartment</span>My Properties</a>
+            <a href="{% url 'tenant_contracts' user.id %}" class="m3-btn-outlined m3-btn-sm" style="border-color:rgba(255,255,255,.3);color:#fff"><span class="material-symbols-outlined" style="font-size:18px">description</span>Contracts</a>
+            <a href="{% url 'make_payment' %}" class="m3-btn-outlined m3-btn-sm" style="border-color:rgba(255,255,255,.3);color:#fff"><span class="material-symbols-outlined" style="font-size:18px">payments</span>Make Payment</a>
+            <a href="{% url 'tenant_profile' user.id %}" class="m3-btn-outlined m3-btn-sm" style="border-color:rgba(255,255,255,.3);color:#fff"><span class="material-symbols-outlined" style="font-size:18px">person</span>Profile</a>
+        </div>
+    </div>
+</div>
+
+<!-- Metrics -->
+<div class="m3-metrics">
+    <div class="m3-metric m3-slide-up m3-stagger-1">
+        <div class="m3-metric-icon m3-icon-primary"><span class="material-symbols-outlined">apartment</span></div>
+        <div><div class="m3-metric-val">{{ properties|length }}</div><div class="m3-metric-label">Properties</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-2">
+        <div class="m3-metric-icon m3-icon-success"><span class="material-symbols-outlined">description</span></div>
+        <div><div class="m3-metric-val">{{ leases|length }}</div><div class="m3-metric-label">Active Leases</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-3">
+        <div class="m3-metric-icon m3-icon-tertiary"><span class="material-symbols-outlined">payments</span></div>
+        <div><div class="m3-metric-val">${{ total_paid }}</div><div class="m3-metric-label">Total Paid</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-4">
+        <div class="m3-metric-icon m3-icon-warning"><span class="material-symbols-outlined">build</span></div>
+        <div><div class="m3-metric-val">{{ maintenance_requests|length }}</div><div class="m3-metric-label">Pending Requests</div></div>
+    </div>
+</div>
+
+<!-- Content Grid -->
+<div class="row g-4">
+    <!-- Properties -->
+    <div class="col-12">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">apartment</span>My Properties</h5>
+            </div>
+            <div class="m3-card-body" style="padding:0">
+                <div class="table-responsive">
+                <table class="m3-table">
+                    <thead><tr><th>Property Name</th><th>Address</th><th>Rent</th><th>Units</th></tr></thead>
+                    <tbody>
+                    {% for property in properties %}
+                    <tr>
+                        <td><strong>{{ property.name }}</strong></td>
+                        <td>{{ property.address }}</td>
+                        <td><span class="m3-badge m3-badge-success">${{ property.price }}</span></td>
+                        <td>{{ property.number_of_units }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="text-center"><div class="m3-empty"><span class="material-symbols-outlined">apartment</span><p>No properties assigned</p></div></td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payments -->
+    <div class="col-lg-8">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">account_balance</span>Payment History</h5>
+            </div>
+            <div class="m3-card-body">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <div class="m3-chart"><canvas id="paymentsChart"></canvas></div>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 style="font:var(--md-sys-typescale-title-small);color:var(--md-sys-color-on-surface);margin-bottom:12px">Recent Transactions</h6>
+                        {% for payment in payments|slice:":5" %}
+                        <div class="m3-list-item">
+                            <div>
+                                <div class="m3-list-item-title">{{ payment.date_paid|date:"M d, Y" }}</div>
+                                <div class="m3-list-item-sub">{{ payment.property.name }}</div>
+                            </div>
+                            <span class="m3-badge m3-badge-success">${{ payment.amount }}</span>
+                        </div>
+                        {% empty %}
+                        <div class="m3-empty"><span class="material-symbols-outlined">receipt_long</span><p>No payments yet</p></div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maintenance Requests -->
+    <div class="col-lg-4">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">build</span>Maintenance</h5>
+                <a href="{% url 'new_maintenance_request' user.id %}" class="m3-btn-filled m3-btn-sm"><span class="material-symbols-outlined" style="font-size:16px">add</span>New</a>
+            </div>
+            <div class="m3-card-body" style="padding:12px 24px">
+                {% for request in maintenance_requests %}
+                <div class="m3-list-item">
+                    <div style="flex:1;min-width:0">
+                        <div class="m3-list-item-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ request.description|truncatechars:30 }}</div>
+                        <div class="m3-list-item-sub">{{ request.request_date|date:"M d, Y" }}</div>
+                    </div>
+                    {% if request.status == 'open' %}
+                    <span class="m3-badge m3-badge-warning">Open</span>
+                    {% elif request.status == 'in_progress' %}
+                    <span class="m3-badge m3-badge-info">In Progress</span>
+                    {% elif request.status == 'completed' %}
+                    <span class="m3-badge m3-badge-success">Completed</span>
+                    {% else %}
+                    <span class="m3-badge m3-badge-primary">{{ request.status }}</span>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="m3-empty"><span class="material-symbols-outlined">handyman</span><p>No requests</p></div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="col-lg-6">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">mail</span>Messages</h5>
+                <a href="{% url 'tenant_messages' user.id %}" class="m3-btn-tonal m3-btn-sm">View All</a>
+            </div>
+            <div class="m3-card-body" style="padding:12px 24px">
+                {% if messages %}
+                {% for message in messages|slice:":5" %}
+                <div class="m3-list-item">
+                    <div>
+                        <div class="m3-list-item-title"><strong>{{ message.sender.username }}</strong></div>
+                        <div class="m3-list-item-sub">{{ message.content|truncatechars:50 }}</div>
+                    </div>
+                    <span class="m3-badge m3-badge-info">{{ message.sent_date|date:"M d" }}</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="m3-empty"><span class="material-symbols-outlined">mail</span><p>No messages</p></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Leases & Expiry -->
+    <div class="col-lg-6">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">event</span>Leases & Expiry</h5>
+            </div>
+            <div class="m3-card-body">
+                {% if contract_countdowns %}
+                <div class="row g-3">
+                    {% for c in contract_countdowns|slice:":6" %}
+                    <div class="col-md-6">
+                        <div class="m3-metric" style="flex-direction:column;text-align:center;padding:16px">
+                            <div style="font:var(--md-sys-typescale-label-medium);color:var(--md-sys-color-on-surface)">{{ c.lease.property.name }}</div>
+                            {% if c.days_left is not None %}
+                            <div class="m3-metric-val" style="color:{% if c.days_left < 30 %}var(--md-sys-color-error){% else %}var(--md-sys-color-primary){% endif %}">{{ c.days_left }}d</div>
+                            {% else %}
+                            <div class="m3-metric-val" style="color:var(--md-sys-color-on-surface-variant)">N/A</div>
+                            {% endif %}
+                            <div class="m3-metric-label">Ends {{ c.end_date|date:"M d, Y" }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="m3-empty"><span class="material-symbols-outlined">event_busy</span><p>No active leases</p></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+    var labels = {{ payment_labels_json|default:'[]'|safe }};
+    var amounts = {{ payment_amounts_json|default:'[]'|safe }};
+    var ctxEl = document.getElementById('paymentsChart');
+    if(!ctxEl)return;
+    new Chart(ctxEl.getContext('2d'),{
+        type:'line',
+        data:{labels:labels,datasets:[{label:'Payments (USD)',data:amounts,borderColor:'#2D5A27',backgroundColor:'rgba(40,167,69,0.08)',fill:true,tension:.4,pointRadius:5,pointBackgroundColor:'#fff',pointBorderColor:'#2D5A27',pointBorderWidth:2.5,borderWidth:2.5}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#162a1c',titleColor:'#6ddf74',bodyColor:'#fff',cornerRadius:12,padding:12}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#72796f',font:{family:'Inter'}}},x:{grid:{display:false},ticks:{color:'#72796f',font:{family:'Inter'}}}}}
+    });
+})();
+</script>
+{% endblock %}

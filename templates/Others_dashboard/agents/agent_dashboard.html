@@ -1,0 +1,193 @@
+{% extends 'Others_dashboard/agents/agent_base.html' %}
+{% block title %}Agent Dashboard | Urugwiro{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+{% block breadcrumb %}<a href="{% url 'agent_dashboard' user.id %}">Home</a> / Dashboard{% endblock %}
+
+{% block content %}
+<!-- Dashboard Hero -->
+<div class="m3-dash-hero m3-slide-up">
+    <div class="m3-dash-hero-inner">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2>Welcome back, <span>{{ agent.name }}</span> 👋</h2>
+                <p>Manage your assigned properties, site visits, and negotiations.</p>
+            </div>
+            <div class="m3-dash-hero-actions">
+                <a href="{% url 'agent_site_visits' user.id %}" class="m3-btn-filled m3-btn-sm" style="background:var(--md-sys-color-inverse-primary);color:#0f1f14"><span class="material-symbols-outlined" style="font-size:18px">calendar_today</span>My Visits</a>
+                <a href="{% url 'agent_assigned_properties' user.id %}" class="m3-btn-filled m3-btn-sm" style="background:rgba(255,255,255,.15);backdrop-filter:blur(4px)"><span class="material-symbols-outlined" style="font-size:18px">apartment</span>Properties</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Metrics -->
+<div class="m3-metrics">
+    <div class="m3-metric m3-slide-up m3-stagger-1">
+        <div class="m3-metric-icon m3-icon-primary"><span class="material-symbols-outlined">apartment</span></div>
+        <div><div class="m3-metric-val">{{ total_assigned }}</div><div class="m3-metric-label">Assigned Properties</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-2">
+        <div class="m3-metric-icon m3-icon-success"><span class="material-symbols-outlined">check_circle</span></div>
+        <div><div class="m3-metric-val">{{ active_listings }}</div><div class="m3-metric-label">Active Listings</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-3">
+        <div class="m3-metric-icon m3-icon-warning"><span class="material-symbols-outlined">handshake</span></div>
+        <div><div class="m3-metric-val">{{ under_negotiation }}</div><div class="m3-metric-label">Under Negotiation</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-4">
+        <div class="m3-metric-icon m3-icon-info"><span class="material-symbols-outlined">sell</span></div>
+        <div><div class="m3-metric-val">{{ sold }}</div><div class="m3-metric-label">Sold</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-5">
+        <div class="m3-metric-icon m3-icon-tertiary"><span class="material-symbols-outlined">star</span></div>
+        <div><div class="m3-metric-val">{{ agent.rating }}</div><div class="m3-metric-label">Rating</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-6">
+        <div class="m3-metric-icon m3-icon-secondary"><span class="material-symbols-outlined">reviews</span></div>
+        <div><div class="m3-metric-val">{{ total_reviews }}</div><div class="m3-metric-label">Reviews</div></div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">bar_chart</span>Property Status</h5>
+                <span class="m3-badge m3-badge-primary">Overview</span>
+            </div>
+            <div class="m3-card-body"><div class="m3-chart"><canvas id="propertyStatusChart"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">workspace_premium</span>Performance</h5>
+                <span class="m3-badge m3-badge-success">Stats</span>
+            </div>
+            <div class="m3-card-body"><div class="m3-chart"><canvas id="performanceChart"></canvas></div></div>
+        </div>
+    </div>
+</div>
+
+<!-- Upcoming Visits & Recent Offers -->
+<div class="row g-4 mt-0">
+    <div class="col-lg-6">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">location_on</span>Upcoming Site Visits</h5>
+                <a href="{% url 'agent_site_visits' user.id %}" class="m3-btn-text m3-btn-sm">View All<span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span></a>
+            </div>
+            <div class="m3-card-body">
+                {% if upcoming_visits %}
+                {% for v in upcoming_visits %}
+                <div class="m3-list-item">
+                    <div class="m3-list-item-icon" style="background:#E3F2FD;color:#1565C0"><span class="material-symbols-outlined">calendar_today</span></div>
+                    <div class="flex-grow-1">
+                        <div class="m3-list-item-title">{{ v.sale_property.title|truncatechars:35 }}</div>
+                        <div class="m3-list-item-sub">{{ v.scheduled_date|date:"M d, Y H:i" }}</div>
+                    </div>
+                    <span class="m3-badge m3-badge-info">{{ v.get_status_display }}</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="m3-empty">
+                    <span class="material-symbols-outlined">event_busy</span>
+                    <p>No upcoming visits</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">handshake</span>Recent Offers</h5>
+                <a href="{% url 'agent_offers' user.id %}" class="m3-btn-text m3-btn-sm">View All<span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span></a>
+            </div>
+            <div class="m3-card-body">
+                {% if recent_offers %}
+                {% for o in recent_offers %}
+                <div class="m3-list-item">
+                    <div class="m3-list-item-icon" style="background:{% if o.status == 'accepted' %}#E8F5E9{% elif o.status == 'pending' %}#FFF3E0{% elif o.status == 'rejected' %}#FFEBEE{% else %}#F5F5F5{% endif %};color:{% if o.status == 'accepted' %}#2D5A27{% elif o.status == 'pending' %}#E65100{% elif o.status == 'rejected' %}#C62828{% else %}#757575{% endif %}"><span class="material-symbols-outlined">payments</span></div>
+                    <div class="flex-grow-1">
+                        <div class="m3-list-item-title">{{ o.sale_property.title|truncatechars:25 }} — {{ o.amount|floatformat:0 }} Frw</div>
+                        <div class="m3-list-item-sub">{{ o.buyer.username }} · {{ o.created_at|date:"M d" }}</div>
+                    </div>
+                    <span class="m3-badge {% if o.status == 'accepted' %}m3-badge-success{% elif o.status == 'pending' %}m3-badge-warning{% elif o.status == 'rejected' %}m3-badge-error{% else %}m3-badge-primary{% endif %}">{{ o.get_status_display }}</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="m3-empty">
+                    <span class="material-symbols-outlined">handshake</span>
+                    <p>No offers yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assigned Properties -->
+<div class="m3-card m3-slide-up mt-4">
+    <div class="m3-card-header">
+        <h5><span class="material-symbols-outlined">apartment</span>My Assigned Properties</h5>
+        <a href="{% url 'agent_assigned_properties' user.id %}" class="m3-btn-text m3-btn-sm">View All<span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span></a>
+    </div>
+    <div class="m3-card-body">
+        {% if assigned_properties %}
+        <div class="table-responsive">
+            <table class="table m3-table">
+                <thead><tr><th>Title</th><th>Type</th><th>Price</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
+                {% for p in assigned_properties %}
+                <tr>
+                    <td><a href="{% url 'sale_property_detail' p.id %}" style="color:var(--md-sys-color-primary);font-weight:500">{{ p.title|truncatechars:30 }}</a></td>
+                    <td>{{ p.get_property_type_display }}</td>
+                    <td><strong>{{ p.price|floatformat:0 }} Frw</strong></td>
+                    <td>{{ p.city }}, {{ p.district }}</td>
+                    <td><span class="m3-badge {% if p.status == 'listed' %}m3-badge-success{% elif p.status == 'under_negotiation' %}m3-badge-warning{% elif p.status == 'sold' %}m3-badge-info{% else %}m3-badge-primary{% endif %}">{{ p.get_status_display }}</span></td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'agent_schedule_visit' user.id p.id %}" class="m3-btn-tonal m3-btn-sm" title="Schedule Visit"><span class="material-symbols-outlined" style="font-size:16px">calendar_today</span></a>
+                            <a href="{% url 'agent_upload_photos' user.id p.id %}" class="m3-btn-tonal m3-btn-sm" title="Upload Photos"><span class="material-symbols-outlined" style="font-size:16px">photo_camera</span></a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="m3-empty">
+            <span class="material-symbols-outlined">apartment</span>
+            <h5>No properties assigned yet</h5>
+            <p>The admin will assign properties to you</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var m3Green='#2D5A27', m3Teal='#20c997', m3Orange='#ff9800', m3Blue='#1565C0';
+    var chartOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#72796f',font:{family:'Inter'}}},tooltip:{backgroundColor:'#162a1c',titleColor:'#6ddf74',bodyColor:'#fff',cornerRadius:12,padding:12}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#72796f',font:{family:'Inter'}}},x:{grid:{display:false},ticks:{color:'#72796f',font:{family:'Inter'}}}}};
+
+    // Property status chart
+    new Chart(document.getElementById('propertyStatusChart'),{
+        type:'doughnut',
+        data:{labels:['Active','Negotiating','Sold'],datasets:[{data:[{{ active_listings }},{{ under_negotiation }},{{ sold }}],backgroundColor:[m3Green,m3Orange,m3Blue],borderWidth:0,borderRadius:4}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#72796f',font:{family:'Inter'},padding:16}},tooltip:{backgroundColor:'#162a1c',titleColor:'#6ddf74',bodyColor:'#fff',cornerRadius:12,padding:12}}}
+    });
+
+    // Performance chart
+    new Chart(document.getElementById('performanceChart'),{
+        type:'bar',
+        data:{labels:['Assigned','Active','Deals','Reviews'],datasets:[{label:'Count',data:[{{ total_assigned }},{{ active_listings }},{{ agent.total_deals }},{{ total_reviews }}],backgroundColor:['rgba(40,167,69,0.12)','rgba(21,101,192,0.12)','rgba(255,152,0,0.12)','rgba(32,201,151,0.12)'],borderColor:[m3Green,m3Blue,m3Orange,m3Teal],borderWidth:2,borderRadius:8}]},
+        options:chartOpts
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

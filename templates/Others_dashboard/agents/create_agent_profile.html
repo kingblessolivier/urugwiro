@@ -1,0 +1,97 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block title %}Create Agent Profile - Urugwiro{% endblock %}
+
+{% block content %}
+<style>
+    .profile-hero{background:linear-gradient(135deg,#0D47A1,#1565C0,#1976D2);padding:80px 0 60px;margin-top:76px;text-align:center;color:#fff;position:relative;overflow:hidden}
+    .profile-hero::before{content:'';position:absolute;top:-80px;right:-80px;width:300px;height:300px;background:radial-gradient(circle,rgba(255,255,255,.1) 0%,transparent 70%);border-radius:50%}
+    .profile-hero::after{content:'';position:absolute;bottom:-60px;left:-60px;width:250px;height:250px;background:radial-gradient(circle,rgba(255,255,255,.08) 0%,transparent 70%);border-radius:50%}
+    .profile-hero h1{font:800 2rem/1.2 'Inter',sans-serif;margin-bottom:8px;position:relative;z-index:1}
+    .profile-hero p{opacity:.8;font-size:1rem;position:relative;z-index:1}
+    .profile-form-card{margin-top:-40px;position:relative;z-index:2}
+    .section-label{display:flex;align-items:center;gap:8px;font:600 1rem/1 'Inter',sans-serif;color:#1565C0;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #E3F2FD}
+    .section-label .material-symbols-outlined{font-size:20px}
+</style>
+
+<div class="profile-hero">
+    <span class="material-symbols-outlined" style="font-size:48px;opacity:.9;margin-bottom:12px;display:block">badge</span>
+    <h1>Complete Your Agent Profile</h1>
+    <p>Hello {{ user.username }}! Fill in your professional details to start working as a real estate agent.</p>
+</div>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 profile-form-card">
+            {% if messages %}{% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show mb-3"><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle">{% if message.tags == 'error' %}error{% else %}info{% endif %}</span> {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            {% endfor %}{% endif %}
+
+            <div class="m3-card" style="border-radius:20px;overflow:hidden">
+                <div style="background:#E3F2FD;padding:20px 28px">
+                    <h4 style="margin:0;font-weight:700;color:#0D47A1"><span class="material-symbols-outlined" style="vertical-align:middle;margin-right:8px">assignment_ind</span>Agent Information</h4>
+                </div>
+                <div class="p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="section-label"><span class="material-symbols-outlined">person</span>Personal Details</div>
+                        <div class="row mb-2">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label fw-medium"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">badge</span> Full Name</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label fw-medium"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">email</span> Email</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.phone_number.id_for_label }}" class="form-label fw-medium"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">call</span> Phone Number</label>
+                                {{ form.phone_number }}
+                                {% if form.phone_number.errors %}<div class="text-danger small mt-1">{{ form.phone_number.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.license_number.id_for_label }}" class="form-label fw-medium"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">verified_user</span> License Number</label>
+                                {{ form.license_number }}
+                                {% if form.license_number.errors %}<div class="text-danger small mt-1">{{ form.license_number.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="section-label mt-3"><span class="material-symbols-outlined">work</span>Professional Details</div>
+                        <div class="mb-3">
+                            <label for="{{ form.specialization.id_for_label }}" class="form-label fw-medium"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">category</span> Specialization</label>
+                            {{ form.specialization }}
+                            <div class="form-text">e.g. Residential, Commercial, Land, Luxury</div>
+                            {% if form.specialization.errors %}<div class="text-danger small mt-1">{{ form.specialization.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="{{ form.bio.id_for_label }}" class="form-label fw-medium"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">description</span> Bio</label>
+                            {{ form.bio }}
+                            <div class="form-text">Tell clients about your experience and expertise</div>
+                            {% if form.bio.errors %}<div class="text-danger small mt-1">{{ form.bio.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <div class="section-label mt-3"><span class="material-symbols-outlined">photo_camera</span>Profile Photo</div>
+                        <div class="mb-3">
+                            <label for="{{ form.image.id_for_label }}" class="form-label fw-medium"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">account_circle</span> Upload Photo</label>
+                            {{ form.image }}
+                            {% if form.image.errors %}<div class="text-danger small mt-1">{{ form.image.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="m3-btn-filled" style="height:48px;font-size:1rem;background:#1565C0"><span class="material-symbols-outlined">check_circle</span>Create Agent Profile</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-3">
+                <p class="text-muted" style="font-size:.85rem"><span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">info</span> After creating your profile, you'll be able to manage assigned properties and schedule site visits.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

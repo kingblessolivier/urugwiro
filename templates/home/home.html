@@ -1,0 +1,401 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}Home - Urugwiro Ltd{% endblock %}
+
+{% block content %}
+    <!-- DISCOVERY HERO -->
+    <section class="ds-hero">
+        <div class="container">
+            <div class="ds-hero-grid">
+                <div class="ds-hero-content">
+                    <div class="ds-badge ds-badge-listed" style="margin-bottom: 24px;">
+                        <span class="material-symbols-outlined">workspace_premium</span> #1 Property Platform in Rwanda
+                    </div>
+                    <h1 class="ds-hero-title">Find Your Dream Home <em>Buy, Rent or Sell.</em></h1>
+                    <p class="ds-hero-sub">Discover the most exclusive houses, apartments, and land across Rwanda. We connect you with verified properties and trusted agents for a seamless experience.</p>
+
+                    <form class="ds-search-hub" action="{% url 'explore' %}" method="get">
+                        <span class="material-symbols-outlined" style="color:var(--md-sys-color-outline)">search</span>
+                        <input type="text" name="search" placeholder="Search houses, land, apartments..." autocomplete="off">
+                        <button type="submit" class="ds-search-btn">
+                            <span class="material-symbols-outlined">search</span> Search
+                        </button>
+                    </form>
+
+                    <div class="d-flex gap-3 mt-4">
+                        <a href="{% url 'explore' %}?type=sale" class="ds-btn ds-btn-primary">
+                            <span class="material-symbols-outlined">real_estate_agent</span> Buy Property
+                        </a>
+                        <a href="{% url 'explore' %}?type=rental" class="ds-btn ds-btn-ghost">
+                            <span class="material-symbols-outlined">apartment</span> Rent Property
+                        </a>
+                    </div>
+                </div>
+
+                <div class="ds-hero-visual">
+                    <div class="floating-card">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="ds-badge ds-badge-listed" style="margin-bottom:0">Verified Listing</div>
+                            <div class="text-muted-soft" style="font-size:0.8rem">Added 2h ago</div>
+                        </div>
+                        <img src="{% static 'images/home_hero_preview.jpg' %}" alt="Featured Property" class="img-fluid rounded-3 mb-3" onerror="this.src='https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=400&q=80'">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div style="font-weight:700; color:var(--md-sys-color-on-surface)">Luxury Villa, Kigali</div>
+                                <div class="text-muted-soft" style="font-size:0.85rem">4 Beds &bull; 3 Baths &bull; 450m²</div>
+                            </div>
+                            <div class="text-gold" style="font-weight:700; font-size:1.2rem">45M Frw</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TRUST BENTO DASHBOARD -->
+    <div class="container">
+        <div class="ds-bento">
+            <div class="ds-bento-item large">
+                <div class="ds-bento-val" data-count="1500">0</div>
+                <div class="ds-bento-lbl">Properties Managed</div>
+            </div>
+            <div class="ds-bento-item">
+                <div class="ds-bento-val" data-count="500">0</div>
+                <div class="ds-bento-lbl">Happy Clients</div>
+            </div>
+            <div class="ds-bento-item tall">
+                <span class="material-symbols-outlined" style="font-size:48px; color:var(--md-sys-color-primary); margin-bottom:16px">verified_user</span>
+                <div class="ds-bento-val" data-count="100">0%</div>
+                <div class="ds-bento-lbl">Verification Rate</div>
+            </div>
+            <div class="ds-bento-item">
+                <div class="ds-bento-val" data-count="50">0</div>
+                <div class="ds-bento-lbl">RE Partners</div>
+            </div>
+            <div class="ds-bento-item">
+                <div class="ds-bento-val" data-count="3">0</div>
+                <div class="ds-bento-lbl">Years Excellence</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DECISION HUB (The Journey) -->
+    <section class="ds-sec" style="padding:120px 0">
+        <div class="container">
+            <div class="ds-section-header">
+                <div class="badge"><span class="material-symbols-outlined">explore</span>Discovery Paths</div>
+                <h2>Your Property Journey Starts Here</h2>
+                <p>Whether you want to buy, rent, or sell — we make it simple, fast, and reliable in Rwanda.</p>
+            </div>
+            <div class="ds-path-hub">
+                <a href="{% url 'explore' %}?type=sale" class="ds-path-card primary">
+                    <div class="ds-path-content">
+                        <span class="material-symbols-outlined" style="font-size:48px; color:#fff; margin-bottom:16px">home</span>
+                        <h3>Buy a Property</h3>
+                        <p>Browse verified homes, land, and apartments available for purchase across Rwanda.</p>
+                        <span class="ds-btn ds-btn-ghost" style="color:#fff; border-color:#fff">Explore Listings <span class="material-symbols-outlined">arrow_forward</span></span>
+                    </div>
+                </a>
+                <div class="d-flex flex-column gap-4">
+                    <a href="{% url 'explore' %}?type=rental" class="ds-path-card secondary">
+                        <div class="ds-path-content">
+                            <span class="material-symbols-outlined" style="font-size:32px; color:#fff; margin-bottom:12px">apartment</span>
+                            <h3>Rent a Property</h3>
+                            <p>Quality rentals with flexible terms.</p>
+                            <span class="ds-btn ds-btn-ghost" style="color:#fff; border-color:#fff">View Rentals <span class="material-symbols-outlined">arrow_forward</span></span>
+                        </div>
+                    </a>
+                    <a href="{% url 'register' %}" class="ds-path-card tertiary">
+                        <div class="ds-path-content">
+                            <span class="material-symbols-outlined" style="font-size:32px; color:#fff; margin-bottom:12px">sell</span>
+                            <h3>Sell or List</h3>
+                            <p>Reach thousands of verified buyers.</p>
+                            <span class="ds-btn ds-btn-ghost" style="color:#fff; border-color:#fff">List Property <span class="material-symbols-outlined">arrow_forward</span></span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PROPERTY TYPE BROWSER -->
+    <section class="ds-sec" style="padding:80px 0; background:var(--md-sys-color-surface-container-low)">
+        <div class="container">
+            <div class="ds-section-header">
+                <div class="badge"><span class="material-symbols-outlined">category</span>Quick Browse</div>
+                <h2>Browse by Property Type</h2>
+                <p>Find exactly what you need — from cozy apartments to expansive land plots.</p>
+            </div>
+            <div class="row g-3">
+                {% for type, url_name, icon, label, query in property_types %}
+                <div class="col-6 col-md-4 col-lg-2">
+                    <a href="{% url 'explore' %}{% if query %}?{{ query }}{% endif %}" class="ds-btn-ghost" style="width:100%; height:auto; padding:24px 12px; flex-direction:column; border-radius:20px; text-align:center; background:#fff; border-color:var(--md-sys-color-outline-variant)">
+                        <span class="material-symbols-outlined" style="font-size:32px; margin-bottom:8px; color:var(--md-sys-color-primary)">{{ icon }}</span>
+                        <div style="font-weight:700; color:var(--md-sys-color-on-surface)">{{ type }}</div>
+                        <div style="font-size:0.7rem; color:var(--md-sys-color-on-surface-variant); text-transform:uppercase">{{ label }}</div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURED RENTALS -->
+    <div class="pagelet" data-pagelet="featured">
+        <section id="featured" class="ds-sec" style="padding:120px 0">
+            <div class="container">
+                <div class="ds-section-header">
+                    <div class="badge"><span class="material-symbols-outlined">apartment</span>Curated</div>
+                    <h2>Featured Rental Properties</h2>
+                    <p>Handpicked, verified rentals — move in ready across Rwanda's top locations.</p>
+                </div>
+                <div class="row g-4">
+                    {% for property in featured_properties %}
+                    <div class="col-lg-4 col-md-6">
+                        <div class="ds-conversion-card" style="height:100%; display:flex; flex-direction:column">
+                            <div style="position:relative; height:220px; border-radius:16px; overflow:hidden; margin-bottom:20px">
+                                {% if property.image %}<img src="{{ property.image.url }}" alt="{{ property.name }}" style="width:100%; height:100%; object-fit:cover">{% else %}<img src="{% static 'images/placeholder.jpg' %}" alt="placeholder" style="width:100%; height:100%; object-fit:cover">{% endif %}
+                                <div class="ds-badge ds-badge-listed" style="position:absolute; top:12px; left:12px">{{ property.get_types_display }}</div>
+                                <div style="position:absolute; bottom:12px; left:12px; color:#fff; font-weight:700; font-size:1.2rem; text-shadow:0 2px 8px rgba(0,0,0,0.5)">{{ property.price|floatformat:0 }} <small style="font-size:0.8rem; opacity:0.8">Frw/mo</small></div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 style="font-weight:700; color:var(--md-sys-color-on-surface); margin-bottom:8px">{{ property.name }}</h5>
+                                <div class="d-flex align-items-center gap-1 text-muted-soft" style="font-size:0.85rem; margin-bottom:16px">
+                                    <span class="material-symbols-outlined" style="font-size:16px; color:var(--md-sys-color-primary)">location_on</span> {{ property.address }}
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center" style="border-top:1px solid var(--md-sys-color-outline-variant); padding-top:16px; margin-bottom:20px">
+                                    <div class="text-center" style="flex:1">
+                                        <div style="font-weight:700; color:var(--md-sys-color-on-surface)">{% with u=property.units.first %}{{ u.bedrooms|default:"—" }}{% endwith %}</div>
+                                        <div style="font-size:0.7rem; color:var(--md-sys-color-on-surface-variant); text-transform:uppercase">Beds</div>
+                                    </div>
+                                    <div class="text-center" style="flex:1">
+                                        <div style="font-weight:700; color:var(--md-sys-color-on-surface)">{% with u=property.units.first %}{{ u.bathrooms|default:"—" }}{% endwith %}</div>
+                                        <div style="font-size:0.7rem; color:var(--md-sys-color-on-surface-variant); text-transform:uppercase">Baths</div>
+                                    </div>
+                                    <div class="text-center" style="flex:1">
+                                        <div style="font-weight:700; color:var(--md-sys-color-on-surface)">{{ property.number_of_units }}</div>
+                                        <div style="font-size:0.7rem; color:var(--md-sys-color-on-surface-variant); text-transform:uppercase">Units</div>
+                                    </div>
+                                </div>
+                                <a href="{% url 'listing_detail_pk' pk=property.id %}" class="ds-btn ds-btn-primary" style="width:100%; justify-content:center">View Details <span class="material-symbols-outlined">arrow_forward</span></a>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center py-5">
+                        <span class="material-symbols-outlined" style="font-size:48px; color:var(--md-sys-color-outline)">apartment</span>
+                        <p class="text-muted">No featured rentals available right now.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-5">
+                    <a href="{% url 'explore' %}?type=rental" class="ds-btn ds-btn-ghost">View All Rentals <span class="material-symbols-outlined">search</span></a>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- WHY URUGWIRO (The Value Grid) -->
+    <section class="ds-sec" style="padding:120px 0; background:var(--md-sys-color-surface-container-low)">
+        <div class="container">
+            <div class="ds-section-header">
+                <div class="badge"><span class="material-symbols-outlined">verified</span>The Urugwiro Standard</div>
+                <h2>Everything You Need, In One Place</h2>
+                <p>We take the stress out of property — for owners, buyers, renters, and real estate professionals.</p>
+            </div>
+            <div class="row g-4">
+                {% for icon, title, desc in value_props %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="ds-conversion-card" style="height:100%; padding:32px; text-align:center">
+                        <div class="ds-lifestyle-icon" style="margin:0 auto 20px">
+                            <span class="material-symbols-outlined" style="font-size:32px">{{ icon }}</span>
+                        </div>
+                        <h3 style="font-weight:700; color:var(--md-sys-color-on-surface); margin-bottom:12px">{{ title }}</h3>
+                        <p style="color:var(--md-sys-color-on-surface-variant); font-size:0.95rem; line-height:1.6">{{ desc }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- TRUSTED AGENTS -->
+    <div class="pagelet" data-pagelet="agents">
+        <section id="agents" class="ds-sec" style="padding:120px 0">
+            <div class="container">
+                <div class="ds-section-header">
+                    <div class="badge"><span class="material-symbols-outlined">badge</span>Professionals</div>
+                    <h2>Meet Our Trusted Agents</h2>
+                    <p>Experienced agents ready to help you buy, sell, or negotiate with full confidence.</p>
+                </div>
+                <div class="row g-4">
+                    {% for ag in featured_agents %}
+                    <div class="col-md-6 col-lg-3">
+                        <div class="ds-conversion-card" style="text-align:center; padding:32px">
+                            <div class="mb-4" style="position:relative; display:inline-block">
+                                <img src="{% if ag.image %}{{ ag.image.url }}{% else %}https://ui-avatars.com/api/?name={{ ag.name }}&background=random{% endif %}"
+                                     alt="{{ ag.name }}"
+                                     style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:4px solid var(--md-sys-color-primary)">
+                            </div>
+                            <div style="font-weight:700; color:var(--md-sys-color-on-surface); font-size:1.1rem">{{ ag.name }}</div>
+                            <div class="text-muted-soft" style="font-size:0.8rem; margin-bottom:16px; text-transform:uppercase">{{ ag.specialization|default:"Real Estate" }}</div>
+                            <div class="d-flex justify-content-center gap-1 mb-4">
+                                {% for i in "12345" %}
+                                <span class="material-symbols-outlined" style="color:#E69B2E; font-size:18px; font-variation-settings:'FILL' 1">star</span>
+                                {% endfor %}
+                                <span style="font-size:0.85rem; font-weight:600; margin-left:4px">{{ ag.rating }}</span>
+                            </div>
+                            <div class="d-flex justify-content-center gap-4 mb-4" style="font-size:0.8rem; color:var(--md-sys-color-on-surface-variant)">
+                                <div><strong style="color:var(--md-sys-color-on-surface)">{{ ag.total_deals }}</strong> Deals</div>
+                                <div><strong style="color:var(--md-sys-color-on-surface)">{{ ag.properties_count|default:"—" }}</strong> Properties</div>
+                            </div>
+                            <a href="{% url 'agent_profile_public' ag.id %}" class="ds-btn ds-btn-primary" style="width:100%; justify-content:center">View Profile <span class="material-symbols-outlined">arrow_forward</span></a>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center py-5">
+                        <p class="text-muted">Our agent network is growing. Check back soon!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-5">
+                    <a href="{% url 'agent_directory' %}" class="ds-btn ds-btn-ghost">View All Agents <span class="material-symbols-outlined">groups</span></a>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- CLIENT REVIEWS -->
+    <div class="pagelet" data-pagelet="testimonials">
+        <section id="testimonials" class="ds-sec" style="padding:120px 0; background:var(--md-sys-color-surface-container-low)">
+            <div class="container">
+                <div class="ds-section-header">
+                    <div class="badge"><span class="material-symbols-outlined">format_quote</span>Client Reviews</div>
+                    <h2>Trusted by Hundreds Across Rwanda</h2>
+                    <p>Real stories from real clients — property owners, tenants, and buyers who found their match.</p>
+                </div>
+                <div class="row g-4">
+                    {% for testimonial in testimonials %}
+                    <div class="col-lg-4">
+                        <div class="ds-conversion-card" style="height:100%; position:relative">
+                            <span class="material-symbols-outlined" style="position:absolute; top:20px; right:20px; font-size:48px; color:rgba(45,90,39,0.1)">format_quote</span>
+                            <div class="d-flex gap-1 mb-3">
+                                {% for i in "12345" %}<span class="material-symbols-outlined" style="color:#E69B2E; font-size:18px; font-variation-settings:'FILL' 1">star</span>{% endfor %}
+                            </div>
+                            <p style="font-style:italic; color:var(--md-sys-color-on-surface-variant); line-height:1.8; margin-bottom:24px">{{ testimonial.text }}</p>
+                            <div class="d-flex align-items-center gap-3">
+                                <img src="{{ testimonial.user.profile.image.url }}" alt="{{ testimonial.user.username }}" style="width:48px; height:48px; border-radius:50%; object-fit:cover">
+                                <div>
+                                    <div style="font-weight:700; color:var(--md-sys-color-on-surface)">{{ testimonial.user.get_full_name }}</div>
+                                    <div class="text-muted-soft" style="font-size:0.8rem">{{ testimonial.role }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ABOUT PREVIEW -->
+    <div class="pagelet" data-pagelet="about-preview">
+        <section class="ds-sec" style="padding:120px 0">
+            <div class="container">
+                <div class="row align-items-center g-5">
+                    <div class="col-lg-6">
+                        <div class="position-relative">
+                            <img src="{% static 'images/about_preview.jpg' %}" alt="About Urugwiro" class="img-fluid rounded-4 shadow-lg" onerror="this.src='https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=600&q=80'">
+                            <div class="ds-conversion-card position-absolute" style="bottom:-30px; right:-30px; max-width:280px; animation: dsFloat 5s ease-in-out infinite alternate">
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="material-symbols-outlined" style="font-size:32px; color:var(--md-sys-color-primary)">verified</span>
+                                    <div>
+                                        <div style="font-weight:700; color:var(--md-sys-color-on-surface)">Certified Agency</div>
+                                        <div class="text-muted-soft" style="font-size:0.8rem">Regulated by RERA Rwanda</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="ds-section-header text-start">
+                            <div class="badge"><span class="material-symbols-outlined">info</span>Our Story</div>
+                            <h2 style="text-align:left">Redefining Real Estate in Rwanda</h2>
+                            <p style="text-align:left; margin-left:0">We believe that finding a property should be an experience, not a chore. Urugwiro combines luxury design with deep market intelligence.</p>
+                        </div>
+                        <div class="row g-3 mb-5">
+                            <div class="col-sm-6">
+                                <div class="d-flex gap-3 align-items-start p-3 rounded-3" style="background:var(--md-sys-color-surface-container-low)">
+                                    <span class="material-symbols-outlined" style="color:var(--md-sys-color-primary)">speed</span>
+                                    <div>
+                                        <div style="font-weight:600; color:var(--md-sys-color-on-surface)">Fast Closings</div>
+                                        <div class="text-muted-soft" style="font-size:0.8rem">Seamless legal support</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="d-flex gap-3 align-items-start p-3 rounded-3" style="background:var(--md-sys-color-surface-container-low)">
+                                    <span class="material-symbols-outlined" style="color:var(--md-sys-color-primary)">shield</span>
+                                    <div>
+                                        <div style="font-weight:600; color:var(--md-sys-color-on-surface)">Safe Payments</div>
+                                        <div class="text-muted-soft" style="font-size:0.8rem">Escrow & secure transfers</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="{% url 'about' %}" class="ds-btn ds-btn-primary">Learn More About Us <span class="material-symbols-outlined">arrow_forward</span></a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- FINAL CTA -->
+    <section class="ds-sec" style="padding:120px 0; background:#091a0f; color:#fff; text-align:center">
+        <div class="container">
+            <div class="ds-section-header">
+                <div class="badge" style="background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.2)">Ready to Start?</div>
+                <h2 style="color:#fff">Find Your Space Today</h2>
+                <p style="color:rgba(255,255,255,0.7)">Join thousands of happy clients and discover the best properties in Rwanda.</p>
+            </div>
+            <div class="d-flex justify-content-center gap-3 mt-5">
+                <a href="{% url 'explore' %}" class="ds-btn" style="background:#fff; color:#091a0f; font-weight:700">Start Searching <span class="material-symbols-outlined">search</span></a>
+                <a href="{% url 'register' %}" class="ds-btn" style="background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.3)">List Your Property <span class="material-symbols-outlined">add_circle</span></a>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    // Animate Bento numbers
+    const counters = document.querySelectorAll('.ds-bento-val');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if(entry.isIntersecting){
+                const target = entry.target;
+                const countTo = parseInt(target.dataset.count);
+                let count = 0;
+                const duration = 1500;
+                const increment = countTo / (duration / 16);
+
+                const timer = setInterval(() => {
+                    count += increment;
+                    if(count >= countTo){
+                        target.textContent = countTo + (target.dataset.count.includes('%') ? '%' : '');
+                        clearInterval(timer);
+                    } else {
+                        target.textContent = Math.floor(count) + (target.dataset.count.includes('%') ? '%' : '');
+                    }
+                }, 16);
+                observer.unobserve(target);
+            }
+        });
+    }, {threshold: 0.5});
+
+    counters.forEach(c => observer.observe(c));
+});
+</script>
+{% endblock %}

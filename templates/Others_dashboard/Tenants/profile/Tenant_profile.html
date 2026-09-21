@@ -1,0 +1,48 @@
+{% extends 'Others_dashboard/Tenants/tenant_base.html' %}
+
+{% block content %}
+<h3 style="display:flex;align-items:center;gap:10px;margin-bottom:24px"><span class="material-symbols-outlined" style="color:var(--md-sys-color-primary)">person</span> Profile Details</h3>
+
+<div class="card">
+    <div class="card-header" style="background:var(--md-sys-color-primary);color:#fff;text-align:center">
+        <h5 class="mb-0" style="color:#fff">{{ tenant.name|default:user.username }}</h5>
+    </div>
+    <div class="card-body p-4">
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary);display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:18px">person</span> Tenant Name</label>
+                <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ tenant.name }}</p>
+            </div>
+            <div class="col-md-6 mb-4">
+                <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary);display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:18px">mail</span> Email</label>
+                <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ tenant.email }}</p>
+            </div>
+            <div class="col-md-6 mb-4">
+                <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary);display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:18px">phone</span> Phone Number</label>
+                <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ tenant.phone_number }}</p>
+            </div>
+            <div class="col-md-6 mb-4">
+                <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary);display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:18px">location_on</span> Address</label>
+                <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ tenant.address }}</p>
+            </div>
+            <div class="col-md-6 mb-4">
+                <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary);display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:18px">badge</span> Username</label>
+                <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ user.username }}</p>
+            </div>
+            <div class="col-md-6 mb-4">
+                <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary);display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:18px">photo_camera</span> Profile Image</label>
+                <div style="border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--md-sys-shape-corner-large);padding:16px;text-align:center">
+                    {% if tenant.image %}
+                        <img src="{{ tenant.image.url }}" alt="Profile Image" class="img-fluid" style="max-width:120px;border-radius:50%;border:3px solid var(--md-sys-color-primary-container)">
+                    {% else %}
+                        <div class="m3-empty" style="padding:16px"><span class="material-symbols-outlined">photo_camera</span><p>No image uploaded</p></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-3">
+            <a href="{% url 'tenant_edit_profile' user.id %}" class="m3-btn-filled"><span class="material-symbols-outlined" style="font-size:18px">edit</span> Edit Profile</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

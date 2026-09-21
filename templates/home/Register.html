@@ -1,0 +1,316 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block title %}Create Account - Urugwiro Ltd{% endblock %}
+{% block content %}
+<style>
+:root{--hp:#2D5A27;--hp-dk:#1e3d1a;--hp-lt:#C8E6C9;--hp-txt:#1F2937;--hp-muted:#6B7280;--hp-bg:#F5F7FA;--hp-border:#E5E7EB}
+
+/* ===== Page layout ===== */
+.auth-page{display:flex;min-height:100vh;padding-top:72px}
+
+/* ===== Left panel ===== */
+.auth-left{flex:0 0 48%;background:linear-gradient(160deg,#0d1f0d 0%,#091a0f 50%,#0a1e14 100%);background-image:linear-gradient(rgba(40,167,69,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(40,167,69,.07) 1px,transparent 1px);background-size:40px 40px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:50px 44px}
+.auth-left-top-bar{position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#2D5A27 30%,#6fcf97 50%,#2D5A27 70%,transparent)}
+
+.auth-orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;animation:orb-breathe var(--od,9s) ease-in-out infinite alternate}
+@keyframes orb-breathe{from{transform:scale(1);opacity:.28}to{transform:scale(1.35);opacity:.6}}
+.auth-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.auth-p{position:absolute;border-radius:50%;animation:auth-pfloat var(--d,7s) var(--dl,0s) ease-in-out infinite alternate}
+@keyframes auth-pfloat{from{transform:translateY(0);opacity:.15}to{transform:translateY(-28px);opacity:.5}}
+
+.auth-brand{position:relative;z-index:2;max-width:420px;color:#fff;width:100%}
+.auth-brand-logo{width:68px;height:68px;border-radius:18px;background:rgba(255,255,255,.07);backdrop-filter:blur(16px);border:1.5px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;margin:0 0 24px;animation:logo-pulse 3s 1s ease-in-out infinite}
+@keyframes logo-pulse{0%,100%{box-shadow:0 0 0 0 rgba(67,160,71,.35)}60%{box-shadow:0 0 0 12px rgba(67,160,71,0)}}
+.auth-brand-logo .material-symbols-outlined{font-size:32px;color:#a5d6a7}
+.auth-brand h2{font:700 1.85rem/1.2 'Inter',sans-serif;margin-bottom:10px;letter-spacing:-.3px}
+.auth-brand .brand-sub{color:rgba(255,255,255,.55);font:.9rem/1.7 'Inter',sans-serif;margin-bottom:32px}
+
+/* feature list */
+.auth-feats{display:flex;flex-direction:column;gap:16px;margin-bottom:36px}
+.auth-feat{display:flex;align-items:center;gap:14px;animation:feat-in .6s var(--fdy,.3s) cubic-bezier(.4,0,.2,1) both}
+@keyframes feat-in{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
+.auth-feat-icon{width:40px;height:40px;border-radius:12px;background:rgba(67,160,71,.18);border:1px solid rgba(67,160,71,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s}
+.auth-feat:hover .auth-feat-icon{background:rgba(67,160,71,.35);transform:scale(1.08)}
+.auth-feat-icon .material-symbols-outlined{font-size:20px;color:#a5d6a7}
+.auth-feat-text strong{display:block;font:600 .88rem/1.2 'Inter',sans-serif;color:#fff;margin-bottom:2px}
+.auth-feat-text span{font:.78rem/1.4 'Inter',sans-serif;color:rgba(255,255,255,.5)}
+
+/* testimonial mini */
+.auth-quote{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:18px 20px;backdrop-filter:blur(8px)}
+.auth-quote-text{font:.84rem/1.65 'Inter',sans-serif;color:rgba(255,255,255,.75);font-style:italic;margin-bottom:12px}
+.auth-quote-author{display:flex;align-items:center;gap:10px}
+.auth-quote-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--hp-dk),var(--hp));display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.auth-quote-avatar .material-symbols-outlined{font-size:18px;color:#fff}
+.auth-quote-name{font:600 .8rem/1 'Inter',sans-serif;color:#fff}
+.auth-quote-role{font:.72rem/1 'Inter',sans-serif;color:rgba(255,255,255,.45);margin-top:2px}
+
+/* ===== Right panel ===== */
+.auth-right{flex:1;background:#fff;display:flex;align-items:center;justify-content:center;padding:48px 40px;position:relative;overflow:hidden}
+.auth-right::before{content:'';position:absolute;top:-80px;right:-80px;width:300px;height:300px;background:radial-gradient(circle,rgba(165,214,167,.1) 0%,transparent 70%);border-radius:50%;pointer-events:none}
+.auth-right::after{content:'';position:absolute;bottom:-60px;left:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(46,125,50,.07) 0%,transparent 70%);border-radius:50%;pointer-events:none}
+.auth-form-wrap{width:100%;max-width:440px;position:relative;z-index:2}
+
+/* mobile logo */
+.auth-mobile-brand{display:none;align-items:center;gap:10px;margin-bottom:28px}
+.auth-mobile-brand .material-symbols-outlined{font-size:28px;color:var(--hp)}
+.auth-mobile-brand span{font:700 1.2rem/1 'Inter',sans-serif;color:var(--hp-txt)}
+
+.auth-form-wrap h1{font:700 1.85rem/1.2 'Inter',sans-serif;color:var(--hp-txt);margin-bottom:5px;letter-spacing:-.3px}
+.auth-subtitle{font:.9rem/1.6 'Inter',sans-serif;color:var(--hp-muted);margin-bottom:26px}
+
+/* progress steps */
+.auth-steps{display:flex;align-items:center;gap:0;margin-bottom:28px}
+.auth-step{display:flex;align-items:center;gap:7px;font:.75rem/1 'Inter',sans-serif;font-weight:600;color:var(--hp-muted);flex:1}
+.auth-step.active{color:var(--hp)}
+.auth-step-num{width:26px;height:26px;border-radius:50%;background:var(--hp-bg);border:1.5px solid var(--hp-border);display:flex;align-items:center;justify-content:center;font:.72rem/1 'Inter',sans-serif;font-weight:700;flex-shrink:0;transition:all .3s}
+.auth-step.active .auth-step-num{background:var(--hp);border-color:var(--hp);color:#fff;box-shadow:0 2px 8px rgba(46,125,50,.3)}
+.auth-step-line{flex:1;height:1.5px;background:var(--hp-border);margin:0 8px}
+.auth-step.active+.auth-step-line{background:var(--hp)}
+
+/* row fields */
+.auth-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* fields */
+.auth-field{position:relative;margin-bottom:16px}
+.auth-field-icon{position:absolute;top:50%;left:15px;transform:translateY(-50%);color:var(--hp-muted);z-index:2;transition:color .2s}
+.auth-field-icon .material-symbols-outlined{font-size:19px}
+.auth-field label{position:absolute;top:50%;left:46px;transform:translateY(-50%);font:.9rem/1 'Inter',sans-serif;color:var(--hp-muted);transition:all .2s;pointer-events:none;padding:0 4px;background:transparent}
+.auth-field input:focus~label,.auth-field input:not(:placeholder-shown)~label{top:-1px;font:.7rem/1 'Inter',sans-serif;color:var(--hp);background:#fff;padding:0 5px}
+.auth-field input{width:100%;padding:15px 15px 15px 46px;border:1.5px solid var(--hp-border);border-radius:12px;font:.9rem/1 'Inter',sans-serif;background:#fff;color:var(--hp-txt);transition:all .25s;outline:none}
+.auth-field input:focus{border-color:var(--hp);box-shadow:0 0 0 4px rgba(46,125,50,.08)}
+.auth-field input:focus~.auth-field-icon .material-symbols-outlined{color:var(--hp)}
+.auth-eye{position:absolute;top:50%;right:13px;transform:translateY(-50%);background:none;border:none;color:var(--hp-muted);cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:all .15s;z-index:2}
+.auth-eye:hover{background:#f0f7f0;color:var(--hp)}
+.auth-eye .material-symbols-outlined{font-size:19px}
+
+/* password strength */
+.auth-strength{height:4px;border-radius:2px;background:var(--hp-bg);margin-top:6px;overflow:hidden;border:1px solid var(--hp-border)}
+.auth-strength-bar{height:100%;width:0;border-radius:2px;transition:width .35s ease,background .35s ease}
+.auth-strength-label{font:.72rem/1 'Inter',sans-serif;margin-top:5px;height:14px;transition:all .3s}
+
+/* role selector */
+.auth-roles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.auth-role{border:1.5px solid var(--hp-border);border-radius:10px;padding:11px 8px;text-align:center;cursor:pointer;transition:all .25s;position:relative}
+.auth-role input{position:absolute;opacity:0;width:0;height:0}
+.auth-role-icon .material-symbols-outlined{font-size:22px;color:var(--hp-muted);transition:color .25s}
+.auth-role-label{font:.72rem/1 'Inter',sans-serif;color:var(--hp-muted);margin-top:5px;font-weight:600;display:block;transition:color .25s}
+.auth-role:has(input:checked),.auth-role.sel{border-color:var(--hp);background:#f0faf2}
+.auth-role:has(input:checked) .auth-role-icon .material-symbols-outlined,
+.auth-role.sel .auth-role-icon .material-symbols-outlined{color:var(--hp)}
+.auth-role:has(input:checked) .auth-role-label,
+.auth-role.sel .auth-role-label{color:var(--hp);font-weight:700}
+.auth-role:hover{border-color:var(--hp-lt);background:#f9fdf9}
+
+/* submit */
+.auth-btn{width:100%;height:50px;background:linear-gradient(135deg,var(--hp-dk),var(--hp));color:#fff;border:none;border-radius:100px;font:600 .95rem/1 'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .25s;box-shadow:0 4px 15px rgba(46,125,50,.35);position:relative;overflow:hidden;margin-top:6px}
+.auth-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.18) 50%,transparent 60%);transform:translateX(-100%);transition:transform .55s ease}
+.auth-btn:hover{box-shadow:0 6px 20px rgba(46,125,50,.48);transform:translateY(-2px)}
+.auth-btn:hover::after{transform:translateX(100%)}
+.auth-btn:active{transform:translateY(0)}
+.auth-btn .material-symbols-outlined{font-size:20px}
+
+/* divider + switch */
+.auth-divider{display:flex;align-items:center;gap:14px;margin:20px 0;color:var(--hp-muted);font:.78rem/1 'Inter',sans-serif}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--hp-border)}
+.auth-switch{text-align:center;font:.85rem/1 'Inter',sans-serif;color:var(--hp-muted)}
+.auth-switch a{color:var(--hp);font-weight:700;text-decoration:none}
+.auth-switch a:hover{text-decoration:underline}
+.auth-terms{text-align:center;font:.76rem/1.5 'Inter',sans-serif;color:var(--hp-muted);margin-top:14px}
+.auth-terms a{color:var(--hp);text-decoration:none}
+
+/* alerts */
+.auth-alert{border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font:.87rem/1.4 'Inter',sans-serif}
+.auth-alert .material-symbols-outlined{font-size:18px;flex-shrink:0}
+
+/* ===== Entrance animations ===== */
+@keyframes au-up{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes au-left{from{opacity:0;transform:translateX(-44px)}to{opacity:1;transform:none}}
+@keyframes au-right{from{opacity:0;transform:translateX(44px)}to{opacity:1;transform:none}}
+.auth-left{animation:au-left .8s .1s cubic-bezier(.4,0,.2,1) both}
+.auth-right{animation:au-right .8s .1s cubic-bezier(.4,0,.2,1) both}
+.auth-form-wrap h1{animation:au-up .65s .2s both}
+.auth-subtitle{animation:au-up .6s .32s both}
+.auth-steps{animation:au-up .6s .4s both}
+.auth-roles{animation:au-up .6s .46s both}
+.auth-field:nth-child(1){animation:au-up .6s .5s both}
+.auth-field:nth-child(2){animation:au-up .6s .58s both}
+.auth-field:nth-child(3){animation:au-up .6s .64s both}
+.auth-field:nth-child(4){animation:au-up .6s .7s both}
+.auth-btn{animation:au-up .6s .78s both}
+.auth-divider,.auth-switch,.auth-terms{animation:au-up .5s .86s both}
+
+/* ===== Responsive ===== */
+@media(max-width:992px){
+    .auth-left{display:none}
+    .auth-right{padding:36px 24px;min-height:calc(100vh - 72px)}
+    .auth-mobile-brand{display:flex}
+}
+@media(max-width:576px){
+    .auth-right{padding:28px 16px}
+    .auth-form-wrap h1{font-size:1.55rem}
+    .auth-row{grid-template-columns:1fr}
+    .auth-roles{grid-template-columns:1fr 1fr}
+}
+</style>
+
+<div class="auth-page">
+    <!-- ===== Left brand panel ===== -->
+    <div class="auth-left">
+        <div class="auth-left-top-bar"></div>
+
+        <div class="auth-orb" style="width:460px;height:460px;background:rgba(46,125,50,.18);top:-160px;left:-160px;--od:10s"></div>
+        <div class="auth-orb" style="width:320px;height:320px;background:rgba(129,199,132,.1);bottom:-90px;right:-90px;--od:7.5s"></div>
+
+        <div class="auth-particles">
+            <div class="auth-p" style="width:10px;height:10px;background:rgba(165,214,167,.5);top:10%;left:8%;--d:6s;--dl:0s"></div>
+            <div class="auth-p" style="width:6px;height:6px;background:rgba(255,255,255,.35);top:28%;left:20%;--d:8.5s;--dl:1.4s"></div>
+            <div class="auth-p" style="width:12px;height:12px;background:rgba(165,214,167,.28);top:62%;left:6%;--d:7.2s;--dl:0.6s"></div>
+            <div class="auth-p" style="width:8px;height:8px;background:rgba(255,255,255,.3);top:18%;right:10%;--d:9s;--dl:2.2s"></div>
+            <div class="auth-p" style="width:5px;height:5px;background:rgba(165,214,167,.55);top:74%;right:15%;--d:6.8s;--dl:1s"></div>
+            <div class="auth-p" style="width:9px;height:9px;background:rgba(255,255,255,.25);top:46%;right:6%;--d:7.8s;--dl:1.7s"></div>
+        </div>
+
+        <div class="auth-brand">
+            <div class="auth-brand-logo"><span class="material-symbols-outlined">person_add</span></div>
+            <h2>Join Urugwiro</h2>
+            <p class="brand-sub">Create your free account and start your property journey today — buy, rent, sell, or manage.</p>
+
+            <div class="auth-feats">
+                <div class="auth-feat" style="--fdy:.3s">
+                    <div class="auth-feat-icon"><span class="material-symbols-outlined">check_circle</span></div>
+                    <div class="auth-feat-text"><strong>Free Account Setup</strong><span>No hidden fees, no credit card needed</span></div>
+                </div>
+                <div class="auth-feat" style="--fdy:.45s">
+                    <div class="auth-feat-icon"><span class="material-symbols-outlined">shield</span></div>
+                    <div class="auth-feat-text"><strong>Secure & Encrypted</strong><span>Your data is protected end-to-end</span></div>
+                </div>
+                <div class="auth-feat" style="--fdy:.6s">
+                    <div class="auth-feat-icon"><span class="material-symbols-outlined">notifications_active</span></div>
+                    <div class="auth-feat-text"><strong>Real-Time Alerts</strong><span>Get notified about new matching listings</span></div>
+                </div>
+                <div class="auth-feat" style="--fdy:.75s">
+                    <div class="auth-feat-icon"><span class="material-symbols-outlined">trending_up</span></div>
+                    <div class="auth-feat-text"><strong>Market Insights</strong><span>Analytics and data to guide your decisions</span></div>
+                </div>
+            </div>
+
+            <div class="auth-quote">
+                <p class="auth-quote-text">"I found my apartment in 3 days. The process was smooth, agents were responsive, and everything just worked."</p>
+                <div class="auth-quote-author">
+                    <div class="auth-quote-avatar"><span class="material-symbols-outlined">person</span></div>
+                    <div>
+                        <div class="auth-quote-name">Mike T.</div>
+                        <div class="auth-quote-role">Tenant — Musanze</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Right form panel ===== -->
+    <div class="auth-right">
+        <div class="auth-form-wrap">
+            <div class="auth-mobile-brand">
+                <span class="material-symbols-outlined">apartment</span>
+                <span>Urugwiro</span>
+            </div>
+
+            <h1>Create Account</h1>
+            <p class="auth-subtitle">Join thousands of property owners, tenants, and agents.</p>
+
+            {% if messages %}
+                {% for message in messages %}
+                <div class="auth-alert{% if message.tags == 'error' %}" style="background:#fff5f5;color:#c62828{% else %}" style="background:#f0faf2;color:#1b5e20{% endif %}">
+                    <span class="material-symbols-outlined">{% if message.tags == 'error' %}error{% elif message.tags == 'success' %}check_circle{% else %}info{% endif %}</span>
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Role selector -->
+            <p style="font:.78rem/1 'Inter',sans-serif;color:var(--hp-muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">I am a...</p>
+            <div class="auth-roles">
+                <label class="auth-role sel" id="role-tenant" onclick="selectRole(this)">
+                    <input type="radio" name="ui_role" value="tenant" checked>
+                    <div class="auth-role-icon"><span class="material-symbols-outlined">person</span></div>
+                    <span class="auth-role-label">Tenant</span>
+                </label>
+                <label class="auth-role" id="role-owner" onclick="selectRole(this)">
+                    <input type="radio" name="ui_role" value="owner">
+                    <div class="auth-role-icon"><span class="material-symbols-outlined">home</span></div>
+                    <span class="auth-role-label">Owner</span>
+                </label>
+                <label class="auth-role" id="role-agent" onclick="selectRole(this)">
+                    <input type="radio" name="ui_role" value="agent">
+                    <div class="auth-role-icon"><span class="material-symbols-outlined">real_estate_agent</span></div>
+                    <span class="auth-role-label">Agent</span>
+                </label>
+            </div>
+
+            <form action="{% url 'user_register' %}" method="POST">{% csrf_token %}
+                <div class="auth-field">
+                    <div class="auth-field-icon"><span class="material-symbols-outlined">person</span></div>
+                    <input type="text" id="username" name="username" placeholder=" " required autocomplete="username">
+                    <label for="username">Username</label>
+                </div>
+                <div class="auth-field">
+                    <div class="auth-field-icon"><span class="material-symbols-outlined">email</span></div>
+                    <input type="email" id="email" name="email" placeholder=" " required autocomplete="email">
+                    <label for="email">Email Address</label>
+                </div>
+                <div class="auth-field">
+                    <div class="auth-field-icon"><span class="material-symbols-outlined">lock</span></div>
+                    <input type="password" id="password" name="password" placeholder=" " required autocomplete="new-password" oninput="checkStrength(this.value)" style="padding-right:50px">
+                    <label for="password">Password</label>
+                    <button type="button" class="auth-eye" onclick="togglePwd('password','eyeIcon')">
+                        <span class="material-symbols-outlined" id="eyeIcon">visibility</span>
+                    </button>
+                </div>
+                <!-- Strength bar -->
+                <div style="margin-top:-8px;margin-bottom:14px">
+                    <div class="auth-strength"><div class="auth-strength-bar" id="strengthBar"></div></div>
+                    <div class="auth-strength-label" id="strengthLabel"></div>
+                </div>
+
+                <button type="submit" class="auth-btn">
+                    <span class="material-symbols-outlined">person_add</span>Create Free Account
+                </button>
+            </form>
+
+            <div class="auth-divider">or</div>
+            <p class="auth-switch">Already have an account? <a href="{% url 'user_login' %}">Sign In</a></p>
+            <p class="auth-terms">By creating an account you agree to our <a href="#">Terms of Service</a> &amp; <a href="#">Privacy Policy</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePwd(id, iconId){
+    var p=document.getElementById(id), i=document.getElementById(iconId);
+    if(p.type==='password'){p.type='text';i.textContent='visibility_off'}
+    else{p.type='password';i.textContent='visibility'}
+}
+function selectRole(el){
+    document.querySelectorAll('.auth-role').forEach(function(r){r.classList.remove('sel')});
+    el.classList.add('sel');
+}
+function checkStrength(val){
+    var bar=document.getElementById('strengthBar'), lbl=document.getElementById('strengthLabel'), score=0;
+    if(val.length>=6)score++;
+    if(val.length>=10)score++;
+    if(/[A-Z]/.test(val))score++;
+    if(/[0-9]/.test(val))score++;
+    if(/[^A-Za-z0-9]/.test(val))score++;
+    var levels=[
+        {w:'0%',  c:'#e5e7eb', t:''},
+        {w:'20%', c:'#ef4444', t:'Very Weak'},
+        {w:'40%', c:'#f97316', t:'Weak'},
+        {w:'60%', c:'#eab308', t:'Fair'},
+        {w:'80%', c:'#22c55e', t:'Strong'},
+        {w:'100%',c:'#15803d', t:'Very Strong'}
+    ], l=levels[score];
+    bar.style.width=l.w; bar.style.background=l.c;
+    lbl.textContent=l.t; lbl.style.color=l.c;
+}
+</script>
+{% endblock %}

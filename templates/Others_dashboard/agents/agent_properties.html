@@ -1,0 +1,64 @@
+{% extends 'Others_dashboard/agents/agent_base.html' %}
+{% block title %}Assigned Properties | Urugwiro{% endblock %}
+{% block topbar_title %}Assigned Properties{% endblock %}
+{% block breadcrumb %}<a href="{% url 'agent_dashboard' user.id %}">Home</a> / Properties{% endblock %}
+
+{% block content %}
+<!-- Page Hero -->
+<div class="m3-dash-hero m3-slide-up">
+    <div class="m3-dash-hero-inner">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2><span class="material-symbols-outlined" style="font-size:28px;vertical-align:middle">apartment</span> Assigned Properties</h2>
+                <p>View and manage all properties assigned to you.</p>
+            </div>
+            <div class="m3-dash-hero-actions">
+                <a href="{% url 'agent_site_visits' user.id %}" class="m3-btn-filled m3-btn-sm" style="background:var(--md-sys-color-inverse-primary);color:#0f1f14"><span class="material-symbols-outlined" style="font-size:18px">calendar_today</span>Site Visits</a>
+                <a href="{% url 'agent_dashboard' user.id %}" class="m3-btn-filled m3-btn-sm" style="background:rgba(255,255,255,.15);backdrop-filter:blur(4px)"><span class="material-symbols-outlined" style="font-size:18px">dashboard</span>Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Properties Table -->
+<div class="m3-card m3-slide-up" style="animation-delay:.15s">
+    <div class="m3-card-header">
+        <h5><span class="material-symbols-outlined">home_work</span>All Properties</h5>
+        {% if properties %}<span class="m3-badge m3-badge-primary">{{ properties|length }} assigned</span>{% endif %}
+    </div>
+    <div class="m3-card-body">
+        {% if properties %}
+        <div class="table-responsive">
+            <table class="table m3-table">
+                <thead><tr><th>Image</th><th>Title</th><th>Type</th><th>Price</th><th>Location</th><th>Status</th><th>Views</th><th>Actions</th></tr></thead>
+                <tbody>
+                {% for p in properties %}
+                <tr>
+                    <td>{% if p.image %}<img src="{{ p.image.url }}" alt="" style="width:50px;height:50px;object-fit:cover;border-radius:8px">{% else %}<div style="width:50px;height:50px;background:var(--md-sys-color-surface-variant);border-radius:8px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="color:var(--md-sys-color-outline)">image</span></div>{% endif %}</td>
+                    <td><a href="{% url 'sale_property_detail' p.id %}" style="color:var(--md-sys-color-primary);font-weight:500">{{ p.title|truncatechars:35 }}</a></td>
+                    <td>{{ p.get_property_type_display }}</td>
+                    <td><strong>{{ p.price|floatformat:0 }} Frw</strong></td>
+                    <td>{{ p.city }}, {{ p.district|default:"" }}</td>
+                    <td><span class="m3-badge {% if p.status == 'listed' %}m3-badge-success{% elif p.status == 'under_negotiation' %}m3-badge-warning{% elif p.status == 'sold' %}m3-badge-info{% else %}m3-badge-primary{% endif %}">{{ p.get_status_display }}</span></td>
+                    <td>{{ p.views_count }}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'agent_schedule_visit' user.id p.id %}" class="m3-btn-tonal m3-btn-sm" title="Schedule Visit"><span class="material-symbols-outlined" style="font-size:16px">calendar_today</span></a>
+                            <a href="{% url 'agent_upload_photos' user.id p.id %}" class="m3-btn-tonal m3-btn-sm" title="Upload Photos"><span class="material-symbols-outlined" style="font-size:16px">photo_camera</span></a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="m3-empty">
+            <span class="material-symbols-outlined">apartment</span>
+            <h5>No properties assigned yet</h5>
+            <p>The admin will assign properties to you</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

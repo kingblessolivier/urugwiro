@@ -1,0 +1,63 @@
+{% extends 'Others_dashboard/Tenants/tenant_base.html' %}
+{% load static %}
+
+{% block title %}Make Payment{% endblock %}
+
+{% block content %}
+<h3 style="display:flex;align-items:center;gap:10px;margin-bottom:24px"><span class="material-symbols-outlined" style="color:var(--md-sys-color-primary)">payments</span> Make Payment</h3>
+
+<div class="row g-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header" style="background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary)">
+                <h5 class="mb-0 text-center" style="color:#fff">Payment Details</h5>
+            </div>
+            <div class="card-body p-4">
+                <form id="payment-form" method="post" action="{% url 'make_payment' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="property" class="form-label">Property</label>
+                        <select id="property" class="form-select" name="property">
+                            {% for lease in leases %}
+                                <option value="{{ lease.property.id }}">{{ lease.property.name }} — Rent: ${{ lease.rent_amount|default:lease.property.price }}</option>
+                            {% empty %}
+                                <option value="" disabled>No properties found.</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount to Pay</label>
+                        <input type="number" id="amount" class="form-control" name="amount" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="date_paid" class="form-label">Date Paid</label>
+                        <input type="datetime-local" id="date_paid" class="form-control" name="date_paid" required>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                        <button type="submit" class="m3-btn-filled"><span class="material-symbols-outlined" style="font-size:18px">credit_card</span> Pay Now</button>
+                        <a href="{% url 'tenant_dashboard' user.id %}" class="m3-btn-outlined">Back</a>
+                        <span style="color:var(--md-sys-color-on-surface-variant);font:var(--md-sys-typescale-body-small);margin-left:auto">Payments are processed securely.</span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header"><h6 class="mb-0">Recent Payments</h6></div>
+            <div class="card-body" style="padding:12px 20px">
+                {% for p in payments|slice:":5" %}
+                <div class="m3-list-item">
+                    <div>
+                        <div class="m3-list-item-title">${{ p.amount }}</div>
+                        <div class="m3-list-item-sub">{{ p.date_paid|date:"M d, Y" }} · {{ p.property.name }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="m3-empty"><span class="material-symbols-outlined">receipt_long</span><p>No payments yet</p></div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

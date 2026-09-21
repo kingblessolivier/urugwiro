@@ -1,0 +1,103 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+
+{% block title %}Tenant Messages{% endblock %}
+{% block topbar_title %}Tenant Messages{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / Tenant Messages{% endblock %}
+
+{% block content %}
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+{% endfor %}
+{% endif %}
+
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <h4 style="display:flex;align-items:center;gap:10px;margin:0"><span class="material-symbols-outlined" style="color:var(--md-sys-color-primary)">forum</span> Tenant Messages</h4>
+</div>
+
+<!-- Stats -->
+<div class="m3-metrics mb-4" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+    <div class="m3-metric">
+        <div class="m3-metric-icon m3-icon-primary"><span class="material-symbols-outlined">forum</span></div>
+        <div><div class="m3-metric-val">{{ conversations|length }}</div><div class="m3-metric-label">Conversations</div></div>
+    </div>
+    <div class="m3-metric">
+        <div class="m3-metric-icon m3-icon-warning"><span class="material-symbols-outlined">mark_email_unread</span></div>
+        <div><div class="m3-metric-val">{{ total_unread }}</div><div class="m3-metric-label">Unread</div></div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Conversations list -->
+    <div class="col-lg-7">
+        <div class="m3-card">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">inbox</span>Conversations</h5>
+            </div>
+            <div class="m3-card-body" style="padding:0">
+                {% if conversations %}
+                {% for convo in conversations %}
+                <a href="{% url 'admin_conversation' convo.contact.id %}" class="d-flex align-items-center gap-3 px-4 py-3 text-decoration-none" style="border-bottom:1px solid var(--md-sys-color-outline-variant);transition:background .15s" onmouseover="this.style.background='rgba(40,167,69,.04)'" onmouseout="this.style.background=''">
+                    <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--md-sys-color-primary),var(--md-sys-color-tertiary));color:#fff;display:flex;align-items:center;justify-content:center;font:600 1.1rem/1 Inter,sans-serif;flex-shrink:0">
+                        {{ convo.contact.username|slice:":1"|upper }}
+                    </div>
+                    <div style="flex:1;min-width:0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span style="font:500 .95rem/1 Inter,sans-serif;color:var(--md-sys-color-on-surface)">{{ convo.contact.get_full_name|default:convo.contact.username }}</span>
+                            <span style="font:var(--md-sys-typescale-label-small);color:var(--md-sys-color-on-surface-variant)">{{ convo.last_message.sent_date|date:"M j, g:i a" }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <span style="font:var(--md-sys-typescale-body-small);color:var(--md-sys-color-on-surface-variant);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px">
+                                {% if convo.last_message.sender == request.user %}<span style="color:var(--md-sys-color-primary);font-weight:500">You: </span>{% endif %}{{ convo.last_message.content|truncatechars:60 }}
+                            </span>
+                            <div class="d-flex align-items-center gap-2 ms-2 flex-shrink-0">
+                                <span class="m3-badge m3-badge-primary" style="font:var(--md-sys-typescale-label-small);padding:2px 8px">{{ convo.contact.role }}</span>
+                                {% if convo.unread > 0 %}
+                                <span style="background:var(--md-sys-color-error);color:#fff;border-radius:999px;padding:2px 7px;font:600 .75rem/1 Inter,sans-serif">{{ convo.unread }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+                {% else %}
+                <div class="m3-empty">
+                    <span class="material-symbols-outlined">forum</span>
+                    <p>No conversations yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- New message compose -->
+    <div class="col-lg-5">
+        <div class="m3-card">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">edit</span>New Message</h5>
+            </div>
+            <div class="m3-card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">To</label>
+                        {{ form.recipient }}
+                        {% if form.recipient.errors %}<div class="text-danger" style="font-size:.82rem">{{ form.recipient.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message</label>
+                        {{ form.content }}
+                        {% if form.content.errors %}<div class="text-danger" style="font-size:.82rem">{{ form.content.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <button class="m3-btn-filled" type="submit" style="gap:8px">
+                            <span class="material-symbols-outlined" style="font-size:18px">send</span> Send
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

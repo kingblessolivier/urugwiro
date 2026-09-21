@@ -1,0 +1,579 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}Feed{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+/* ── Layout ─────────────────────────────────────────────── */
+.feed-root{padding-top:120px;padding-bottom:64px;min-height:100vh;background:linear-gradient(180deg,#f0f7f1 0%,#f5f7fa 120px)}
+
+/* ── Create Card ─────────────────────────────────────────── */
+.f-create{background:#fff;border-radius:20px;box-shadow:0 2px 12px rgba(0,0,0,.07);margin-bottom:20px;overflow:hidden}
+.f-create-top{display:flex;align-items:center;gap:12px;padding:16px 18px}
+.f-av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#2D5A27,#66BB6A);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.05rem;flex-shrink:0;border:2px solid #E8F5E9}
+.f-av-sm{width:34px;height:34px;font-size:.85rem;border-width:1.5px}
+.f-trigger{flex:1;background:#F0F7F1;border:1.5px solid #C8E6C9;border-radius:100px;padding:11px 18px;cursor:pointer;color:#6B7280;font-size:.9rem;text-align:left;font-family:'Inter',sans-serif;transition:all .2s}
+.f-trigger:hover{border-color:#2D5A27;background:#E8F5E9;color:#1e3d1a}
+.f-create-btns{display:flex;border-top:1px solid #F0F4F0;padding:8px 10px;gap:4px}
+.f-ctype-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border:none;background:none;border-radius:12px;font-size:.82rem;color:#4B5563;font-weight:500;cursor:pointer;transition:background .15s;font-family:'Inter',sans-serif}
+.f-ctype-btn:hover{background:#F0F7F1;color:#2D5A27}
+.f-ctype-btn .material-symbols-outlined{font-size:18px}
+.f-ctype-btn.photo .material-symbols-outlined{color:#1565C0}
+.f-ctype-btn.loc .material-symbols-outlined{color:#E65100}
+
+/* Editor */
+.f-editor-wrap{display:none;padding:0 18px 16px}
+.f-editor-wrap.open{display:block}
+.ql-editor{min-height:110px;font-size:.93rem;font-family:'Inter',sans-serif;border-radius:0}
+.ql-toolbar.ql-snow{border-radius:10px 10px 0 0;border-color:#E5E7EB;background:#FAFAFA}
+.ql-container.ql-snow{border-radius:0 0 10px 10px;border-color:#E5E7EB}
+.f-hint{font-size:.75rem;color:#9CA3AF;margin:6px 0 0}
+.f-location-input{background:#F5F7FA;border:1.5px solid #E5E7EB;border-radius:10px;padding:8px 14px;font-size:.875rem;width:100%;margin-top:10px;outline:none;font-family:'Inter',sans-serif;transition:border-color .2s}
+.f-location-input:focus{border-color:#2D5A27}
+.f-media-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.f-media-thumb{position:relative;width:76px;height:76px;border-radius:10px;overflow:hidden;background:#E8F5E9}
+.f-media-thumb img,.f-media-thumb video{width:100%;height:100%;object-fit:cover}
+.f-media-rm{position:absolute;top:3px;right:3px;width:18px;height:18px;background:rgba(0,0,0,.55);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:#fff}
+.f-editor-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.btn-f-cancel{background:transparent;border:1.5px solid #E5E7EB;color:#6B7280;border-radius:100px;padding:8px 20px;font-size:.875rem;cursor:pointer;font-family:'Inter',sans-serif}
+.btn-f-post{background:linear-gradient(135deg,#2D5A27,#388E3C);color:#fff;border:none;border-radius:100px;padding:9px 28px;font-weight:600;font-size:.875rem;cursor:pointer;display:flex;align-items:center;gap:6px;transition:opacity .2s;font-family:'Inter',sans-serif}
+.btn-f-post:hover{opacity:.88}
+.btn-f-post .material-symbols-outlined{font-size:16px}
+
+/* ── Post Card ────────────────────────────────────────────── */
+.f-post{background:#fff;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px;overflow:hidden;transition:box-shadow .2s,transform .2s}
+.f-post:hover{box-shadow:0 6px 24px rgba(0,0,0,.1);transform:translateY(-1px)}
+
+/* Repost banner */
+.f-repost-bar{display:flex;align-items:center;gap:6px;padding:9px 18px 0;font-size:.8rem;color:#2D5A27;font-weight:500}
+.f-repost-bar .material-symbols-outlined{font-size:15px}
+
+/* Post header */
+.f-post-head{display:flex;align-items:center;gap:10px;padding:14px 18px 0}
+.f-post-meta{flex:1;min-width:0}
+.f-post-author{font-weight:700;font-size:.92rem;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.f-post-role{display:inline-flex;align-items:center;padding:1px 8px;border-radius:100px;font-size:.68rem;font-weight:600;margin-left:6px;vertical-align:middle}
+.f-post-role.admin{background:#FFF3E0;color:#E65100}
+.f-post-role.owner{background:#E8F5E9;color:#1e3d1a}
+.f-post-role.tenant{background:#E3F2FD;color:#1565C0}
+.f-post-role.agent{background:#F3E5F5;color:#6A1B9A}
+.f-post-role.seller{background:#FBE9E7;color:#BF360C}
+.f-post-time{font-size:.75rem;color:#9CA3AF;display:flex;align-items:center;gap:4px;margin-top:1px}
+.f-post-time .material-symbols-outlined{font-size:13px}
+.f-post-loc{font-size:.75rem;color:#6B7280;display:flex;align-items:center;gap:3px;margin-top:1px}
+.f-post-loc .material-symbols-outlined{font-size:13px;color:#2D5A27}
+.f-menu-btn{width:34px;height:34px;border-radius:50%;border:none;background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9CA3AF;transition:background .15s;flex-shrink:0}
+.f-menu-btn:hover{background:#F3F4F6;color:#374151}
+
+/* Post body */
+.f-post-body{padding:10px 18px;font-size:.92rem;line-height:1.7;color:#1F2937}
+.f-post-body img{max-width:100%;border-radius:10px}
+.f-post-body p{margin-bottom:.5em}
+
+/* Embedded original */
+.f-embed{margin:0 18px 10px;border:1.5px solid #E5E7EB;border-radius:14px;overflow:hidden;background:#FAFAFA}
+.f-embed .f-post-head{padding:12px 14px 0}
+.f-embed .f-post-body{padding:8px 14px 12px;font-size:.875rem}
+
+/* Media grid */
+.f-media-grid{display:grid;gap:3px;margin-top:2px}
+.f-media-grid.c1{grid-template-columns:1fr}
+.f-media-grid.c2{grid-template-columns:1fr 1fr}
+.f-media-grid.c3{grid-template-columns:1fr 1fr;grid-template-rows:210px 210px}
+.f-media-grid.c3 .f-mi:first-child{grid-row:1/3}
+.f-media-grid.c4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.f-mi{overflow:hidden;background:#F0F4F0;position:relative}
+.f-mi img,.f-mi video{width:100%;height:100%;object-fit:cover;min-height:190px;max-height:360px;display:block;transition:transform .3s}
+.f-mi:hover img{transform:scale(1.02)}
+.f-media-grid.c1 .f-mi img,.f-media-grid.c1 .f-mi video{max-height:500px}
+
+/* Hashtags */
+.f-tags{padding:8px 18px 4px;display:flex;flex-wrap:wrap;gap:6px}
+.f-tag{padding:3px 11px;background:#E8F5E9;color:#2D5A27;border-radius:100px;font-size:.78rem;font-weight:600;text-decoration:none;transition:background .15s}
+.f-tag:hover{background:#C8E6C9;color:#1e3d1a}
+
+/* Action bar */
+.f-actions{display:flex;align-items:center;gap:2px;padding:6px 10px 8px;border-top:1px solid #F3F4F6}
+.f-act{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:12px;border:none;background:none;font-size:.82rem;color:#6B7280;cursor:pointer;font-weight:500;font-family:'Inter',sans-serif;transition:background .15s,color .15s;text-decoration:none}
+.f-act:hover{background:#F3F4F6;color:#111827}
+.f-act.liked{color:#E53935}
+.f-act.liked .material-symbols-outlined{font-variation-settings:'FILL' 1;color:#E53935}
+.f-act .material-symbols-outlined{font-size:18px;transition:transform .15s}
+.f-act:hover .material-symbols-outlined{transform:scale(1.15)}
+.f-act-count{font-size:.8rem}
+.f-act-share{margin-left:auto}
+
+/* Comments preview */
+.f-comments{padding:4px 18px 14px}
+.f-comment{display:flex;gap:8px;margin-bottom:8px}
+.f-comment-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);color:#2D5A27;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0}
+.f-comment-body{background:#F5F7FA;border-radius:4px 14px 14px 14px;padding:7px 13px;font-size:.84rem;flex:1;color:#374151}
+.f-comment-name{font-weight:600;font-size:.76rem;color:#111827;margin-bottom:2px}
+.f-view-all{font-size:.8rem;color:#2D5A27;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:3px;padding:2px 0;border-bottom:1px solid transparent;transition:border-color .15s}
+.f-view-all:hover{color:#1e3d1a;border-bottom-color:#2D5A27}
+
+/* Divider */
+.f-divider{height:1px;background:#F3F4F6;margin:0 18px}
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+.f-sidebar{position:sticky;top:100px}
+.f-side-card{background:#fff;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);padding:20px;margin-bottom:16px}
+
+/* Profile mini card */
+.f-profile-card{background:linear-gradient(135deg,#0d2415 0%,#1a3d20 100%);border-radius:20px;padding:20px;margin-bottom:16px;color:#fff;position:relative;overflow:hidden}
+.f-profile-card::before{content:'';position:absolute;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.04);top:-30px;right:-30px}
+.f-profile-card::after{content:'';position:absolute;width:80px;height:80px;border-radius:50%;background:rgba(40,167,69,.08);bottom:-20px;left:20px}
+.f-profile-av-lg{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#2D5A27,#66BB6A);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.3rem;border:2px solid rgba(255,255,255,.3);margin-bottom:10px;position:relative;z-index:1}
+.f-profile-name{font-weight:700;font-size:.95rem;position:relative;z-index:1}
+.f-profile-role{font-size:.75rem;color:rgba(255,255,255,.65);position:relative;z-index:1;margin-top:2px}
+.f-profile-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;position:relative;z-index:1}
+.f-pstat{background:rgba(255,255,255,.1);border-radius:10px;padding:8px 10px;text-align:center}
+.f-pstat-val{font-weight:700;font-size:1rem}
+.f-pstat-label{font-size:.68rem;color:rgba(255,255,255,.6);margin-top:1px}
+
+/* Trending */
+.f-side-title{font-weight:700;font-size:.9rem;color:#111827;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.f-side-title .material-symbols-outlined{font-size:19px;color:#2D5A27}
+.f-trend-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F3F4F6;text-decoration:none;transition:padding-left .15s}
+.f-trend-item:last-child{border-bottom:none}
+.f-trend-item:hover{padding-left:4px}
+.f-trend-name{font-weight:600;font-size:.875rem;color:#111827}
+.f-trend-item:hover .f-trend-name{color:#2D5A27}
+.f-trend-count{font-size:.75rem;color:#9CA3AF;background:#F3F4F6;padding:2px 8px;border-radius:100px}
+
+/* About */
+.f-about-text{font-size:.85rem;color:#6B7280;line-height:1.6;margin:0 0 14px}
+.btn-f-join{display:block;text-align:center;background:linear-gradient(135deg,#2D5A27,#388E3C);color:#fff;border-radius:100px;padding:10px;font-weight:600;font-size:.875rem;text-decoration:none;transition:opacity .2s}
+.btn-f-join:hover{opacity:.88;color:#fff}
+
+/* Hashtag filter banner */
+.f-tag-banner{background:linear-gradient(135deg,#E8F5E9,#F0FFF0);border:1.5px solid #C8E6C9;border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.f-tag-banner .material-symbols-outlined{font-size:22px;color:#2D5A27}
+.f-tag-banner-text{flex:1;font-weight:600;font-size:.9rem;color:#1e3d1a}
+.f-tag-banner-back{display:inline-flex;align-items:center;gap:4px;font-size:.8rem;color:#2D5A27;text-decoration:none;background:#fff;padding:5px 12px;border-radius:100px;border:1px solid #C8E6C9;transition:background .15s}
+.f-tag-banner-back:hover{background:#E8F5E9;color:#1e3d1a}
+
+/* Empty state */
+.f-empty{text-align:center;padding:56px 24px;background:#fff;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.f-empty .material-symbols-outlined{font-size:52px;color:#C8E6C9;display:block;margin-bottom:14px}
+.f-empty strong{font-size:1rem;color:#374151}
+.f-empty p{font-size:.875rem;color:#9CA3AF;margin:6px 0 0}
+
+/* Pagination */
+.f-pager{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:8px}
+.f-page-btn{padding:8px 20px;border-radius:100px;font-size:.875rem;font-weight:500;font-family:'Inter',sans-serif;text-decoration:none;border:1.5px solid #E5E7EB;color:#374151;background:#fff;transition:all .2s}
+.f-page-btn:hover{border-color:#2D5A27;color:#2D5A27;background:#F0F7F1}
+.f-page-btn.current{background:#2D5A27;color:#fff;border-color:#2D5A27;cursor:default}
+
+/* Guest CTA */
+.f-guest-cta{background:linear-gradient(135deg,#0d2415,#1a3d20);border-radius:20px;padding:28px 24px;text-align:center;color:#fff;margin-bottom:20px;position:relative;overflow:hidden}
+.f-guest-cta::before{content:'';position:absolute;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.03);top:-40px;right:-40px}
+.f-guest-cta .material-symbols-outlined{font-size:40px;color:#66BB6A;display:block;margin-bottom:12px}
+.f-guest-cta strong{font-size:1.05rem;display:block;margin-bottom:6px}
+.f-guest-cta p{font-size:.875rem;color:rgba(255,255,255,.7);margin-bottom:18px}
+.f-guest-btns{display:flex;gap:10px;justify-content:center}
+.btn-f-signin{padding:9px 24px;border-radius:100px;background:#fff;color:#1e3d1a;font-weight:700;font-size:.875rem;text-decoration:none;transition:opacity .2s}
+.btn-f-signin:hover{opacity:.9;color:#1e3d1a}
+.btn-f-signup{padding:9px 24px;border-radius:100px;background:rgba(255,255,255,.15);color:#fff;font-weight:600;font-size:.875rem;text-decoration:none;border:1px solid rgba(255,255,255,.3);transition:background .2s}
+.btn-f-signup:hover{background:rgba(255,255,255,.25);color:#fff}
+
+@media(max-width:991px){.f-sidebar{position:static}}
+@media(max-width:576px){.feed-root{padding-top:100px}.f-post-head{padding:12px 14px 0}.f-post-body{padding:10px 14px}.f-actions{padding:4px 6px 8px}.f-act{padding:6px 10px;font-size:.8rem}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="feed-root">
+<div class="container">
+<div class="row g-4">
+
+    <!-- ── Main Feed ── -->
+    <div class="col-lg-8">
+
+        {% if active_tag %}
+        <div class="f-tag-banner">
+            <span class="material-symbols-outlined">tag</span>
+            <span class="f-tag-banner-text">#{{ active_tag }}{% if hashtag %} &nbsp;<span style="font-weight:400;font-size:.8rem;color:#4CAF50">· {{ hashtag.post_hashtags.count }} post{{ hashtag.post_hashtags.count|pluralize }}</span>{% endif %}</span>
+            <a href="{% url 'feed' %}" class="f-tag-banner-back"><span class="material-symbols-outlined" style="font-size:15px">arrow_back</span> All posts</a>
+        </div>
+        {% endif %}
+
+        {% if user.is_authenticated and not active_tag %}
+        <!-- Create Post -->
+        <div class="f-create">
+            <div class="f-create-top">
+                <div class="f-av">{{ user.username|slice:":1"|upper }}</div>
+                <button class="f-trigger" id="openPostEditor">What's on your mind, {{ user.get_full_name|default:user.username }}?</button>
+            </div>
+            <div class="f-editor-wrap" id="postEditorWrap">
+                <form method="POST" action="{% url 'create_post' %}" enctype="multipart/form-data" id="postForm">
+                    {% csrf_token %}
+                    <div id="quillEditor"></div>
+                    <input type="hidden" name="content" id="postContent">
+                    <p class="f-hint">Tip: use #hashtag anywhere in your text — they're saved automatically</p>
+                    <input type="text" name="location" id="postLocation" class="f-location-input" placeholder="📍 Add a location..." style="display:none">
+                    <div class="f-media-row" id="mediaPreviewRow"></div>
+                    <input type="file" name="media" id="mediaInput" multiple accept="image/*,video/mp4,video/webm" style="display:none">
+                    <div class="f-editor-actions">
+                        <button type="button" class="btn-f-cancel" id="cancelPost">Cancel</button>
+                        <button type="submit" class="btn-f-post">
+                            <span class="material-symbols-outlined">send</span> Post
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="f-create-btns">
+                <button class="f-ctype-btn photo" onclick="document.getElementById('mediaInput').click();document.getElementById('openPostEditor').click()">
+                    <span class="material-symbols-outlined">photo_camera</span> Photo / Video
+                </button>
+                <button class="f-ctype-btn loc" id="toggleLocation">
+                    <span class="material-symbols-outlined">location_on</span> Location
+                </button>
+            </div>
+        </div>
+
+        {% elif not user.is_authenticated and not active_tag %}
+        <!-- Guest CTA -->
+        <div class="f-guest-cta">
+            <span class="material-symbols-outlined">dynamic_feed</span>
+            <strong>Join the conversation</strong>
+            <p>Sign in to post, like, comment and connect with the Urugwiro community.</p>
+            <div class="f-guest-btns">
+                <a href="{% url 'user_login' %}" class="btn-f-signin">Sign In</a>
+                <a href="{% url 'register' %}" class="btn-f-signup">Create Account</a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if messages %}
+        {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags }} alert-dismissible fade show mb-3" style="border-radius:14px">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- Posts -->
+        {% for post in page_obj %}
+        <div class="f-post" id="post-{{ post.id }}">
+
+            {% if post.is_repost %}
+            <div class="f-repost-bar">
+                <span class="material-symbols-outlined">repeat</span>
+                <span>{{ post.author.get_full_name|default:post.author.username }} reposted{% if post.repost_comment %} — {{ post.repost_comment|truncatechars:60 }}{% endif %}</span>
+            </div>
+            {% endif %}
+
+            <div class="f-post-head">
+                <div class="f-av">{{ post.author.username|slice:":1"|upper }}</div>
+                <div class="f-post-meta">
+                    <div class="f-post-author">
+                        {{ post.author.get_full_name|default:post.author.username }}
+                        <span class="f-post-role {% if post.author.role == 'Admin' %}admin{% elif post.author.role == 'Owner' %}owner{% elif post.author.role == 'Tenant' %}tenant{% elif post.author.role == 'Agent' %}agent{% elif post.author.role == 'Seller' %}seller{% endif %}">{{ post.author.role }}</span>
+                    </div>
+                    <div class="f-post-time">
+                        <span class="material-symbols-outlined">schedule</span>
+                        {{ post.created_at|timesince }} ago
+                    </div>
+                    {% if post.location %}
+                    <div class="f-post-loc">
+                        <span class="material-symbols-outlined">location_on</span>{{ post.location }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% if user.is_authenticated and user == post.author %}
+                <div class="dropdown">
+                    <button class="f-menu-btn" data-bs-toggle="dropdown"><span class="material-symbols-outlined">more_horiz</span></button>
+                    <ul class="dropdown-menu dropdown-menu-end" style="border-radius:14px;border:none;box-shadow:0 6px 20px rgba(0,0,0,.12);min-width:160px;padding:6px">
+                        <li>
+                            <form method="POST" action="{% url 'delete_post' post.id %}" onsubmit="return confirm('Delete this post?')">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item text-danger" style="border-radius:8px;font-size:.875rem">
+                                    <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">delete</span> Delete post
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if post.is_repost and post.original_post %}
+                {% if post.repost_comment %}<div class="f-post-body" style="padding-bottom:6px">{{ post.repost_comment }}</div>{% endif %}
+                <div class="f-embed">
+                    <div class="f-post-head">
+                        <div class="f-av f-av-sm">{{ post.original_post.author.username|slice:":1"|upper }}</div>
+                        <div class="f-post-meta">
+                            <div class="f-post-author" style="font-size:.875rem">{{ post.original_post.author.get_full_name|default:post.original_post.author.username }}</div>
+                            <div class="f-post-time"><span class="material-symbols-outlined">schedule</span>{{ post.original_post.created_at|timesince }} ago</div>
+                        </div>
+                    </div>
+                    <div class="f-post-body" style="font-size:.875rem;padding-bottom:12px">{{ post.original_post.content|safe|truncatechars:300 }}</div>
+                </div>
+            {% else %}
+                <div class="f-post-body">{{ post.content|safe }}</div>
+            {% endif %}
+
+            {% with post.media.all as media_list %}
+            {% if media_list %}
+            <div class="f-media-grid c{{ media_list|length }}">
+                {% for m in media_list %}
+                <div class="f-mi">
+                    {% if m.media_type == 'video' %}
+                    <video src="{{ m.file.url }}" controls muted></video>
+                    {% else %}
+                    <img src="{{ m.file.url }}" alt="Post media" loading="lazy">
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% with post.post_hashtags.all as tags %}
+            {% if tags %}
+            <div class="f-tags">
+                {% for ph in tags %}
+                <a href="{% url 'hashtag_feed' ph.hashtag.name %}" class="f-tag">#{{ ph.hashtag.name }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <div class="f-divider"></div>
+
+            <div class="f-actions">
+                {% if user.is_authenticated %}
+                <button class="f-act like-btn {% if post.id in user_liked_ids %}liked{% endif %}" data-post-id="{{ post.id }}" title="Like">
+                    <span class="material-symbols-outlined">favorite</span>
+                    <span class="f-act-count like-count">{{ post.likes_count }}</span>
+                </button>
+                {% else %}
+                <a href="{% url 'user_login' %}" class="f-act">
+                    <span class="material-symbols-outlined">favorite</span>
+                    <span class="f-act-count">{{ post.likes_count }}</span>
+                </a>
+                {% endif %}
+
+                <a href="{% url 'post_detail' post.id %}" class="f-act" title="Comments">
+                    <span class="material-symbols-outlined">chat_bubble</span>
+                    <span class="f-act-count">{{ post.comments_count }}</span>
+                </a>
+
+                {% if user.is_authenticated %}
+                <button class="f-act" title="Repost" data-bs-toggle="modal" data-bs-target="#repostModal{{ post.id }}">
+                    <span class="material-symbols-outlined">repeat</span>
+                    <span class="f-act-count">{{ post.reposts_count }}</span>
+                </button>
+                {% else %}
+                <span class="f-act" style="cursor:default">
+                    <span class="material-symbols-outlined">repeat</span>
+                    <span class="f-act-count">{{ post.reposts_count }}</span>
+                </span>
+                {% endif %}
+
+                <a href="{% url 'post_detail' post.id %}" class="f-act f-act-share" title="Open post">
+                    <span class="material-symbols-outlined">open_in_new</span>
+                </a>
+            </div>
+
+            {% with post.comments.all|slice:":2" as top_comments %}
+            {% if top_comments %}
+            <div class="f-comments">
+                {% for c in top_comments %}
+                <div class="f-comment">
+                    <div class="f-comment-av">{{ c.display_name|slice:":1"|upper }}</div>
+                    <div class="f-comment-body">
+                        <div class="f-comment-name">{{ c.display_name }}</div>
+                        <div>{{ c.content|truncatechars:120 }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% if post.comments_count > 2 %}
+                <a href="{% url 'post_detail' post.id %}" class="f-view-all">
+                    <span class="material-symbols-outlined" style="font-size:14px">expand_more</span>
+                    View all {{ post.comments_count }} comment{{ post.comments_count|pluralize }}
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+        </div><!-- /f-post -->
+
+        {% if user.is_authenticated %}
+        <div class="modal fade" id="repostModal{{ post.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" style="max-width:460px">
+                <div class="modal-content" style="border-radius:20px;border:none;box-shadow:0 8px 32px rgba(0,0,0,.15)">
+                    <div class="modal-header border-0 pb-0">
+                        <h6 class="modal-title d-flex align-items-center gap-2"><span class="material-symbols-outlined" style="color:#2D5A27;font-size:20px">repeat</span> Repost</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body pt-2">
+                        <div style="background:#F5F7FA;border-radius:12px;padding:12px;font-size:.875rem;margin-bottom:14px;border-left:3px solid #2D5A27">
+                            <strong>{{ post.author.get_full_name|default:post.author.username }}</strong>: {{ post.content|safe|striptags|truncatechars:100 }}
+                        </div>
+                        <form method="POST" action="{% url 'repost' post.id %}">
+                            {% csrf_token %}
+                            <textarea name="repost_comment" class="form-control" rows="3" placeholder="Add your thoughts (optional)..." style="border-radius:12px;resize:none;border-color:#E5E7EB;font-family:'Inter',sans-serif;font-size:.875rem"></textarea>
+                            <div class="d-flex justify-content-end gap-2 mt-3">
+                                <button type="button" class="btn-f-cancel" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn-f-post">Repost</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% empty %}
+        <div class="f-empty">
+            <span class="material-symbols-outlined">dynamic_feed</span>
+            <strong>No posts yet</strong>
+            <p>{% if active_tag %}No posts tagged #{{ active_tag }} yet.{% else %}Be the first to share something with the community!{% endif %}</p>
+        </div>
+        {% endfor %}
+
+        {% if page_obj.has_other_pages %}
+        <div class="f-pager">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="f-page-btn">← Prev</a>
+            {% endif %}
+            <span class="f-page-btn current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="f-page-btn">Next →</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </div><!-- /col-lg-8 -->
+
+    <!-- ── Sidebar ── -->
+    <div class="col-lg-4 d-none d-lg-block">
+        <div class="f-sidebar">
+
+            {% if user.is_authenticated %}
+            <div class="f-profile-card">
+                <div class="f-profile-av-lg">{{ user.username|slice:":1"|upper }}</div>
+                <div class="f-profile-name">{{ user.get_full_name|default:user.username }}</div>
+                <div class="f-profile-role">{{ user.role }} · Urugwiro</div>
+                <div class="f-profile-stats">
+                    <div class="f-pstat">
+                        <div class="f-pstat-val">{{ user.posts.count|default:"0" }}</div>
+                        <div class="f-pstat-label">Posts</div>
+                    </div>
+                    <div class="f-pstat">
+                        <div class="f-pstat-val">{{ user.post_likes.count|default:"0" }}</div>
+                        <div class="f-pstat-label">Likes given</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if trending %}
+            <div class="f-side-card">
+                <div class="f-side-title"><span class="material-symbols-outlined">trending_up</span>Trending Topics</div>
+                {% for tag in trending %}
+                <a href="{% url 'hashtag_feed' tag.name %}" class="f-trend-item">
+                    <div>
+                        <div class="f-trend-name">#{{ tag.name }}</div>
+                    </div>
+                    <span class="f-trend-count">{{ tag.count }} post{{ tag.count|pluralize }}</span>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="f-side-card">
+                <div class="f-side-title"><span class="material-symbols-outlined">info</span>About Feed</div>
+                <p class="f-about-text">Share property updates, market insights, and tips. Connect with owners, agents, and tenants across Rwanda. Use #hashtags to reach more people.</p>
+                {% if not user.is_authenticated %}
+                <a href="{% url 'register' %}" class="btn-f-join">Join Urugwiro</a>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+
+</div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+(function(){
+    var openBtn  = document.getElementById('openPostEditor');
+    var wrap     = document.getElementById('postEditorWrap');
+    var cancelBtn= document.getElementById('cancelPost');
+    var form     = document.getElementById('postForm');
+    var locInput = document.getElementById('postLocation');
+    var toggleLoc= document.getElementById('toggleLocation');
+    var mediaIn  = document.getElementById('mediaInput');
+    var mediaRow = document.getElementById('mediaPreviewRow');
+    var quill;
+
+    function openEditor(){
+        if(!wrap) return;
+        wrap.classList.add('open');
+        if(openBtn) openBtn.style.display = 'none';
+        if(!quill){
+            quill = new Quill('#quillEditor',{
+                theme:'snow',
+                placeholder:'Share something with the Urugwiro community...',
+                modules:{toolbar:[['bold','italic','underline'],['blockquote'],['link'],['clean']]}
+            });
+            quill.focus();
+        }
+    }
+
+    if(openBtn) openBtn.addEventListener('click', openEditor);
+    if(cancelBtn) cancelBtn.addEventListener('click',function(){
+        wrap.classList.remove('open');
+        if(openBtn) openBtn.style.display='';
+    });
+    if(toggleLoc) toggleLoc.addEventListener('click',function(){
+        openEditor();
+        locInput.style.display = locInput.style.display==='none' ? 'block':'none';
+        if(locInput.style.display==='block') locInput.focus();
+    });
+    if(mediaIn) mediaIn.addEventListener('change',function(){
+        mediaRow.innerHTML='';
+        Array.from(this.files).slice(0,5).forEach(function(f){
+            var item=document.createElement('div');
+            item.className='f-media-thumb';
+            var url=URL.createObjectURL(f);
+            item.innerHTML = f.type.startsWith('video')
+                ? '<video src="'+url+'" muted style="width:100%;height:100%;object-fit:cover"></video>'
+                : '<img src="'+url+'" alt="">';
+            var rm=document.createElement('span');
+            rm.className='f-media-rm'; rm.textContent='×';
+            rm.onclick=function(){ item.remove(); };
+            item.appendChild(rm);
+            mediaRow.appendChild(item);
+        });
+        openEditor();
+    });
+    if(form) form.addEventListener('submit',function(){
+        if(quill) document.getElementById('postContent').value = quill.root.innerHTML;
+    });
+})();
+
+// Like AJAX
+document.querySelectorAll('.like-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+        var postId=btn.dataset.postId;
+        var countEl=btn.querySelector('.like-count');
+        fetch('/feed/post/'+postId+'/like/',{
+            method:'POST',
+            headers:{'X-CSRFToken':document.cookie.match(/csrftoken=([^;]+)/)[1],'Content-Type':'application/json'}
+        }).then(function(r){return r.json();}).then(function(d){
+            btn.classList.toggle('liked',d.liked);
+            if(countEl) countEl.textContent=d.count;
+        });
+    });
+});
+</script>
+{% endblock %}

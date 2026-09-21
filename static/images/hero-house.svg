@@ -1,0 +1,256 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <!-- Sky gradient background -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E8F5E9" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#C8E6C9" stop-opacity=".15"/>
+    </linearGradient>
+    <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#66BB6A"/>
+      <stop offset="100%" stop-color="#43A047"/>
+    </linearGradient>
+    <linearGradient id="wall1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FAFAFA"/>
+      <stop offset="100%" stop-color="#F5F5F5"/>
+    </linearGradient>
+    <linearGradient id="wall2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#EEEEEE"/>
+      <stop offset="100%" stop-color="#E0E0E0"/>
+    </linearGradient>
+    <linearGradient id="roof1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2E7D32"/>
+      <stop offset="100%" stop-color="#1B5E20"/>
+    </linearGradient>
+    <linearGradient id="roof2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#388E3C"/>
+      <stop offset="100%" stop-color="#2E7D32"/>
+    </linearGradient>
+    <linearGradient id="windowGlass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#B3E5FC"/>
+      <stop offset="100%" stop-color="#81D4FA"/>
+    </linearGradient>
+    <linearGradient id="doorGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5D4037"/>
+      <stop offset="100%" stop-color="#4E342E"/>
+    </linearGradient>
+    <linearGradient id="sunGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF176"/>
+      <stop offset="100%" stop-color="#FFD54F"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#1B5E20" flood-opacity=".12"/>
+    </filter>
+    <filter id="softShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity=".08"/>
+    </filter>
+  </defs>
+
+  <!-- Sun -->
+  <circle cx="680" cy="90" r="50" fill="url(#sunGrad)" opacity=".8">
+    <animate attributeName="cy" values="90;80;90" dur="4s" repeatCount="indefinite"/>
+  </circle>
+  <!-- Sun rays -->
+  <g opacity=".3" stroke="#FFD54F" stroke-width="2">
+    <line x1="680" y1="30" x2="680" y2="15"><animate attributeName="y2" values="15;10;15" dur="3s" repeatCount="indefinite"/></line>
+    <line x1="730" y1="50" x2="745" y2="40"><animate attributeName="x2" values="745;750;745" dur="3s" repeatCount="indefinite"/></line>
+    <line x1="740" y1="90" x2="755" y2="90"><animate attributeName="x2" values="755;760;755" dur="3s" repeatCount="indefinite"/></line>
+    <line x1="730" y1="130" x2="745" y2="140"><animate attributeName="x2" values="745;750;745" dur="3s" repeatCount="indefinite"/></line>
+    <line x1="630" y1="50" x2="615" y2="40"><animate attributeName="x2" values="615;610;615" dur="3s" repeatCount="indefinite"/></line>
+    <line x1="620" y1="90" x2="605" y2="90"><animate attributeName="x2" values="605;600;605" dur="3s" repeatCount="indefinite"/></line>
+    <line x1="630" y1="130" x2="615" y2="140"><animate attributeName="x2" values="615;610;615" dur="3s" repeatCount="indefinite"/></line>
+  </g>
+
+  <!-- Clouds -->
+  <g opacity=".4" fill="#fff">
+    <g>
+      <ellipse cx="140" cy="100" rx="50" ry="22"/>
+      <ellipse cx="170" cy="88" rx="35" ry="18"/>
+      <ellipse cx="110" cy="92" rx="30" ry="16"/>
+      <animate attributeName="transform" type="translate" values="0,0;30,0;0,0" dur="20s" repeatCount="indefinite"/>
+    </g>
+    <g>
+      <ellipse cx="480" cy="70" rx="45" ry="18"/>
+      <ellipse cx="510" cy="60" rx="30" ry="14"/>
+      <ellipse cx="455" cy="63" rx="25" ry="12"/>
+      <animate attributeName="transform" type="translate" values="0,0;-25,0;0,0" dur="25s" repeatCount="indefinite"/>
+    </g>
+  </g>
+
+  <!-- Ground / Grass -->
+  <ellipse cx="400" cy="520" rx="380" ry="40" fill="url(#grass)" opacity=".3"/>
+  <rect x="20" y="490" width="760" height="110" rx="20" fill="url(#grass)" opacity=".15"/>
+
+  <!-- Pathway -->
+  <path d="M380 500 Q370 530 355 560 L410 560 Q395 530 385 500Z" fill="#D7CCC8" opacity=".6"/>
+
+  <!-- Trees - Left -->
+  <g filter="url(#softShadow)">
+    <rect x="100" y="380" width="12" height="120" rx="6" fill="#795548"/>
+    <ellipse cx="106" cy="360" rx="35" ry="50" fill="#43A047" opacity=".8"/>
+    <ellipse cx="95" cy="340" rx="25" ry="35" fill="#66BB6A" opacity=".7"/>
+  </g>
+
+  <!-- Trees - Right -->
+  <g filter="url(#softShadow)">
+    <rect x="660" y="390" width="10" height="110" rx="5" fill="#795548"/>
+    <ellipse cx="665" cy="370" rx="30" ry="45" fill="#388E3C" opacity=".8"/>
+    <ellipse cx="655" cy="355" rx="22" ry="30" fill="#4CAF50" opacity=".7"/>
+  </g>
+
+  <!-- Small bush left -->
+  <ellipse cx="180" cy="490" rx="30" ry="18" fill="#4CAF50" opacity=".5"/>
+  <ellipse cx="195" cy="485" rx="20" ry="14" fill="#66BB6A" opacity=".5"/>
+
+  <!-- Small bush right -->
+  <ellipse cx="600" cy="488" rx="25" ry="16" fill="#4CAF50" opacity=".5"/>
+  <ellipse cx="615" cy="484" rx="18" ry="12" fill="#66BB6A" opacity=".5"/>
+
+  <!-- ===== MAIN HOUSE ===== -->
+  <g filter="url(#shadow)">
+    <!-- Main building body -->
+    <rect x="230" y="280" width="300" height="220" rx="4" fill="url(#wall1)"/>
+
+    <!-- Right wing -->
+    <rect x="480" y="320" width="110" height="180" rx="4" fill="url(#wall2)"/>
+
+    <!-- Main Roof -->
+    <polygon points="210,280 380,170 550,280" fill="url(#roof1)"/>
+    <!-- Roof edge detail -->
+    <polygon points="210,280 380,175 550,280 550,290 380,185 210,290" fill="url(#roof2)" opacity=".6"/>
+
+    <!-- Right wing roof -->
+    <polygon points="470,320 535,260 600,320" fill="url(#roof2)"/>
+
+    <!-- Chimney -->
+    <rect x="310" y="185" width="30" height="55" rx="3" fill="#795548"/>
+    <rect x="306" y="180" width="38" height="10" rx="3" fill="#6D4C41"/>
+    <!-- Smoke -->
+    <g opacity=".3" fill="none" stroke="#9E9E9E" stroke-width="2" stroke-linecap="round">
+      <path d="M325 175 Q330 160 320 145">
+        <animate attributeName="d" values="M325 175 Q330 160 320 145;M325 175 Q318 155 325 135;M325 175 Q330 160 320 145" dur="3s" repeatCount="indefinite"/>
+      </path>
+      <path d="M320 170 Q312 150 320 130" opacity=".5">
+        <animate attributeName="d" values="M320 170 Q312 150 320 130;M320 170 Q328 145 315 125;M320 170 Q312 150 320 130" dur="4s" repeatCount="indefinite"/>
+      </path>
+    </g>
+
+    <!-- Garage area -->
+    <rect x="490" y="390" width="85" height="110" rx="4" fill="#E0E0E0"/>
+    <rect x="495" y="395" width="75" height="100" rx="3" fill="#BDBDBD"/>
+    <!-- Garage lines -->
+    <line x1="495" y1="415" x2="570" y2="415" stroke="#9E9E9E" stroke-width="1"/>
+    <line x1="495" y1="435" x2="570" y2="435" stroke="#9E9E9E" stroke-width="1"/>
+    <line x1="495" y1="455" x2="570" y2="455" stroke="#9E9E9E" stroke-width="1"/>
+    <line x1="495" y1="475" x2="570" y2="475" stroke="#9E9E9E" stroke-width="1"/>
+
+    <!-- Front Door -->
+    <rect x="355" y="380" width="55" height="120" rx="4" fill="url(#doorGrad)"/>
+    <!-- Door panels -->
+    <rect x="362" y="390" width="18" height="35" rx="3" fill="#6D4C41"/>
+    <rect x="385" y="390" width="18" height="35" rx="3" fill="#6D4C41"/>
+    <rect x="362" y="432" width="18" height="35" rx="3" fill="#6D4C41"/>
+    <rect x="385" y="432" width="18" height="35" rx="3" fill="#6D4C41"/>
+    <!-- Door handle -->
+    <circle cx="400" cy="445" r="4" fill="#FFD54F"/>
+
+    <!-- Door top arch window -->
+    <rect x="365" y="383" width="35" height="4" rx="2" fill="#81D4FA" opacity=".5"/>
+
+    <!-- Windows - Left pair -->
+    <g>
+      <rect x="255" y="310" width="60" height="50" rx="4" fill="url(#windowGlass)"/>
+      <line x1="285" y1="310" x2="285" y2="360" stroke="#fff" stroke-width="2"/>
+      <line x1="255" y1="335" x2="315" y2="335" stroke="#fff" stroke-width="2"/>
+      <rect x="255" y="310" width="60" height="50" rx="4" stroke="#BDBDBD" stroke-width="1.5" fill="none"/>
+      <!-- Window sill -->
+      <rect x="252" y="358" width="66" height="5" rx="2" fill="#E0E0E0"/>
+    </g>
+
+    <!-- Windows - Right pair -->
+    <g>
+      <rect x="440" y="310" width="60" height="50" rx="4" fill="url(#windowGlass)"/>
+      <line x1="470" y1="310" x2="470" y2="360" stroke="#fff" stroke-width="2"/>
+      <line x1="440" y1="335" x2="500" y2="335" stroke="#fff" stroke-width="2"/>
+      <rect x="440" y="310" width="60" height="50" rx="4" stroke="#BDBDBD" stroke-width="1.5" fill="none"/>
+      <rect x="437" y="358" width="66" height="5" rx="2" fill="#E0E0E0"/>
+    </g>
+
+    <!-- Upper window (attic/triangle) -->
+    <g>
+      <rect x="355" y="225" width="50" height="40" rx="4" fill="url(#windowGlass)"/>
+      <line x1="380" y1="225" x2="380" y2="265" stroke="#fff" stroke-width="2"/>
+      <line x1="355" y1="245" x2="405" y2="245" stroke="#fff" stroke-width="2"/>
+      <rect x="355" y="225" width="50" height="40" rx="4" stroke="#BDBDBD" stroke-width="1.5" fill="none"/>
+    </g>
+
+    <!-- Right wing upper window -->
+    <g>
+      <rect x="505" y="340" width="50" height="40" rx="4" fill="url(#windowGlass)"/>
+      <line x1="530" y1="340" x2="530" y2="380" stroke="#fff" stroke-width="2"/>
+      <line x1="505" y1="360" x2="555" y2="360" stroke="#fff" stroke-width="2"/>
+      <rect x="505" y="340" width="50" height="40" rx="4" stroke="#BDBDBD" stroke-width="1.5" fill="none"/>
+      <rect x="502" y="378" width="56" height="5" rx="2" fill="#E0E0E0"/>
+    </g>
+
+    <!-- Porch / Steps -->
+    <rect x="340" y="497" width="85" height="6" rx="2" fill="#D7CCC8"/>
+    <rect x="345" y="492" width="75" height="8" rx="2" fill="#BCAAA4"/>
+
+    <!-- Window glow (warm light inside) -->
+    <rect x="258" y="313" width="54" height="44" rx="3" fill="#FFF9C4" opacity=".25"/>
+    <rect x="443" y="313" width="54" height="44" rx="3" fill="#FFF9C4" opacity=".25"/>
+  </g>
+
+  <!-- Fence -->
+  <g opacity=".5" stroke="#8D6E63" stroke-width="2" fill="none">
+    <line x1="140" y1="490" x2="230" y2="490"/>
+    <line x1="590" y1="490" x2="680" y2="490"/>
+    <line x1="150" y1="475" x2="150" y2="500"/>
+    <line x1="175" y1="475" x2="175" y2="500"/>
+    <line x1="200" y1="475" x2="200" y2="500"/>
+    <line x1="610" y1="475" x2="610" y2="500"/>
+    <line x1="635" y1="475" x2="635" y2="500"/>
+    <line x1="660" y1="475" x2="660" y2="500"/>
+  </g>
+
+  <!-- Flowers / garden details -->
+  <g>
+    <circle cx="250" cy="490" r="5" fill="#E91E63" opacity=".6"/>
+    <circle cx="262" cy="487" r="4" fill="#F44336" opacity=".5"/>
+    <circle cx="256" cy="493" r="3" fill="#FF5722" opacity=".5"/>
+    <line x1="250" y1="490" x2="250" y2="500" stroke="#4CAF50" stroke-width="1.5"/>
+    <line x1="262" y1="487" x2="262" y2="500" stroke="#4CAF50" stroke-width="1.5"/>
+    <line x1="256" y1="493" x2="256" y2="500" stroke="#4CAF50" stroke-width="1"/>
+  </g>
+  <g>
+    <circle cx="518" cy="488" r="5" fill="#E91E63" opacity=".6"/>
+    <circle cx="530" cy="486" r="4" fill="#FF9800" opacity=".5"/>
+    <circle cx="524" cy="492" r="3" fill="#FFC107" opacity=".5"/>
+    <line x1="518" y1="488" x2="518" y2="500" stroke="#4CAF50" stroke-width="1.5"/>
+    <line x1="530" y1="486" x2="530" y2="500" stroke="#4CAF50" stroke-width="1.5"/>
+    <line x1="524" y1="492" x2="524" y2="500" stroke="#4CAF50" stroke-width="1"/>
+  </g>
+
+  <!-- Location pin floating above house -->
+  <g opacity=".9">
+    <animateTransform attributeName="transform" type="translate" values="0,0;0,-8;0,0" dur="2.5s" repeatCount="indefinite"/>
+    <path d="M380 130 C380 115 370 105 380 90 C390 105 380 115 380 130Z" fill="#F44336"/>
+    <circle cx="380" cy="108" r="7" fill="#fff"/>
+    <circle cx="380" cy="108" r="4" fill="#F44336"/>
+  </g>
+
+  <!-- "Best House" floating label -->
+  <g>
+    <animateTransform attributeName="transform" type="translate" values="0,0;0,-5;0,0" dur="3s" repeatCount="indefinite"/>
+    <rect x="422" y="140" width="120" height="32" rx="16" fill="#2E7D32"/>
+    <rect x="422" y="140" width="120" height="32" rx="16" fill="none" stroke="#A5D6A7" stroke-width="1" opacity=".4"/>
+    <text x="482" y="161" text-anchor="middle" fill="#fff" font-family="Inter,sans-serif" font-weight="700" font-size="12">★ BEST PICK</text>
+  </g>
+
+  <!-- Heart icon -->
+  <g opacity=".8">
+    <animateTransform attributeName="transform" type="translate" values="0,0;0,-4;0,0" dur="2s" repeatCount="indefinite"/>
+    <circle cx="570" cy="240" r="16" fill="#fff" filter="url(#softShadow)"/>
+    <path d="M563 240 C563 235 567 232 570 235 C573 232 577 235 577 240 C577 245 570 250 570 250 C570 250 563 245 563 240Z" fill="#F44336"/>
+  </g>
+</svg>

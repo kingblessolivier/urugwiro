@@ -1,0 +1,275 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block title %}{{ agent.name }} - Agent Profile - Urugwiro Ltd{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<header class="m3-page-header">
+    <div class="container">
+        <div class="m3-page-header-inner">
+            <div class="m3-page-header-badge"><span class="material-symbols-outlined">person</span> Agent Profile</div>
+            <h1>{{ agent.name }}</h1>
+            <p>Professional real estate expert specializing in {{ agent.specialization|default:"Real Estate" }}.</p>
+        </div>
+    </div>
+</header>
+
+<style>
+    
+
+    /* Main */
+    .m3-ap-main{padding:40px 0 80px;background:var(--md-sys-color-surface-container)}
+
+    /* Profile Card */
+    .m3-ap-profile{background:var(--md-sys-color-surface-container-lowest);border-radius:var(--md-sys-shape-corner-large);overflow:hidden;border:1px solid var(--md-sys-color-outline-variant);position:sticky;top:90px}
+    .m3-ap-profile-top{background:linear-gradient(135deg,#1e5631,#2D5A27,#4CAF50);padding:32px 24px;text-align:center;position:relative;overflow:hidden}
+    .m3-ap-profile-top::before{content:'';position:absolute;width:200px;height:200px;top:-80px;right:-40px;background:radial-gradient(circle,rgba(255,255,255,.08) 0%,transparent 70%);border-radius:50%}
+    .m3-ap-avatar{width:110px;height:110px;margin:0 auto 14px;border-radius:50%;overflow:hidden;border:4px solid rgba(255,255,255,.3);position:relative;z-index:1}
+    .m3-ap-avatar img{width:100%;height:100%;object-fit:cover}
+    .m3-ap-avatar-ph{width:100%;height:100%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center}
+    .m3-ap-avatar-ph .material-symbols-outlined{font-size:48px;color:rgba(255,255,255,.7)}
+    .m3-ap-name{font:var(--md-sys-typescale-title-large);color:#fff;position:relative;z-index:1}
+    .m3-ap-spec{font:var(--md-sys-typescale-label-large);color:rgba(255,255,255,.7);position:relative;z-index:1;margin-top:4px}
+    .m3-ap-verified-tag{display:inline-flex;align-items:center;gap:4px;margin-top:10px;background:rgba(255,255,255,.15);color:#fff;padding:5px 14px;border-radius:var(--md-sys-shape-corner-full);font:var(--md-sys-typescale-label-small);position:relative;z-index:1}
+    .m3-ap-verified-tag .material-symbols-outlined{font-size:14px}
+    .m3-ap-profile-stats{display:flex;padding:16px 0;margin:0 24px;border-bottom:1px solid var(--md-sys-color-outline-variant)}
+    .m3-ap-profile-stat{flex:1;text-align:center;position:relative}
+    .m3-ap-profile-stat:not(:last-child)::after{content:'';position:absolute;right:0;top:4px;bottom:4px;width:1px;background:var(--md-sys-color-outline-variant)}
+    .m3-ap-stat-val{font:var(--md-sys-typescale-title-medium);color:var(--md-sys-color-primary)}
+    .m3-ap-stat-lbl{font:var(--md-sys-typescale-label-small);color:var(--md-sys-color-on-surface-variant)}
+    .m3-ap-profile-body{padding:20px 24px}
+    .m3-ap-contact-row{display:flex;align-items:center;gap:12px;padding:10px 0;font:var(--md-sys-typescale-body-medium);border-bottom:1px solid var(--md-sys-color-outline-variant)}
+    .m3-ap-contact-row:last-of-type{border-bottom:none}
+    .m3-ap-contact-row .material-symbols-outlined{font-size:18px;color:var(--md-sys-color-primary)}
+    .m3-ap-contact-row a{color:var(--md-sys-color-on-surface);text-decoration:none}
+    .m3-ap-contact-row a:hover{color:var(--md-sys-color-primary)}
+    .m3-ap-bio{font:var(--md-sys-typescale-body-small);color:var(--md-sys-color-on-surface-variant);line-height:1.7;padding:16px 0;border-top:1px solid var(--md-sys-color-outline-variant)}
+    .m3-ap-action-btns{display:flex;flex-direction:column;gap:10px;padding-top:10px}
+    .m3-ap-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:var(--md-sys-shape-corner-full);font:var(--md-sys-typescale-label-large);cursor:pointer;transition:all 200ms;text-decoration:none;border:none}
+    .m3-ap-btn:hover{box-shadow:var(--md-sys-elevation-1)}
+    .m3-ap-btn-primary{background:var(--md-sys-color-primary);color:#fff}
+    .m3-ap-btn-primary:hover{color:#fff;background:#1e7e34}
+    .m3-ap-btn-outline{background:transparent;color:var(--md-sys-color-on-surface);border:1.5px solid var(--md-sys-color-outline-variant)}
+    .m3-ap-btn-outline:hover{border-color:var(--md-sys-color-primary);color:var(--md-sys-color-primary)}
+    .m3-ap-btn .material-symbols-outlined{font-size:18px}
+
+    /* Content Cards */
+    .m3-ap-card{background:var(--md-sys-color-surface-container-lowest);border-radius:var(--md-sys-shape-corner-large);padding:28px;border:1px solid var(--md-sys-color-outline-variant);margin-bottom:24px;transition:all 300ms}
+    .m3-ap-card:hover{box-shadow:var(--md-sys-elevation-1)}
+    .m3-ap-card-title{font:var(--md-sys-typescale-title-medium);color:var(--md-sys-color-on-surface);margin-bottom:20px;display:flex;align-items:center;gap:10px}
+    .m3-ap-card-title .material-symbols-outlined{font-size:20px;color:var(--md-sys-color-primary)}
+    .m3-ap-card-title .count{font:var(--md-sys-typescale-label-medium);color:var(--md-sys-color-on-surface-variant);margin-left:auto}
+
+    /* Listing Cards */
+    .m3-ap-listings{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+    .m3-ap-listing{background:var(--md-sys-color-surface-container);border-radius:var(--md-sys-shape-corner-medium);overflow:hidden;border:1px solid var(--md-sys-color-outline-variant);transition:all 300ms}
+    .m3-ap-listing:hover{transform:translateY(-4px);box-shadow:var(--md-sys-elevation-2);border-color:transparent}
+    .m3-ap-listing-img{height:140px;overflow:hidden}
+    .m3-ap-listing-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+    .m3-ap-listing:hover .m3-ap-listing-img img{transform:scale(1.06)}
+    .m3-ap-listing-img .ph{width:100%;height:100%;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);display:flex;align-items:center;justify-content:center}
+    .m3-ap-listing-img .ph .material-symbols-outlined{font-size:36px;color:var(--md-sys-color-primary);opacity:.5}
+    .m3-ap-listing-body{padding:16px}
+    .m3-ap-listing-body h6{font:var(--md-sys-typescale-title-small);color:var(--md-sys-color-on-surface);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .m3-ap-listing-price{font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary);margin-bottom:4px;font-weight:600}
+    .m3-ap-listing-loc{font:var(--md-sys-typescale-label-small);color:var(--md-sys-color-on-surface-variant);display:flex;align-items:center;gap:4px;margin-bottom:10px}
+    .m3-ap-listing-loc .material-symbols-outlined{font-size:14px;color:var(--md-sys-color-primary)}
+    .m3-ap-listing-link{font:var(--md-sys-typescale-label-medium);color:var(--md-sys-color-primary);text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:gap .2s}
+    .m3-ap-listing-link:hover{gap:8px;color:#1e7e34}
+
+    .m3-ap-empty-msg{text-align:center;padding:30px;color:var(--md-sys-color-on-surface-variant);font:var(--md-sys-typescale-body-medium)}
+
+    /* Review Cards */
+    .m3-ap-review{background:var(--md-sys-color-surface-container);border-radius:var(--md-sys-shape-corner-medium);padding:20px;margin-bottom:16px;border:1px solid var(--md-sys-color-outline-variant);transition:all 200ms}
+    .m3-ap-review:hover{border-color:var(--md-sys-color-primary);box-shadow:var(--md-sys-elevation-1)}
+    .m3-ap-review:last-child{margin-bottom:0}
+    .m3-ap-review-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .m3-ap-review-author{display:flex;align-items:center;gap:10px}
+    .m3-ap-review-author-avatar{width:36px;height:36px;border-radius:50%;background:var(--md-sys-color-primary-container);display:flex;align-items:center;justify-content:center}
+    .m3-ap-review-author-avatar .material-symbols-outlined{font-size:18px;color:var(--md-sys-color-on-primary-container)}
+    .m3-ap-review-author-name{font:var(--md-sys-typescale-title-small);color:var(--md-sys-color-on-surface)}
+    .m3-ap-review-date{font:var(--md-sys-typescale-label-small);color:var(--md-sys-color-on-surface-variant)}
+    .m3-ap-review-stars{display:flex;gap:2px}
+    .m3-ap-review-stars .material-symbols-outlined{font-size:18px}
+    .m3-ap-review-stars .filled{color:#FF9800}
+    .m3-ap-review-stars .empty{color:var(--md-sys-color-outline-variant)}
+    .m3-ap-review-text{font:var(--md-sys-typescale-body-medium);color:var(--md-sys-color-on-surface-variant);line-height:1.6}
+
+    /* Review Form */
+    .m3-ap-review-form{background:var(--md-sys-color-surface-container-lowest);border-radius:var(--md-sys-shape-corner-large);overflow:hidden;box-shadow:var(--md-sys-elevation-1);border:1px solid var(--md-sys-color-outline-variant)}
+    .m3-ap-review-form-hdr{background:var(--md-sys-color-secondary-container);color:var(--md-sys-color-on-secondary-container);padding:18px 24px;font:var(--md-sys-typescale-title-medium);display:flex;align-items:center;gap:10px}
+    .m3-ap-review-form-hdr .material-symbols-outlined{font-size:20px}
+    .m3-ap-review-form-body{padding:24px}
+    .m3-ap-review-form-body label{font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-on-surface);margin-bottom:8px;display:block}
+    .m3-ap-review-form-body .form-control,.m3-ap-review-form-body textarea{border:1.5px solid var(--md-sys-color-outline-variant);border-radius:var(--md-sys-shape-corner-medium);padding:14px 16px;font:var(--md-sys-typescale-body-large);transition:all 200ms;background:var(--md-sys-color-surface);width:100%}
+    .m3-ap-review-form-body .form-control:focus,.m3-ap-review-form-body textarea:focus{border-color:var(--md-sys-color-primary);box-shadow:0 0 0 4px rgba(40,167,69,.08);outline:none}
+    .m3-ap-star-rating{display:flex;gap:4px;margin-bottom:16px}
+    .m3-ap-star-rating .material-symbols-outlined{font-size:36px;cursor:pointer;color:var(--md-sys-color-outline-variant);transition:color .15s,transform .15s}
+    .m3-ap-star-rating .material-symbols-outlined:hover{transform:scale(1.15)}
+    .m3-ap-star-rating .material-symbols-outlined.active{color:#FF9800}
+
+    /* Alert */
+    .m3-ap-alert{position:fixed;top:100px;right:20px;z-index:1050;max-width:400px}
+    .m3-ap-alert .alert{border-radius:var(--md-sys-shape-corner-medium);border:none;display:flex;align-items:center;gap:10px;font:var(--md-sys-typescale-body-medium)}
+
+    @media(max-width:992px){.m3-ap-profile{position:static}}
+    @media(max-width:768px){.m3-ap-hero h1{font-size:1.8rem}.m3-ap-listings{grid-template-columns:1fr}}
+    @media(max-width:576px){.m3-ap-hero h1{font-size:1.5rem}}
+</style>
+
+<!-- Alerts -->
+<div class="m3-ap-alert">
+    {% if messages %}{% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+        <span class="material-symbols-outlined" style="font-size:20px">{% if msg.tags == 'success' %}check_circle{% else %}warning{% endif %}</span>{{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}{% endif %}
+</div>
+
+<!-- Hero -->
+<!-- Page Header -->
+<header class="m3-page-header">
+    <div class="container">
+        <div class="m3-page-header-inner">
+            <div class="m3-page-header-badge"><span class="material-symbols-outlined">person</span> Agent Profile</div>
+            <h1>{{ agent.name }}</h1>
+            <p>Professional real estate expert specializing in {{ agent.specialization|default:"Real Estate" }}.</p>
+        </div>
+    </div>
+</header>
+
+
+<!-- Main -->
+<section class="m3-ap-main">
+    <div class="container">
+        <div class="row">
+            <!-- Profile Sidebar -->
+            <div class="col-lg-4">
+                <div class="m3-ap-profile">
+                    <div class="m3-ap-profile-top">
+                        <div class="m3-ap-avatar">
+                            {% if agent.image %}<img src="{{ agent.image.url }}" alt="{{ agent.name }}">
+                            {% else %}<div class="m3-ap-avatar-ph"><span class="material-symbols-outlined">person</span></div>{% endif %}
+                        </div>
+                        <div class="m3-ap-name">{{ agent.name }}</div>
+                        <div class="m3-ap-spec">{{ agent.specialization|default:"Real Estate" }}</div>
+                        {% if agent.is_verified %}<div class="m3-ap-verified-tag"><span class="material-symbols-outlined">verified</span> Verified Agent</div>{% endif %}
+                    </div>
+                    <div class="m3-ap-profile-stats">
+                        <div class="m3-ap-profile-stat"><div class="m3-ap-stat-val">{{ agent.rating }}</div><div class="m3-ap-stat-lbl">Rating</div></div>
+                        <div class="m3-ap-profile-stat"><div class="m3-ap-stat-val">{{ agent.total_deals }}</div><div class="m3-ap-stat-lbl">Deals</div></div>
+                        <div class="m3-ap-profile-stat"><div class="m3-ap-stat-val">{{ reviews.count }}</div><div class="m3-ap-stat-lbl">Reviews</div></div>
+                    </div>
+                    <div class="m3-ap-profile-body">
+                        <div class="m3-ap-contact-row"><span class="material-symbols-outlined">email</span><a href="mailto:{{ agent.email }}">{{ agent.email }}</a></div>
+                        <div class="m3-ap-contact-row"><span class="material-symbols-outlined">call</span><a href="tel:{{ agent.phone }}">{{ agent.phone }}</a></div>
+                        {% if agent.license_number %}<div class="m3-ap-contact-row"><span class="material-symbols-outlined">badge</span><span>License: {{ agent.license_number }}</span></div>{% endif %}
+                        <div class="m3-ap-bio">{{ agent.bio|default:"Professional real estate agent dedicated to providing excellent service." }}</div>
+                        <div class="m3-ap-action-btns">
+                            <a href="tel:{{ agent.phone }}" class="m3-ap-btn m3-ap-btn-primary"><span class="material-symbols-outlined">call</span> Call Agent</a>
+                            <a href="mailto:{{ agent.email }}" class="m3-ap-btn m3-ap-btn-outline"><span class="material-symbols-outlined">email</span> Send Email</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="col-lg-8">
+                <!-- Active Listings -->
+                <div class="m3-ap-card">
+                    <div class="m3-ap-card-title"><span class="material-symbols-outlined">home_work</span> Active Listings <span class="count">{{ active_listings.count }}</span></div>
+                    {% if active_listings %}
+                    <div class="m3-ap-listings">
+                        {% for prop in active_listings %}
+                        <a href="{% url 'listing_detail_pk' pk=prop.id %}" class="text-decoration-none">
+                            <div class="m3-ap-listing">
+                                <div class="m3-ap-listing-img">
+                                    {% if prop.image %}<img src="{{ prop.image.url }}" alt="{{ prop.title }}" loading="lazy">
+                                    {% else %}<div class="ph"><span class="material-symbols-outlined">home</span></div>{% endif %}
+                                </div>
+                                <div class="m3-ap-listing-body">
+                                    <h6>{{ prop.title|truncatechars:30 }}</h6>
+                                    <div class="m3-ap-listing-price">{{ prop.price|floatformat:0 }} Frw</div>
+                                    <div class="m3-ap-listing-loc"><span class="material-symbols-outlined">location_on</span> {{ prop.city }}</div>
+                                    <span class="m3-ap-listing-link">View Details <span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span></span>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="m3-ap-empty-msg"><span class="material-symbols-outlined" style="font-size:36px;display:block;margin-bottom:8px;opacity:.4">inventory_2</span>No active listings at the moment</div>
+                    {% endif %}
+                </div>
+
+                <!-- Reviews -->
+                <div class="m3-ap-card">
+                    <div class="m3-ap-card-title"><span class="material-symbols-outlined">rate_review</span> Client Reviews <span class="count">{{ reviews.count }}</span></div>
+                    {% if reviews %}
+                    {% for review in reviews %}
+                    <div class="m3-ap-review">
+                        <div class="m3-ap-review-header">
+                            <div class="m3-ap-review-author">
+                                <div class="m3-ap-review-author-avatar"><span class="material-symbols-outlined">person</span></div>
+                                <div>
+                                    <div class="m3-ap-review-author-name">{{ review.reviewer.first_name|default:review.reviewer.username }}</div>
+                                    <div class="m3-ap-review-date">{{ review.created_at|date:"M d, Y" }}</div>
+                                </div>
+                            </div>
+                            <div class="m3-ap-review-stars">
+                                {% for i in "12345" %}
+                                <span class="material-symbols-outlined {% if forloop.counter <= review.rating %}filled{% else %}empty{% endif %}">star</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="m3-ap-review-text">{{ review.comment }}</div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="m3-ap-empty-msg"><span class="material-symbols-outlined" style="font-size:36px;display:block;margin-bottom:8px;opacity:.4">reviews</span>No reviews yet — be the first to leave one!</div>
+                    {% endif %}
+                </div>
+
+                <!-- Leave Review -->
+                {% if user.is_authenticated %}
+                <div class="m3-ap-review-form">
+                    <div class="m3-ap-review-form-hdr"><span class="material-symbols-outlined">edit</span> Leave a Review</div>
+                    <div class="m3-ap-review-form-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label>Rating</label>
+                                <div class="m3-ap-star-rating" id="stars">
+                                    {% for i in "12345" %}
+                                    <span class="material-symbols-outlined" data-val="{{ forloop.counter }}" onclick="setRating({{ forloop.counter }})">star</span>
+                                    {% endfor %}
+                                </div>
+                                <input type="hidden" name="rating" id="ratingInput" value="">
+                            </div>
+                            <div class="mb-3">
+                                <label>Your Review</label>
+                                <textarea name="comment" class="form-control" rows="4" required placeholder="Share your experience working with {{ agent.name }}..."></textarea>
+                            </div>
+                            <button type="submit" class="m3-ap-btn m3-ap-btn-primary" style="width:100%"><span class="material-symbols-outlined">send</span> Submit Review</button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+function setRating(val) {
+    document.getElementById('ratingInput').value = val;
+    document.querySelectorAll('#stars .material-symbols-outlined').forEach(function(s) {
+        if (parseInt(s.dataset.val) <= val) { s.classList.add('active'); } else { s.classList.remove('active'); }
+    });
+}
+document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.m3-ap-alert .alert').forEach(function(a){setTimeout(function(){try{new bootstrap.Alert(a).close()}catch(e){}},5000)});
+});
+</script>
+{% endblock %}

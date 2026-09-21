@@ -1,0 +1,87 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+{% load tz %}
+
+{% block topbar_title %}Updates{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / Updates{% endblock %}
+
+{% block content %}
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+{% endfor %}
+{% endif %}
+
+<!-- Page Header -->
+<div class="m3-page-header">
+    <h4><span class="material-symbols-outlined" style="color:var(--md-sys-color-primary)">notifications</span>Updates Management</h4>
+    <a href="{% url 'adding_update' %}" class="m3-btn-filled"><span class="material-symbols-outlined" style="font-size:18px">add</span> Add Update</a>
+</div>
+
+<!-- Search -->
+<div class="m3-card mb-4">
+    <div class="m3-card-body" style="padding:12px 24px">
+        <form class="d-flex gap-2" method="GET" action="{% url 'admin_updates' %}">
+            <input class="form-control" type="search" placeholder="Title or Description" id="searchInput" name="search" style="max-width:320px">
+            <button class="m3-btn-tonal m3-btn-sm" type="submit"><span class="material-symbols-outlined" style="font-size:18px">search</span></button>
+        </form>
+    </div>
+</div>
+
+<!-- Updates Table -->
+<div class="m3-card">
+    <div class="m3-card-header">
+        <h5><span class="material-symbols-outlined">campaign</span>All Updates</h5>
+    </div>
+    <div class="m3-card-body" style="padding:0">
+        <div class="table-responsive">
+            <table class="m3-table">
+                <thead><tr><th>#</th><th>Title</th><th>Created</th><th>End Date</th><th>Action</th></tr></thead>
+                <tbody>
+                    {% for update in updates %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><strong>{{ update.title }}</strong></td>
+                        <td>{{ update.created_at }}</td>
+                        <td>{{ update.end_date }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{% url 'editing_update' update.id %}" class="m3-icon-btn m3-icon-btn-primary" title="Edit"><span class="material-symbols-outlined" style="font-size:16px">edit</span></a>
+                                <button class="m3-icon-btn m3-icon-btn-error" data-bs-toggle="modal" data-bs-target="#deleteUpdateModal{{ update.id }}" title="Delete"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>
+                            </div>
+                        </td>
+                    </tr>
+                    <div class="modal fade" id="deleteUpdateModal{{ update.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog"><div class="modal-content">
+                            <div class="modal-header"><h5 class="modal-title"><span class="material-symbols-outlined" style="color:var(--md-sys-color-error)">delete</span> Delete Update</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                            <div class="modal-body">Are you sure you want to delete "<strong>{{ update.title }}</strong>"?</div>
+                            <div class="modal-footer"><form method="POST" action="{% url 'delete_update' update.id %}">{% csrf_token %}<button type="submit" class="btn btn-danger">Yes, Delete</button></form><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button></div>
+                        </div></div>
+                    </div>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center" style="padding:32px;color:var(--md-sys-color-on-surface-variant)">No updates found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if updates.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ updates.previous_page_number }}"><span class="material-symbols-outlined" style="font-size:18px">chevron_left</span></a></li>
+        {% endif %}
+        {% for num in updates.paginator.page_range %}
+            {% if updates.number == num %}
+            <li class="page-item active"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            {% elif num > updates.number|add:'-3' and num < updates.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            {% endif %}
+        {% endfor %}
+        {% if updates.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ updates.next_page_number }}"><span class="material-symbols-outlined" style="font-size:18px">chevron_right</span></a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endblock %}

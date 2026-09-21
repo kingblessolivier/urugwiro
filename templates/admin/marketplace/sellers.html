@@ -1,0 +1,52 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+{% block title %}Manage Sellers{% endblock %}
+{% block topbar_title %}Manage Sellers{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / Marketplace / Sellers{% endblock %}
+
+{% block content %}
+<div class="m3-grid mb-4">
+    <div class="m3-stat-card"><div class="m3-stat-icon" style="background:#E8F5E9"><span class="material-symbols-outlined" style="color:#2D5A27">storefront</span></div><div class="m3-stat-info"><div class="m3-stat-value">{{ sellers|length }}</div><div class="m3-stat-label">Total Sellers</div></div></div>
+    <div class="m3-stat-card"><div class="m3-stat-icon" style="background:#E3F2FD"><span class="material-symbols-outlined" style="color:#1565C0">verified</span></div><div class="m3-stat-info"><div class="m3-stat-value">{{ verified_count }}</div><div class="m3-stat-label">Verified</div></div></div>
+    <div class="m3-stat-card"><div class="m3-stat-icon" style="background:#FFF3E0"><span class="material-symbols-outlined" style="color:#E65100">pending</span></div><div class="m3-stat-info"><div class="m3-stat-value">{{ unverified_count }}</div><div class="m3-stat-label">Pending</div></div></div>
+</div>
+
+{% if messages %}{% for msg in messages %}<div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}
+
+<div class="m3-card">
+    <div class="m3-card-header"><h5 class="m3-card-title mb-0">All Sellers</h5></div>
+    <div class="table-responsive">
+        <table class="m3-table">
+            <thead><tr><th>Seller</th><th>Email</th><th>Phone</th><th>ID Number</th><th>Listings</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+                {% for seller in sellers %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            {% if seller.image %}<img src="{{ seller.image.url }}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover">{% else %}<div style="width:36px;height:36px;border-radius:50%;background:#E8F5E9;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:16px;color:#2D5A27">person</span></div>{% endif %}
+                            <div class="fw-bold">{{ seller.name }}</div>
+                        </div>
+                    </td>
+                    <td>{{ seller.email }}</td>
+                    <td>{{ seller.phone }}</td>
+                    <td>{{ seller.id_number|default:"-" }}</td>
+                    <td>{{ seller.saleproperty_set.count }}</td>
+                    <td>{% if seller.is_verified %}<span class="badge bg-success">Verified</span>{% else %}<span class="badge bg-warning text-dark">Pending</span>{% endif %}</td>
+                    <td>
+                        <form method="post" action="{% url 'admin_verify_seller' seller.id %}" style="display:inline">
+                            {% csrf_token %}
+                            {% if seller.is_verified %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Unverify"><span class="material-symbols-outlined" style="font-size:16px">block</span></button>
+                            {% else %}
+                            <button type="submit" class="btn btn-sm btn-outline-success" data-bs-toggle="tooltip" title="Verify"><span class="material-symbols-outlined" style="font-size:16px">verified</span></button>
+                            {% endif %}
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No sellers registered yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

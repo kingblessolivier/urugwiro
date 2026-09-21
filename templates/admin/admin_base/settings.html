@@ -1,0 +1,21 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+{% block content %}
+<h3 style="display:flex;align-items:center;gap:10px;margin-bottom:24px"><span class="material-symbols-outlined" style="color:var(--md-sys-color-primary)">settings</span> Settings</h3>
+
+<div class="card">
+    <div class="card-body">
+        <form>
+            <div class="mb-3">
+                <label for="siteName" class="form-label">Site Name</label>
+                <input type="text" class="form-control" id="siteName" placeholder="Enter site name">
+                <div class="form-text">This will be displayed on the navbar.</div>
+            </div>
+            <div class="mb-3">
+                <label for="siteLogo" class="form-label">Site Logo</label>
+                <input type="file" class="form-control" id="siteLogo">
+            </div>
+            <button type="submit" class="m3-btn-filled"><span class="material-symbols-outlined" style="font-size:18px">save</span> Save Changes</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

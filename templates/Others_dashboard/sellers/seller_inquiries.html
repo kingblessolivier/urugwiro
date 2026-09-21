@@ -1,0 +1,56 @@
+{% extends 'Others_dashboard/sellers/seller_base.html' %}
+{% block title %}Inquiries | Urugwiro{% endblock %}
+{% block topbar_title %}Property Inquiries{% endblock %}
+{% block breadcrumb %}<a href="{% url 'seller_dashboard' user.id %}">Home</a> / Inquiries{% endblock %}
+
+{% block content %}
+<!-- Page Hero -->
+<div class="m3-dash-hero m3-slide-up">
+    <div class="m3-dash-hero-inner">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2><span class="material-symbols-outlined" style="font-size:28px;vertical-align:middle">help</span> Property Inquiries</h2>
+                <p>View messages and inquiries from potential buyers.</p>
+            </div>
+            <div class="m3-dash-hero-actions">
+                <a href="{% url 'seller_dashboard' user.id %}" class="m3-btn-filled m3-btn-sm" style="background:rgba(255,255,255,.15);backdrop-filter:blur(4px)"><span class="material-symbols-outlined" style="font-size:18px">dashboard</span>Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inquiries Table -->
+<div class="m3-card m3-slide-up" style="animation-delay:.15s">
+    <div class="m3-card-header">
+        <h5><span class="material-symbols-outlined">mail</span>All Inquiries</h5>
+        {% if inquiries %}<span class="m3-badge m3-badge-primary">{{ inquiries|length }} total</span>{% endif %}
+    </div>
+    <div class="m3-card-body">
+        {% if inquiries %}
+        <div class="table-responsive">
+            <table class="table m3-table">
+                <thead><tr><th>Property</th><th>From</th><th>Email</th><th>Phone</th><th>Message</th><th>Date</th></tr></thead>
+                <tbody>
+                {% for inq in inquiries %}
+                <tr>
+                    <td><a href="{% url 'sale_property_detail' inq.sale_property.id %}" style="color:var(--md-sys-color-primary);font-weight:500">{{ inq.sale_property.title|truncatechars:25 }}</a></td>
+                    <td><strong>{{ inq.name }}</strong></td>
+                    <td><a href="mailto:{{ inq.email }}" style="color:var(--md-sys-color-primary)">{{ inq.email }}</a></td>
+                    <td>{{ inq.phone|default:"-" }}</td>
+                    <td>{{ inq.message|truncatechars:50 }}</td>
+                    <td>{{ inq.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="m3-empty">
+            <span class="material-symbols-outlined">mail</span>
+            <h5>No inquiries yet</h5>
+            <p>Inquiries will appear here when potential buyers contact you about your properties</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

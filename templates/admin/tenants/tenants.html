@@ -1,0 +1,66 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+
+{% block topbar_title %}Tenants{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / Tenants{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="m3-page-header">
+    <h4>
+        <span class="material-symbols-outlined" style="color:var(--md-sys-color-primary)">groups</span>Tenant Management
+    </h4>
+</div>
+
+<!-- Search -->
+<div class="m3-card mb-4">
+    <div class="m3-card-body" style="padding:16px 24px">
+        <form class="d-flex gap-2" method="GET" action="{% url 'admin_tenants' %}">
+            <input class="form-control" type="search" placeholder="Search by Name or Email" id="searchInput" name="search" style="max-width:320px">
+            <button class="m3-btn-tonal m3-btn-sm" type="submit"><span class="material-symbols-outlined" style="font-size:18px">search</span></button>
+        </form>
+    </div>
+</div>
+
+<!-- Tenants Table -->
+<div class="m3-card">
+    <div class="m3-card-header">
+        <h5><span class="material-symbols-outlined">people</span>All Tenants</h5>
+    </div>
+    <div class="m3-card-body" style="padding:0">
+        <div class="table-responsive">
+            <table class="m3-table">
+                <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Phone</th><th>Address</th><th>Image</th><th>Action</th></tr></thead>
+                <tbody>
+                    {% for tenant in tenants %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><strong>{{ tenant.name }}</strong></td>
+                        <td>{{ tenant.email }}</td>
+                        <td>{{ tenant.phone_number }}</td>
+                        <td>{{ tenant.address }}</td>
+                        <td>
+                            {% if tenant.image %}
+                            <img src="{{ tenant.image.url }}" alt="Tenant" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--md-sys-color-outline-variant)">
+                            {% else %}
+                            <div style="width:40px;height:40px;border-radius:50%;background:var(--md-sys-color-primary-container);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:18px;color:var(--md-sys-color-on-primary-container)">person</span></div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="m3-icon-btn m3-icon-btn-error" data-bs-toggle="modal" data-bs-target="#deleteTenantModal{{ tenant.id }}" title="Delete"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>
+                        </td>
+                    </tr>
+                    <div class="modal fade" id="deleteTenantModal{{ tenant.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog"><div class="modal-content">
+                            <div class="modal-header"><h5 class="modal-title"><span class="material-symbols-outlined" style="color:var(--md-sys-color-error)">delete</span> Delete Tenant</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                            <div class="modal-body">Are you sure you want to delete <strong>{{ tenant.name }}</strong>?</div>
+                            <div class="modal-footer"><form method="POST" action="{% url 'delete_tenant' tenant.id %}">{% csrf_token %}<button type="submit" class="btn btn-danger">Yes, Delete</button></form><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button></div>
+                        </div></div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

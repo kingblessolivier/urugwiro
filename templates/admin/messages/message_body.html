@@ -1,0 +1,53 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+
+{% block topbar_title %}View Message{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / <a href="{% url 'message_list' %}">Messages</a> / View{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;margin:0 auto">
+    <a href="{% url 'message_list' %}" class="m3-btn-outlined m3-btn-sm" style="margin-bottom:20px;display:inline-flex"><span class="material-symbols-outlined" style="font-size:18px">arrow_back</span> Back</a>
+
+    <div class="m3-card">
+        <div class="m3-card-header" style="background:var(--md-sys-color-primary);border:none">
+            <h5 style="color:#fff;margin:0"><span class="material-symbols-outlined" style="color:#fff">mail</span> Message Details</h5>
+        </div>
+        <div class="m3-card-body" style="padding:32px">
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">person</span> Sender</label>
+                    <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ message.name }}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">mail</span> Email</label>
+                    <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ message.email }}</p>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">calendar_today</span> Date Sent</label>
+                <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ message.created_at }}</p>
+            </div>
+            <div class="mb-4">
+                <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">chat</span> Message</label>
+                <div style="background:var(--md-sys-color-surface-container);padding:20px;border-radius:var(--md-sys-shape-corner-large);margin-top:8px">{{ message.message }}</div>
+            </div>
+
+            <p><strong>Status:</strong>
+                <span class="m3-badge {% if not message.is_read %}m3-badge-warning{% elif message.is_archived %}m3-badge-info{% else %}m3-badge-success{% endif %}">
+                    {% if not message.is_read %}Unread{% elif message.is_archived %}Archived{% else %}Read{% endif %}
+                </span>
+            </p>
+
+            <div class="d-flex gap-2 flex-wrap mt-4">
+                {% if not message.is_read %}
+                <a href="{% url 'mark_as_read' message.id %}" class="m3-btn-filled" style="background:#2e7d32"><span class="material-symbols-outlined" style="font-size:18px">done</span> Mark as Read</a>
+                {% elif not message.is_archived %}
+                <a href="{% url 'archive_message' message.id %}" class="m3-btn-tonal"><span class="material-symbols-outlined" style="font-size:18px">archive</span> Archive</a>
+                {% endif %}
+                <a href="{% url 'mail' message.id %}" class="m3-btn-filled"><span class="material-symbols-outlined" style="font-size:18px">reply</span> Reply</a>
+                <a href="{% url 'delete_message' message.id %}" class="m3-btn-filled" style="background:var(--md-sys-color-error)"><span class="material-symbols-outlined" style="font-size:18px">delete</span> Delete</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

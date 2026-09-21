@@ -1,0 +1,99 @@
+{% extends "Others_dashboard/owners/owner_base.html" %}
+
+{% block content %}
+<!-- Dashboard Hero -->
+<div class="m3-dash-hero m3-slide-up">
+    <div class="m3-dash-hero-inner">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2>Welcome, <span>{{ user.username }}</span> 👋</h2>
+                <p>Here's an overview of your properties, contracts, and revenue.</p>
+            </div>
+            <div class="m3-dash-hero-actions">
+                <a href="{% url 'owner_add_property' user.id %}" class="m3-btn-filled m3-btn-sm" style="background:var(--md-sys-color-inverse-primary);color:#0f1f14"><span class="material-symbols-outlined" style="font-size:18px">add</span>Add Property</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Metrics -->
+<div class="m3-metrics">
+    <div class="m3-metric m3-slide-up m3-stagger-1">
+        <div class="m3-metric-icon m3-icon-primary"><span class="material-symbols-outlined">apartment</span></div>
+        <div><div class="m3-metric-val">10</div><div class="m3-metric-label">Total Properties</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-2">
+        <div class="m3-metric-icon m3-icon-success"><span class="material-symbols-outlined">description</span></div>
+        <div><div class="m3-metric-val">{{ leases.count }}</div><div class="m3-metric-label">Contracts Designed</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-3">
+        <div class="m3-metric-icon m3-icon-info"><span class="material-symbols-outlined">check_circle</span></div>
+        <div><div class="m3-metric-val">{{ contracts_accepted.count }}</div><div class="m3-metric-label">Accepted Contracts</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-4">
+        <div class="m3-metric-icon m3-icon-warning"><span class="material-symbols-outlined">draw</span></div>
+        <div><div class="m3-metric-val">{{ contracts_signed.count }}</div><div class="m3-metric-label">Signed Contracts</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-5">
+        <div class="m3-metric-icon m3-icon-tertiary"><span class="material-symbols-outlined">payments</span></div>
+        <div><div class="m3-metric-val">{{ revenue }} Frw</div><div class="m3-metric-label">Total Revenue</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-6">
+        <div class="m3-metric-icon m3-icon-secondary"><span class="material-symbols-outlined">people</span></div>
+        <div><div class="m3-metric-val">{{ tenants }}</div><div class="m3-metric-label">Tenants</div></div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">bar_chart</span>Properties Added</h5>
+                <span class="m3-badge m3-badge-primary">Monthly</span>
+            </div>
+            <div class="m3-card-body"><div class="m3-chart"><canvas id="propertyChart"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">timeline</span>Contracts Overview</h5>
+                <span class="m3-badge m3-badge-info">Monthly</span>
+            </div>
+            <div class="m3-card-body"><div class="m3-chart"><canvas id="contractChart"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">trending_up</span>Revenue Trend</h5>
+                <span class="m3-badge m3-badge-success">Monthly</span>
+            </div>
+            <div class="m3-card-body"><div class="m3-chart"><canvas id="revenueChart"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">group</span>Tenants Over Time</h5>
+                <span class="m3-badge m3-badge-warning">Monthly</span>
+            </div>
+            <div class="m3-card-body"><div class="m3-chart"><canvas id="tenantChart"></canvas></div></div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var m3Green = '#2D5A27', m3Teal = '#20c997', m3GreenLight = 'rgba(40,167,69,0.08)';
+    var chartOpts = {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#72796f',font:{family:'Inter'}}},tooltip:{backgroundColor:'#162a1c',titleColor:'#6ddf74',bodyColor:'#fff',cornerRadius:12,padding:12}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#72796f',font:{family:'Inter'}}},x:{grid:{display:false},ticks:{color:'#72796f',font:{family:'Inter'}}}}};
+
+    new Chart(document.getElementById('propertyChart'),{type:'bar',data:{labels:labels,datasets:[{label:'Properties',data:[5,3,2,7,10,5,8,3,6,9,2,5],backgroundColor:m3GreenLight,borderColor:m3Green,borderWidth:2,borderRadius:8}]},options:chartOpts});
+    new Chart(document.getElementById('contractChart'),{type:'line',data:{labels:labels,datasets:[{label:'Designed',data:[2,4,1,3,5,2,4,1,3,5,2,4],borderColor:m3Green,borderWidth:2,tension:.4,fill:false,pointRadius:4,pointBackgroundColor:'#fff',pointBorderColor:m3Green},{label:'Accepted',data:Array(12).fill({{ contracts_accepted.count }}),borderColor:m3Teal,borderWidth:2,tension:.4,fill:false,pointRadius:4,pointBackgroundColor:'#fff',pointBorderColor:m3Teal},{label:'Signed',data:Array(12).fill({{ contracts_signed.count }}),borderColor:'#ff9800',borderWidth:2,tension:.4,fill:false,pointRadius:4,pointBackgroundColor:'#fff',pointBorderColor:'#ff9800'}]},options:chartOpts});
+    new Chart(document.getElementById('revenueChart'),{type:'line',data:{labels:labels,datasets:[{label:'Revenue',data:[2000,3000,1500,4000,5000,2500,3500,1000,4500,5500,3000,2000],backgroundColor:m3GreenLight,borderColor:m3Green,borderWidth:2,tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#fff',pointBorderColor:m3Green}]},options:chartOpts});
+    new Chart(document.getElementById('tenantChart'),{type:'bar',data:{labels:labels,datasets:[{label:'Tenants',data:[2,3,1,4,5,2,3,1,4,5,2,3],backgroundColor:'rgba(32,201,151,.15)',borderColor:m3Teal,borderWidth:2,borderRadius:8}]},options:chartOpts});
+});
+</script>
+{% endblock %}

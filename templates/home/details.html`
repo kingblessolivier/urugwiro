@@ -1,0 +1,447 @@
+{% extends "home/base.html" %}
+{% load static %}
+
+{% block title %}{{ property.name }} - Urugwiro Ltd{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+    /* We use the global design-system.css for the most part,
+       but we keep the gallery-specific styles here for encapsulation */
+    .sdet-gallery{position:relative;background:#000;margin-top:0;margin-bottom:0}
+    .sdet-slides{position:relative;height:520px;overflow:hidden}
+    .sdet-slide{position:absolute;inset:0;opacity:0;transition:opacity .5s ease}
+    .sdet-slide.active{opacity:1;z-index:1}
+    .sdet-slide img{width:100%;height:100%;object-fit:cover;display:block}
+    .sdet-slide-ph{width:100%;height:100%;background:linear-gradient(135deg,#1a3a1a 0%,#0d4a25 100%);display:flex;align-items:center;justify-content:center}
+    .sdet-slide-ph .material-symbols-outlined{font-size:96px;color:rgba(255,255,255,.15)}
+    .sdet-slide-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.08) 0%,rgba(0,0,0,.15) 35%,rgba(0,0,0,.82) 100%);pointer-events:none}
+    .sdet-hero-content{position:absolute;bottom:0;left:0;right:0;padding:20px 0 28px;z-index:5;animation:sdetHeroUp .6s ease both;background:linear-gradient(to top,rgba(0,0,0,.72) 0%,transparent 100%)}
+    @keyframes sdetHeroUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+    .sdet-hero-row{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    .sdet-hero-left{flex:1;min-width:0}
+    .sdet-hero-price-badge{background:rgba(40,167,69,.2);border:1px solid rgba(40,167,69,.5);backdrop-filter:blur(12px);border-radius:16px;padding:12px 20px;text-align:right;flex-shrink:0}
+    .sdet-hero-price-lbl{font:.65rem 'Inter',sans-serif;color:rgba(255,255,255,.5);letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px}
+    .sdet-hero-price-val{font:700 1.9rem/1 'Inter',sans-serif;color:#fff;white-space:nowrap}
+    .sdet-hero-price-val small{font:.8rem 'Inter',sans-serif;font-weight:400;color:rgba(255,255,255,.55);margin-left:5px}
+    .sdet-breadcrumb{display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+    .sdet-breadcrumb a{color:rgba(255,255,255,.6);font-size:.8rem;text-decoration:none;transition:color .15s;display:inline-flex;align-items:center;gap:4px}
+    .sdet-breadcrumb a:hover{color:#fff}
+    .sdet-breadcrumb .sep{color:rgba(255,255,255,.3);font-size:14px}
+    .sdet-breadcrumb .cur{color:#81c784;font-size:.8rem;font-weight:600}
+    .sdet-gallery h1{font:700 2.6rem/1.15 'Inter',sans-serif;color:#fff;margin-bottom:14px;text-shadow:0 2px 12px rgba(0,0,0,.4)}
+    .sdet-hero-chips{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .sdet-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:50px;font-size:.78rem;font-weight:600;letter-spacing:.3px}
+    .sdet-chip-type{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(8px)}
+    .sdet-chip-status-listed{background:rgba(34,197,94,.25);color:#86efac;border:1px solid rgba(34,197,94,.35)}
+    .sdet-chip-loc{background:transparent;color:rgba(255,255,255,.8);border:none;padding-left:0}
+    .sdet-chip-loc .material-symbols-outlined{color:#81c784}
+    .sdet-view-imgs-btn{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);z-index:7;display:inline-flex;align-items:center;gap:7px;padding:10px 22px;background:rgba(0,0,0,.55);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.22);border-radius:50px;color:#fff;font:.8rem 'Inter',sans-serif;font-weight:600;cursor:pointer;transition:all .22s;letter-spacing:.3px;white-space:nowrap}
+    .sdet-view-imgs-btn:hover{background:rgba(40,167,69,.35);border-color:rgba(40,167,69,.6);transform:translateX(-50%) translateY(-2px)}
+    .sdet-slide-btn{position:absolute;top:50%;transform:translateY(-50%);z-index:6;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:#fff;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;backdrop-filter:blur(6px)}
+    .sdet-slide-btn:hover{background:rgba(0,0,0,.7);border-color:rgba(255,255,255,.5)}
+    .sdet-slide-btn.prev{left:16px}
+    .sdet-slide-btn.next{right:16px}
+    .sdet-photo-badge{position:absolute;top:18px;right:18px;z-index:6;background:rgba(0,0,0,.55);color:#fff;padding:6px 14px;border-radius:50px;font-size:.8rem;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;gap:6px}
+    .sdet-dots{position:absolute;bottom:110px;left:50%;transform:translateX(-50%);z-index:6;display:flex;gap:6px}
+    .sdet-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4);cursor:pointer;transition:all .2s;border:none}
+    .sdet-dot.active{background:#fff;width:24px;border-radius:4px}
+    .sdet-thumbs{display:flex;gap:6px;padding:8px 12px;background:#111;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#333 #111}
+    .sdet-thumb{flex-shrink:0;width:80px;height:56px;border-radius:6px;overflow:hidden;cursor:pointer;border:2px solid transparent;transition:all .2s;opacity:.55}
+    .sdet-thumb.active{border-color:#2D5A27;opacity:1}
+    .sdet-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .sdet-lightbox{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.96);opacity:0;pointer-events:none;transition:opacity .25s;display:flex;flex-direction:column}
+    .sdet-lightbox.open{opacity:1;pointer-events:all}
+    .sdet-lb-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);flex-shrink:0;z-index:2;border-bottom:1px solid rgba(255,255,255,.08)}
+    .sdet-lb-bar-left,.sdet-lb-bar-right{display:flex;align-items:center;gap:5px}
+    .sdet-lb-bar-center{flex:1;text-align:center;color:rgba(255,255,255,.5);font:.8rem 'Inter',sans-serif}
+    .sdet-lb-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0}
+    .sdet-lb-btn:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.32)}
+    .sdet-lb-pan{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:grab}
+    .sdet-lb-pan img{max-width:92vw;max-height:calc(100vh - 100px);object-fit:contain;border-radius:4px;box-shadow:0 20px 60px rgba(0,0,0,.5);transform-origin:center center;user-select:none;-webkit-user-drag:none;pointer-events:none;will-change:transform;transition:transform .1s ease}
+    .sdet-lb-prev,.sdet-lb-next{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.18);color:#fff;width:46px;height:46px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:3;backdrop-filter:blur(6px)}
+    .sdet-lb-prev{left:14px}.sdet-lb-next{right:14px}
+    .sdet-ribbon{background:linear-gradient(135deg,#0a2e14 0%,#1a4a28 100%);border-bottom:1px solid rgba(40,167,69,.3);padding:18px 0}
+    .sdet-ribbon-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+    .sdet-price-big{font:700 2.2rem/1 'Inter',sans-serif;color:#fff}
+    .sdet-price-big span{font-size:1rem;color:rgba(255,255,255,.55);font-weight:400;margin-left:4px}
+    .sdet-ribbon-stats{display:flex;gap:28px;flex-wrap:wrap}
+    .sdet-rstat{text-align:center}
+    .sdet-rstat-v{font:600 1.1rem/1 'Inter',sans-serif;color:#fff}
+    .sdet-rstat-l{font:.72rem 'Inter',sans-serif;color:rgba(255,255,255,.5);margin-top:3px}
+    .sdet-ribbon-actions{display:flex;gap:10px}
+    .sdet-btn{display:inline-flex;align-items:center;gap:7px;padding:10px 22px;border-radius:50px;font:.85rem/1 'Inter',sans-serif;font-weight:600;border:none;cursor:pointer;transition:all .2s;text-decoration:none}
+    .sdet-btn-primary{background:#2D5A27;color:#fff}
+    .sdet-btn-ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25)}
+    .sdet-body{padding:40px 0 80px;background:#F5F7FA}
+    .det-card{background:#fff;border:1px solid #e8edf2;border-radius:20px;padding:28px;margin-bottom:24px;box-shadow:0 2px 12px rgba(0,0,0,.06);transition:opacity .4s ease,transform .4s ease,box-shadow .2s}
+    .det-card-title{font:600 1rem/1 'Inter',sans-serif;color:#1a2e1a;margin-bottom:20px;display:flex;align-items:center;gap:9px}
+    .det-card-title .material-symbols-outlined{font-size:20px;color:#2D5A27}
+    .sdet-feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+    .sdet-feat{background:#f0f7f1;border:1px solid #d4edda;border-radius:14px;padding:18px 12px;text-align:center;transition:all .2s}
+    .sdet-feat .material-symbols-outlined{font-size:1.6rem;color:#2D5A27;display:block;margin-bottom:8px}
+    .sdet-feat-v{font:600 1.1rem/1 'Inter',sans-serif;color:#1a2e1a;margin-bottom:4px}
+    .sdet-feat-l{font:.72rem 'Inter',sans-serif;color:#6c757d;text-transform:uppercase;letter-spacing:.4px}
+    .sdet-badges-wrap{display:flex;flex-wrap:wrap;gap:10px}
+    .sdet-feature-badge{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:50px;font:.82rem 'Inter',sans-serif;font-weight:600;transition:all .2s}
+    .sdet-fb-green{background:#e6f4ea;color:#155724}
+    .sdet-fb-blue{background:#E3F2FD;color:#1565C0}
+    .sdet-fb-lime{background:#F1F8E9;color:#33691E}
+    .sdet-fb-orange{background:#FFF3E0;color:#E65100}
+    .sdet-fb-grey{background:#f8f9fa;color:#495057}
+    .sdet-desc{color:#495057;line-height:1.85;font-size:.95rem}
+    .sdet-form-card{background:#fff;border:1px solid #e8edf2;border-radius:20px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:24px;}
+    .sdet-form-hdr{padding:18px 24px;display:flex;align-items:center;gap:10px;font:600 .95rem/1 'Inter',sans-serif}
+    .sdet-form-hdr-inquiry{background:#0a2e14;color:#fff}
+    .sdet-form-body{padding:24px}
+    .sdet-form-body .form-control{border:1.5px solid #dee2e6;border-radius:10px;padding:12px 14px;font:.9rem 'Inter',sans-serif;transition:all .2s;outline:none;width:100%}
+    .sdet-form-label{font:.78rem/1 'Inter',sans-serif;font-weight:600;color:#495057;margin-bottom:7px;display:flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:.4px}
+    .sdet-btn-submit{width:100%;height:48px;background:linear-gradient(135deg,#0a2e14,#1a4a28);color:#fff;border:none;border-radius:50px;font:.9rem/1 'Inter',sans-serif;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;margin-top:4px}
+    .sdet-price-card{background:linear-gradient(160deg,#0a2e14 0%,#1a4a28 60%,#0d3d1c 100%);border:1px solid rgba(40,167,69,.35);border-radius:20px;padding:28px;margin-bottom:24px;position:relative;overflow:hidden}
+    .sdet-pc-label{font:.75rem 'Inter',sans-serif;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+    .sdet-pc-price{font:700 2rem/1 'Inter',sans-serif;color:#fff;margin-bottom:6px}
+    .sdet-pc-price em{font:.9rem 'Inter',sans-serif;font-weight:400;color:rgba(255,255,255,.5);font-style:normal;margin-left:4px}
+    .sdet-pc-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+    .sdet-pc-stat{background:rgba(255,255,255,.07);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.06)}
+    .sdet-pc-stat-v{font:600 1rem/1 'Inter',sans-serif;color:#fff;margin-bottom:4px}
+    .sdet-pc-stat-l{font:.7rem 'Inter',sans-serif;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.4px}
+    .sdet-status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;flex-shrink:0}
+    .sdet-status-dot-available{background:#2D5A27;animation:sdetPulse 2s infinite}
+    @keyframes sdetPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+    .sdet-agent-card{background:linear-gradient(135deg,#0a2e14 0%,#1a4a28 100%);color:#fff;border:1px solid rgba(40,167,69,.3);border-radius:20px;padding:24px;margin-bottom:24px}
+    .sdet-agent-row{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+    .sdet-agent-avatar{width:56px;height:56px;border-radius:50%;overflow:hidden;border:3px solid rgba(255,255,255,.25);flex-shrink:0}
+    .sdet-agent-avatar img{width:100%;height:100%;object-fit:cover}
+    .sdet-agent-name{font:600 .95rem/1 'Inter',sans-serif;color:#fff;margin-bottom:4px}
+    .sdet-agent-spec{font:.78rem 'Inter',sans-serif;color:rgba(255,255,255,.55)}
+    .sdet-agent-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:50px;font:.85rem 'Inter',sans-serif;font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none}
+    .sdet-info-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f0f0f0}
+    .sdet-info-row .material-symbols-outlined{font-size:18px;color:#2D5A27;flex-shrink:0}
+    .sdet-info-lbl{font:.72rem 'Inter',sans-serif;color:#6c757d;text-transform:uppercase;letter-spacing:.4px}
+    .sdet-info-val{font:.88rem 'Inter',sans-serif;color:#212529;font-weight:500}
+    .sdet-status-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:50px;font:.78rem 'Inter',sans-serif;font-weight:600}
+    .sdet-status-listed{background:rgba(40,167,69,.12);color:#1e7e34}
+    .sdet-similar{padding:56px 0;background:#fff;border-top:1px solid #e8edf2}
+    .sdet-similar-title{font:600 1.3rem/1 'Inter',sans-serif;color:#1a2e1a;margin-bottom:28px;display:flex;align-items:center;gap:10px}
+    .sdet-mini{border-radius:16px;overflow:hidden;border:1px solid #e8edf2;background:#fff;transition:all .25s;text-decoration:none;display:block;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+    .sdet-mini-img{height:150px;overflow:hidden;position:relative}
+    .sdet-mini-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
+    .sdet-mini-body{padding:14px}
+    .sdet-mini-name{font:.85rem/1.3 'Inter',sans-serif;font-weight:600;color:#1a2e1a;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sdet-mini-price{font:.8rem 'Inter',sans-serif;color:#2D5A27;font-weight:600}
+    .sdet-mini-type{font:.7rem 'Inter',sans-serif;color:#6c757d;margin-top:2px}
+    .sdet-lightbox{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.96);opacity:0;pointer-events:none;transition:opacity .25s;display:flex;flex-direction:column}
+    .sdet-lightbox.open{opacity:1;pointer-events:all}
+    .sdet-lb-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);flex-shrink:0;z-index:2;border-bottom:1px solid rgba(255,255,255,.08)}
+    .sdet-lb-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0}
+    .sdet-lb-pan{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:grab}
+    .sdet-lb-pan img{max-width:92vw;max-height:calc(100vh - 100px);object-fit:contain;border-radius:4px;box-shadow:0 20px 60px rgba(0,0,0,.5);transform-origin:center center;user-select:none;-webkit-user-drag:none;pointer-events:none;will-change:transform;transition:transform .1s ease}
+    .sdet-lb-prev,.sdet-lb-next{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.18);color:#fff;width:46px;height:46px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:3;backdrop-filter:blur(6px)}
+    .sdet-lb-prev{left:14px}.sdet-lb-next{right:14px}
+</style>
+{% endblock %}
+
+{% block content %}
+    <!-- ALERTS -->
+    <div class="sdet-alert">
+        {% if messages %}{% for msg in messages %}
+        <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+            <span class="material-symbols-outlined" style="font-size:18px">{% if msg.tags == 'success' %}check_circle{% else %}warning{% endif %}</span>
+            {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}{% endif %}
+    </div>
+
+    <!-- GALLERY SLIDER / HERO -->
+    <div class="sdet-gallery" id="sdetGallery">
+        <div class="sdet-slides" id="sdetSlides">
+            <div class="sdet-slide active" data-index="0">
+                {% if property.image %}
+                    <img src="{{ property.image.url }}" alt="{{ property.name }}" onclick="sdetOpenLightbox(0)" style="cursor:zoom-in">
+                {% else %}
+                    <div class="sdet-slide-ph"><span class="material-symbols-outlined">home</span></div>
+                {% endif %}
+                <div class="sdet-slide-overlay"></div>
+            </div>
+            {% for img in property.extra_images.all %}
+                <div class="sdet-slide" data-index="forloop.counter">
+                    <img src="{{ img.image.url }}" alt="{{ property.name }} photo {{ forloop.counter }}" onclick="sdetOpenLightbox(forloop.counter)" style="cursor:zoom-in">
+                    <div class="sdet-slide-overlay"></div>
+                </div>
+            {% endfor %}
+
+            <div class="sdet-hero-content">
+                <div class="container">
+                    <div class="sdet-breadcrumb">
+                        <a href="{% url 'index' %}"><span class="material-symbols-outlined" style="font-size:14px">home</span> Home</a>
+                        <span class="sep material-symbols-outlined" style="font-size:14px">chevron_right</span>
+                        <a href="{% url 'property_list' %}">For Rent</a>
+                        <span class="sep material-symbols-outlined" style="font-size:14px">chevron_right</span>
+                        <span class="cur">{{ property.name|truncatechars:40 }}</span>
+                    </div>
+                    <div class="sdet-hero-row">
+                        <div class="sdet-hero-left">
+                            <h1>{{ property.name }}</h1>
+                            <div class="sdet-hero-chips">
+                                <span class="sdet-chip sdet-chip-type"><span class="material-symbols-outlined" style="font-size:13px">apartment</span> For Rent</span>
+                                <span class="sdet-chip {% if property.status == 'listed' %}sdet-chip-status-listed{% else %}sdet-chip-status-sold{% endif %}">
+                                    <span class="material-symbols-outlined" style="font-size:13px">label</span> {{ property.get_status_display }}
+                                </span>
+                                <span class="sdet-chip sdet-chip-loc"><span class="material-symbols-outlined" style="font-size:15px">location_on</span> {{ property.city }}{% if property.district %}, {{ property.district }}{% endif %}</span>
+                            </div>
+                        </div>
+                        <div class="sdet-hero-price-badge">
+                            <div class="sdet-hero-price-lbl">Monthly Rent</div>
+                            <div class="sdet-hero-price-val">{{ property.price|floatformat:0 }}<small>Frw</small></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sdet-dots" id="sdetDots">
+                <button class="sdet-dot active" onclick="sdetGoTo(0)"></button>
+                {% for img in property.extra_images.all %}<button class="sdet-dot" onclick="sdetGoTo(forloop.counter)"></button>{% endfor %}
+            </div>
+
+            <div class="sdet-photo-badge">
+                <span class="material-symbols-outlined" style="font-size:15px">photo_camera</span>
+                <span id="sdetSlideCounter">1</span> / <span id="sdetSlideTotal">1</span>
+            </div>
+
+            <button class="sdet-view-imgs-btn" onclick="sdetOpenLightbox(0)" title="View all photos">
+                <span class="material-symbols-outlined">photo_library</span>
+                View Images
+            </button>
+
+            <button class="sdet-slide-btn prev" onclick="sdetPrev()"><span class="material-symbols-outlined">chevron_left</span></button>
+            <button class="sdet-slide-btn next" onclick="sdetNext()"><span class="material-symbols-outlined">chevron_right</span></button>
+        </div>
+
+        <div class="sdet-thumbs" id="sdetThumbs">
+            {% if property.image %}<div class="sdet-thumb active" onclick="sdetGoTo(0)" id="sdet-thumb-0"><img src="{{ property.image.url }}" alt="Photo 1"></div>{% endif %}
+            {% for img in property.extra_images.all %}<div class="sdet-thumb" onclick="sdetGoTo(forloop.counter)" id="sdet-thumb-{{ forloop.counter }}"><img src="{{ img.image.url }}" alt="Photo {{ forloop.counter }}"></div>{% endfor %}
+        </div>
+    </div>
+
+    <div class="sdet-ribbon">
+        <div class="container">
+            <div class="sdet-ribbon-inner">
+                <div>
+                    <div style="font:.7rem 'Inter',sans-serif;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Monthly Rent</div>
+                    <div class="sdet-price-big">{{ property.price|floatformat:0 }} <span>Frw</span></div>
+                </div>
+                <div class="sdet-ribbon-stats">
+                    {% if property.bedrooms %}
+                    <div class="sdet-rstat">
+                        <div class="sdet-rstat-v">{{ property.bedrooms }}</div>
+                        <div class="sdet-rstat-l">Bedrooms</div>
+                    </div>
+                    {% endif %}
+                    {% if property.bathrooms %}
+                    <div class="sdet-rstat">
+                        <div class="sdet-rstat-v">{{ property.bathrooms }}</div>
+                        <div class="sdet-rstat-l">Bathrooms</div>
+                    </div>
+                    {% endif %}
+                    {% if property.size_sqm %}
+                    <div class="sdet-rstat">
+                        <div class="sdet-rstat-v">{{ property.size_sqm|floatformat:0 }}m²</div>
+                        <div class="sdet-rstat-l">Size</div>
+                    </div>
+                    {% endif %}
+                    <div class="sdet-rstat">
+                        <div class="sdet-rstat-v sdet-ribbon-status-{% if property.status == 'listed' %}listed{% else %}sold{% endif %}">{{ property.get_status_display }}</div>
+                        <div class="sdet-rstat-l">Status</div>
+                    </div>
+                </div>
+                <div class="sdet-ribbon-actions">
+                    <button type="button" class="sdet-btn sdet-btn-ghost" onclick="document.getElementById('inquiryFormCard').scrollIntoView({behavior:'smooth'})"><span class="material-symbols-outlined" style="font-size:17px">mail</span> Inquire</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sdet-body">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="det-card">
+                        <div class="det-card-title"><span class="material-symbols-outlined">auto_awesome</span> Lifestyle Specifications</div>
+                        <div class="ds-lifestyle-grid">
+                            <div class="ds-lifestyle-item">
+                                <div class="ds-lifestyle-icon"><span class="material-symbols-outlined">category</span></div>
+                                <div class="ds-lifestyle-text">
+                                    <div class="ds-lifestyle-label">Property Type</div>
+                                    <div class="ds-lifestyle-value">{{ property.get_types_display }}</div>
+                                </div>
+                            </div>
+                            {% if property.bedrooms %}
+                            <div class="ds-lifestyle-item">
+                                <div class="ds-lifestyle-icon"><span class="material-symbols-outlined">bed</span></div>
+                                <div class="ds-lifestyle-text">
+                                    <div class="ds-lifestyle-label">Sleeping Quarters</div>
+                                    <div class="ds-lifestyle-value">{{ property.bedrooms }} Bedrooms</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if property.bathrooms %}
+                            <div class="ds-lifestyle-item">
+                                <div class="ds-lifestyle-icon"><span class="material-symbols-outlined">bathtub</span></div>
+                                <div class="ds-lifestyle-text">
+                                    <div class="ds-lifestyle-label">Bath & Wellness</div>
+                                    <div class="ds-lifestyle-value">{{ property.bathrooms }} Bathrooms</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if property.size_sqm %}
+                            <div class="ds-lifestyle-item">
+                                <div class="ds-lifestyle-icon"><span class="material-symbols-outlined">square_foot</span></div>
+                                <div class="ds-lifestyle-text">
+                                    <div class="ds-lifestyle-label">Living Space</div>
+                                    <div class="ds-lifestyle-value">{{ property.size_sqm|floatformat:0 }} m²</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="det-card">
+                        <div class="det-card-title"><span class="material-symbols-outlined">description</span> About This Property</div>
+                        <p class="sdet-desc">{{ property.description|linebreaksbr }}</p>
+                    </div>
+
+                    <div class="sdet-form-card" id="inquiryFormCard">
+                        <div class="sdet-form-hdr sdet-form-hdr-inquiry">
+                            <span class="material-symbols-outlined">send</span> Send an Inquiry
+                        </div>
+                        <div class="sdet-form-body">
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="submit_inquiry" value="1">
+                                {% for field in inquiry_form %}
+                                <div class="mb-3">
+                                    <label class="sdet-form-label">{{ field.label }}</label>
+                                    {{ field }}
+                                </div>
+                                {% endfor %}
+                                <button type="submit" class="sdet-btn-submit sdet-btn-submit-inq">
+                                    <span class="material-symbols-outlined" style="font-size:18px">send</span> Send Inquiry
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="ds-conversion-sidebar">
+                        <div class="ds-conversion-card">
+                            <div class="ds-trust-badge" style="margin-bottom:0">
+                                <span class="material-symbols-outlined" style="font-size:14px">verified_user</span> Verified Premium Listing
+                            </div>
+                            <div class="ds-conversion-price">
+                                {{ property.price|floatformat:0 }} <small>Frw / month</small>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:20px">
+                                <span class="sdet-status-dot {% if property.status == 'listed' %}sdet-status-dot-available{% else %}sdet-status-dot-sold{% endif %}"></span>
+                                <span style="font:.82rem 'Inter',sans-serif;color:var(--md-sys-color-on-surface-variant)">{{ property.get_status_display }}</span>
+                            </div>
+                            <button type="button" class="ds-btn ds-btn-primary" style="width:100%; height:52px; justify-content:center" onclick="document.getElementById('inquiryFormCard').scrollIntoView({behavior:'smooth'})">
+                                <span class="material-symbols-outlined">mail</span> Send Inquiry
+                            </button>
+                        </div>
+
+                        <div class="det-card" style="opacity:1;transform:none; box-shadow:none; border:1px solid var(--md-sys-color-outline-variant)">
+                            <div class="det-card-title"><span class="material-symbols-outlined">info</span> Quick Details</div>
+                            <div class="sdet-info-row">
+                                <span class="material-symbols-outlined">calendar_today</span>
+                                <div class="d-flex justify-content-between w-100">
+                                    <div class="sdet-info-lbl">Listed On</div>
+                                    <div class="sdet-info-val">{{ property.date_listed|date:"M d, Y" }}</div>
+                                </div>
+                            </div>
+                            <div class="sdet-info-row">
+                                <span class="material-symbols-outlined">location_on</span>
+                                <div class="d-flex justify-content-between w-100">
+                                    <div class="sdet-info-lbl">Location</div>
+                                    <div class="sdet-info-val">{{ property.address }}{% if property.sector %}, {{ property.sector }}{% endif %}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+    var currentSlide = 0;
+    var slides, dots, thumbs, total;
+    var autoTimer = null;
+    var lbImages = [];
+    var lbIndex = 0;
+
+    document.addEventListener('DOMContentLoaded', function(){
+        initGallery();
+        initAlertDismiss();
+    });
+
+    function initGallery(){
+        slides = document.querySelectorAll('.sdet-slide');
+        dots   = document.querySelectorAll('.sdet-dot');
+        thumbs = document.querySelectorAll('.sdet-thumb');
+        total  = slides.length;
+
+        slides.forEach(function(s){
+            var img = s.querySelector('img');
+            if(img) lbImages.push({src:img.src, alt:img.alt||''});
+        });
+
+        var tot = document.getElementById('sdetSlideTotal');
+        if(tot) tot.textContent = total;
+        var btns = document.querySelectorAll('.sdet-slide-btn');
+        if(total <= 1){ btns.forEach(function(b){b.style.display='none';}); }
+        var dotsWrap = document.getElementById('sdetDots');
+        if(dotsWrap && total <= 1) dotsWrap.style.display='none';
+        if(total > 1) startAutoPlay();
+    }
+
+    function startAutoPlay(){
+        clearInterval(autoTimer);
+        autoTimer = setInterval(function(){ sdetGoTo(currentSlide + 1); }, 4000);
+    }
+
+    window.sdetGoTo = function(n){
+        if(!slides || total <= 1) return;
+        slides[currentSlide].classList.remove('active');
+        if(dots[currentSlide]) dots[currentSlide].classList.remove('active');
+        if(thumbs[currentSlide]) thumbs[currentSlide].classList.remove('active');
+        currentSlide = (n + total) % total;
+        slides[currentSlide].classList.add('active');
+        if(dots[currentSlide]) dots[currentSlide].classList.add('active');
+        if(thumbs[currentSlide]){
+            thumbs[currentSlide].classList.add('active');
+            var strip = document.getElementById('sdetThumbs');
+            if(strip){
+                var t = thumbs[currentSlide];
+                strip.scrollLeft = t.offsetLeft - strip.offsetWidth/2 + t.offsetWidth/2;
+            }
+        }
+        var ctr = document.getElementById('sdetSlideCounter');
+        if(ctr) ctr.textContent = currentSlide + 1;
+    };
+    window.sdetNext = function(){ window.sdetGoTo(currentSlide + 1); };
+    window.sdetPrev = function(){ window.sdetGoTo(currentSlide - 1); };
+
+    function initAlertDismiss(){
+        document.querySelectorAll('.sdet-alert .alert').forEach(function(a){
+            setTimeout(function(){try{new bootstrap.Alert(a).close()}catch(e){}}, 5000);
+        });
+    }
+})();
+</script>
+{% endblock %}

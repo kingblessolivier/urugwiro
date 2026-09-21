@@ -1,0 +1,23 @@
+import React from 'react';
+
+export interface MediaFile {
+  id: string;
+  file: File;
+  preview: string;
+  category: string;
+  order: number;
+  caption: string;
+  status: 'uploading' | 'completed' | 'error';
+  progress: number;
+}
+
+export interface VerificationDoc {
+  id: string;
+  file: File;
+  preview: string;
+  docType: string;
+  status: 'pending' | 'verified' | 'rejected';
+}
+
+export type MediaCategory = 'Exterior' | 'Interior' | 'Drone' | 'FloorPlan' | 'Video' | 'Other';
+export type DocType = 'Title Deed' | 'ID Card' | 'Passport' | 'Registration' | 'Other';

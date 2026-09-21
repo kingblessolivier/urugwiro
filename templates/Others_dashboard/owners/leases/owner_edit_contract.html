@@ -1,0 +1,74 @@
+{% extends 'Others_dashboard/owners/owner_base.html' %}
+{% load static %}
+
+{% block title %}Edit Contract{% endblock %}
+{% block topbar_title %}Edit Contract{% endblock %}
+{% block breadcrumb %}<a href="{% url 'owner_dashboard' user.id %}">Home</a> / <a href="{% url 'owner_contracts' user.id %}">Contracts</a> / Edit{% endblock %}
+
+{% block content %}
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+{% endfor %}
+{% endif %}
+
+<div class="m3-card" style="max-width:860px;margin:0 auto">
+    <div class="m3-card-header" style="background:var(--md-sys-color-primary);border:none">
+        <h5 style="color:#fff;margin:0">
+            <span class="material-symbols-outlined" style="color:#fff">edit</span>
+            Edit Contract #{{ lease.id }}
+        </h5>
+    </div>
+    <div class="m3-card-body" style="padding:32px">
+        <form method="POST" action="{% url 'owner_edit_contract' user.id lease.id %}" novalidate>
+            {% csrf_token %}
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">apartment</span> Property</label>
+                    <select class="form-select" name="property_id" required>
+                        <option value="" disabled>Select a property</option>
+                        {% for property in properties %}
+                        <option value="{{ property.id }}" {% if property.id == lease.property_id %}selected{% endif %}>{{ property.name }} — {{ property.address }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">person</span> Tenant</label>
+                    <select class="form-select" name="tenant_id" required>
+                        <option value="" disabled>Select a tenant</option>
+                        {% for tenant in tenants %}
+                        <option value="{{ tenant.id }}" {% if tenant.id == lease.tenant_id %}selected{% endif %}>{{ tenant.name }} — {{ tenant.email }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">calendar_today</span> Start Date</label>
+                    <input type="date" class="form-control" name="start_date" value="{{ lease.start_date }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">event</span> End Date</label>
+                    <input type="date" class="form-control" name="end_date" value="{{ lease.end_date }}" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">payments</span> Rent Amount (Frw)</label>
+                <input type="number" class="form-control" name="rent_amount" value="{{ lease.rent_amount }}" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">description</span> Contract Details</label>
+                <textarea class="form-control" name="contract_details" rows="6" placeholder="Enter terms, conditions, and any additional contract details…">{{ lease.contract_details }}</textarea>
+            </div>
+            <div class="d-flex justify-content-center gap-2">
+                <a href="{% url 'owner_contracts' user.id %}" class="m3-btn-outlined">
+                    <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span> Cancel
+                </a>
+                <button type="submit" class="m3-btn-filled">
+                    <span class="material-symbols-outlined" style="font-size:18px">save</span> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

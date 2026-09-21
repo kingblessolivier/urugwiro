@@ -1,0 +1,360 @@
+import React, { useState } from 'react';
+import {
+  Home, Map, Car, Bike, Tool,
+  CheckCircle2, Sparkles, Upload,
+  ChevronRight, ChevronLeft, Eye, Send
+} from 'lucide-react';
+import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
+import {
+  ListingCategory, PropertySubtype, ListingWizardState,
+  MediaFile, VerificationDoc
+} from './types';
+import { cn } from '../../lib/utils';
+import { MediaUpload } from './components/MediaUpload';
+import { VerificationUpload } from './components/VerificationUpload';
+import axios from 'axios';
+
+export const ListingWizard = () => {
+  const [state, setState] = useState<ListingWizardState>({
+    category: null,
+    subtype: null,
+    step: 1,
+    data: {
+      title: '',
+      description: '',
+      price: 0,
+      currency: 'RWF',
+      location: '',
+      media: [],
+      documents: [],
+    },
+    aiNarrative: '',
+  });
+
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
+  const handleCategorySelect = (cat: ListingCategory) => {
+    setState(prev => ({ ...prev, category: cat, step: 2 }));
+  };
+
+  const handleSubtypeSelect = (sub: string) => {
+    setState(prev => ({ ...prev, subtype: sub, step: 3 }));
+  };
+
+  const updateData = (field: string, value: any) => {
+    setState(prev => ({
+      ...prev,
+      data: { ...prev.data, [field]: value }
+    }));
+  };
+
+  const generateAiNarrative = async () => {
+    setIsAiLoading(true);
+    try {
+      const response = await axios.post('/api/listings/generate-narrative/', {
+        title: state.data.title,
+        propertyType: state.subtype,
+        city: state.data.location,
+        price: state.data.price,
+      });
+      setState(prev => ({ ...prev, aiNarrative: response.data.narrative }));
+    } catch (error) {
+      console.error('AI Generation failed', error);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  // Step Renderers
+  const renderStep = () => {
+    switch (state.step) {
+      case 1:
+        return (
+          <div className="text-center py-12">
+            <h2 className="text-3xl font-bold text-slate-900 mb-8">What are you listing today?</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              {[
+                { id: 'PROPERTY', label: 'Property', icon: Home, color: 'bg-blue-50 text-blue-600' },
+                { id: 'LAND', label: 'Land', icon: Map, color: 'bg-emerald-50 text-emerald-600' },
+                { id: 'VEHICLE', label: 'Vehicle', icon: Car, color: 'bg-slate-50 text-slate-600' },
+                { id: 'MOTORCYCLE', label: 'Motorcycle', icon: Bike, color: 'bg-orange-50 text-orange-600' },
+                { id: 'SERVICE', label: 'Professional Service', icon: Tool, color: 'bg-purple-50 text-purple-600' },
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategorySelect(cat.id as ListingCategory)}
+                  className="p-8 rounded-2xl border-2 border-slate-100 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all duration-300 text-left group"
+                >
+                  <div className={cn("w-14 h-14 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110", cat.color)}>
+                    <cat.icon size={28} />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900">{cat.label}</h3>
+                  <p className="text-sm text-slate-500 mt-1">List your {cat.label.toLowerCase()} for sale or rent</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="max-w-2xl mx-auto py-12">
+            <h2 className="text-3xl font-bold text-slate-900 mb-2 text-center">Specify the Asset Type</h2>
+            <p className="text-slate-500 text-center mb-12">We customize the fields based on your specific type of property.</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {state.category === 'PROPERTY' ? [
+                'House', 'Apartment', 'Villa', 'Townhouse', 'Commercial Building', 'Office', 'Shop', 'Warehouse', 'Hotel'
+              ].map(type => (
+                <button
+                  key={type}
+                  onClick={() => handleSubtypeSelect(type)}
+                  className="p-4 text-left rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all font-medium text-slate-700"
+                >
+                  {type}
+                </button>
+              )) : [
+                'Residential', 'Commercial', 'Agricultural'
+              ].map(type => (
+                <button
+                  key={type}
+                  onClick={() => handleSubtypeSelect(type)}
+                  className="p-4 text-left rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all font-medium text-slate-700"
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="max-w-4xl mx-auto py-12 grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* Left: Input Fields */}
+            <div className="space-y-8">
+              <section>
+                <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm">1</div>
+                  Basic Details
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-slate-700">Listing Title</label>
+                    <input
+                      className="p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      placeholder="e.g. Modern Luxury Villa in Nyarutarama"
+                      value={state.data.title}
+                      onChange={(e) => updateData('title', e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-medium text-slate-700">Price</label>
+                      <input
+                        type="number"
+                        className="p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        value={state.data.price}
+                        onChange={(e) => updateData('price', Number(e.target.value))}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-medium text-slate-700">Currency</label>
+                      <select
+                        className="p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        value={state.data.currency}
+                        onChange={(e) => updateData('currency', e.target.value)}
+                      >
+                        <option value="RWF">RWF</option>
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Dynamic Specialized Fields */}
+              <section>
+                <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm">2</div>
+                  {state.subtype} Specifications
+                </h3>
+                <div className="grid grid-cols-2 gap-4 p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                  {state.subtype === 'Hotel' ? (
+                    <>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-slate-700">Star Rating</label>
+                        <input type="number" max="5" className="p-3 rounded-xl border border-slate-200" onChange={(e) => updateData('starRating', Number(e.target.value))} />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-slate-700">Total Rooms</label>
+                        <input type="number" className="p-3 rounded-xl border border-slate-200" onChange={(e) => updateData('totalRooms', Number(e.target.value))} />
+                      </div>
+                    </>
+                  ) : state.category === 'PROPERTY' ? (
+                    <>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-slate-700">Bedrooms</label>
+                        <input type="number" className="p-3 rounded-xl border border-slate-200" onChange={(e) => updateData('bedrooms', Number(e.target.value))} />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-slate-700">Bathrooms</label>
+                        <input type="number" className="p-3 rounded-xl border border-slate-200" onChange={(e) => updateData('bathrooms', Number(e.target.value))} />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-slate-700">Plot Size (m²)</label>
+                        <input type="number" className="p-3 rounded-xl border border-slate-200" onChange={(e) => updateData('plotSize', Number(e.target.value))} />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-slate-700">Year Built</label>
+                        <input type="number" className="p-3 rounded-xl border border-slate-200" onChange={(e) => updateData('yearBuilt', Number(e.target.value))} />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="col-span-2">
+                      <p className="text-sm text-slate-500 italic">Specialized fields for {state.subtype} will appear here.</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+
+            {/* Right: AI Narrative & Preview */}
+            <div className="space-y-6">
+              <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                  <Sparkles size={80} />
+                </div>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Sparkles className="text-emerald-400" size={20} />
+                    <h3 className="text-lg font-bold">Urugwiro AI Narrative</h3>
+                  </div>
+
+                  <div className="bg-slate-800 rounded-xl p-4 min-h-[200px] text-slate-300 text-sm leading-relaxed mb-6 border border-slate-700">
+                    {state.aiNarrative || "Click 'Generate' to create a luxury description using NVIDIA AI..."}
+                  </div>
+
+                  <Button
+                    onClick={generateAiNarrative}
+                    disabled={isAiLoading || !state.data.title}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition-all"
+                  >
+                    {isAiLoading ? 'Thinking...' : '✨ Generate Luxury Narrative'}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                <h4 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <Eye size={18} className="text-emerald-600" />
+                  Listing Preview
+                </h4>
+                <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-center">
+                  <p className="text-sm text-slate-500 italic">Your listing card will render here in real-time...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="max-w-4xl mx-auto py-12 space-y-12">
+            <section>
+              <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm">3</div>
+                Visual Showroom Media
+              </h2>
+              <MediaUpload
+                initialMedia={state.data.media}
+                onMediaUpdate={(media) => updateData('media', media)}
+              />
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm">4</div>
+                Trust & Verification Documents
+              </h2>
+              <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                <VerificationUpload
+                  onDocsUpdate={(docs) => updateData('documents', docs)}
+                />
+              </div>
+            </section>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-20">
+      {/* PROGRESS BAR */}
+      <div className="w-full bg-white border-b border-slate-200 py-4 px-4 sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all",
+              state.step >= 1 ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500"
+            )}>1</div>
+            <div className={cn(
+              "h-1 w-12 rounded-full transition-all",
+              state.step > 1 ? "bg-emerald-600" : "bg-slate-200"
+            )} />
+            <div className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all",
+              state.step >= 2 ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500"
+            )}>2</div>
+            <div className={cn(
+              "h-1 w-12 rounded-full transition-all",
+              state.step > 2 ? "bg-emerald-600" : "bg-slate-200"
+            )} />
+            <div className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all",
+              state.step >= 3 ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500"
+            )}>3</div>
+            <div className={cn(
+              "h-1 w-12 rounded-full transition-all",
+              state.step > 3 ? "bg-emerald-600" : "bg-slate-200"
+            )} />
+            <div className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all",
+              state.step >= 4 ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500"
+            )}>4</div>
+          </div>
+          <Button
+            variant="ghost"
+            onClick={() => setState(prev => ({ ...prev, step: Math.max(1, prev.step - 1) }))}
+            disabled={state.step === 1}
+          >
+            <ChevronLeft size={20} className="mr-2" /> Back
+          </Button>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4">
+        {renderStep()}
+
+        {state.step >= 3 && (
+          <div className="flex justify-end mt-12">
+            {state.step === 4 ? (
+              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white px-12 py-4 rounded-xl font-bold text-lg flex items-center gap-2 shadow-lg hover:shadow-emerald-500/20 transition-all">
+                Publish Listing <Send size={20} />
+              </Button>
+            ) : (
+              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white px-12 py-4 rounded-xl font-bold text-lg flex items-center gap-2 shadow-lg hover:shadow-emerald-500/20 transition-all">
+                Next: Media & Trust <ChevronRight size={20} />
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

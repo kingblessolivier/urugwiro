@@ -1,0 +1,359 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+{% load static %}
+
+{% block title %}Announcements{% endblock %}
+{% block topbar_title %}Announcements{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / Announcements{% endblock %}
+
+{% block extra_css %}
+<style>
+.ann-page{display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start}
+@media(max-width:900px){.ann-page{grid-template-columns:1fr}}
+
+/* stat strip */
+.ann-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.ann-stat-card{background:var(--md-sys-color-surface-container-low);border-radius:var(--md-sys-shape-corner-large);padding:18px 20px;display:flex;align-items:center;gap:14px;border:1px solid var(--md-sys-color-outline-variant)}
+.ann-stat-icon{width:44px;height:44px;border-radius:var(--md-sys-shape-corner-medium);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.ann-stat-icon.green{background:#E8F5E9;color:#2D5A27}
+.ann-stat-icon.blue{background:#E3F2FD;color:#1565C0}
+.ann-stat-icon.amber{background:#FFF8E1;color:#F57F17}
+.ann-stat-val{font:700 1.6rem/1 'Inter',sans-serif;color:var(--md-sys-color-on-surface)}
+.ann-stat-label{font:.75rem/1.4 'Inter',sans-serif;color:var(--md-sys-color-on-surface-variant);margin-top:2px}
+
+/* table card */
+.ann-card{background:var(--md-sys-color-surface-container-low);border-radius:var(--md-sys-shape-corner-large);border:1px solid var(--md-sys-color-outline-variant);overflow:hidden}
+.ann-card-header{padding:18px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--md-sys-color-outline-variant)}
+.ann-card-title{font:600 1rem/1.4 'Inter',sans-serif;color:var(--md-sys-color-on-surface);display:flex;align-items:center;gap:8px}
+.ann-card-title .material-symbols-outlined{font-size:20px;color:var(--md-sys-color-primary)}
+.ann-table{width:100%;border-collapse:collapse}
+.ann-table th{padding:10px 16px;font:.7rem/1 'Inter',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--md-sys-color-on-surface-variant);border-bottom:1px solid var(--md-sys-color-outline-variant);white-space:nowrap;background:var(--md-sys-color-surface-container)}
+.ann-table td{padding:13px 16px;font:.875rem/1.4 'Inter',sans-serif;color:var(--md-sys-color-on-surface);border-bottom:1px solid var(--md-sys-color-outline-variant);vertical-align:middle}
+.ann-table tr:last-child td{border-bottom:none}
+.ann-table tr:hover td{background:var(--md-sys-color-surface-container)}
+
+.ann-icon-preview{display:inline-flex;align-items:center;gap:8px}
+.ann-icon-preview .material-symbols-outlined{font-size:18px;color:var(--md-sys-color-primary)}
+
+.badge-active{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:100px;font:.72rem/1 'Inter',sans-serif;font-weight:600}
+.badge-active.on{background:#E8F5E9;color:#2D5A27}
+.badge-active.off{background:#FAFAFA;color:#9E9E9E;border:1px solid #E0E0E0}
+
+.ann-actions{display:flex;align-items:center;gap:6px}
+.btn-icon{width:32px;height:32px;border-radius:var(--md-sys-shape-corner-full);border:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background 150ms;font-size:0}
+.btn-icon .material-symbols-outlined{font-size:17px}
+.btn-icon.edit{background:#E3F2FD;color:#1565C0}
+.btn-icon.edit:hover{background:#BBDEFB}
+.btn-icon.toggle-on{background:#E8F5E9;color:#2D5A27}
+.btn-icon.toggle-on:hover{background:#C8E6C9}
+.btn-icon.toggle-off{background:#F5F5F5;color:#9E9E9E}
+.btn-icon.toggle-off:hover{background:#EEEEEE}
+.btn-icon.del{background:#FFEBEE;color:#C62828}
+.btn-icon.del:hover{background:#FFCDD2}
+
+.ann-empty{padding:48px 20px;text-align:center;color:var(--md-sys-color-on-surface-variant)}
+.ann-empty .material-symbols-outlined{font-size:48px;display:block;margin-bottom:12px;opacity:.35}
+
+/* add / edit form card */
+.ann-form-card{background:var(--md-sys-color-surface-container-low);border-radius:var(--md-sys-shape-corner-large);border:1px solid var(--md-sys-color-outline-variant);overflow:hidden;position:sticky;top:80px}
+.ann-form-header{padding:16px 20px;border-bottom:1px solid var(--md-sys-color-outline-variant);display:flex;align-items:center;gap:8px}
+.ann-form-header .material-symbols-outlined{font-size:20px;color:var(--md-sys-color-primary)}
+.ann-form-header span.title{font:600 .95rem/1 'Inter',sans-serif;color:var(--md-sys-color-on-surface)}
+.ann-form-body{padding:20px}
+.ann-form-group{margin-bottom:16px}
+.ann-form-group label{display:block;font:.75rem/1 'Inter',sans-serif;font-weight:600;color:var(--md-sys-color-on-surface-variant);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+.ann-form-group input[type=text],
+.ann-form-group input[type=number],
+.ann-form-group select,
+.ann-form-group textarea{width:100%;padding:10px 12px;border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--md-sys-shape-corner-small);font:.875rem/1.4 'Inter',sans-serif;color:var(--md-sys-color-on-surface);background:var(--md-sys-color-surface);transition:border-color 150ms;outline:none}
+.ann-form-group input:focus,
+.ann-form-group select:focus,
+.ann-form-group textarea:focus{border-color:var(--md-sys-color-primary)}
+.ann-form-group textarea{resize:vertical;min-height:72px}
+.ann-form-group .char-count{font:.7rem 'Inter',sans-serif;color:var(--md-sys-color-on-surface-variant);float:right;margin-top:4px}
+.ann-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
+.ann-toggle-row label{font:.875rem/1 'Inter',sans-serif;color:var(--md-sys-color-on-surface);cursor:pointer}
+/* toggle switch */
+.m3-switch{position:relative;width:44px;height:24px;flex-shrink:0}
+.m3-switch input{opacity:0;width:0;height:0}
+.m3-switch-track{position:absolute;inset:0;background:#B0BEC5;border-radius:100px;cursor:pointer;transition:background .2s}
+.m3-switch-track::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.m3-switch input:checked+.m3-switch-track{background:var(--md-sys-color-primary)}
+.m3-switch input:checked+.m3-switch-track::after{transform:translateX(20px)}
+
+.ann-form-footer{padding:16px 20px;border-top:1px solid var(--md-sys-color-outline-variant);display:flex;gap:8px}
+.btn-primary-m3{flex:1;padding:10px;border:none;border-radius:var(--md-sys-shape-corner-full);background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary);font:.875rem/1 'Inter',sans-serif;font-weight:600;cursor:pointer;transition:opacity 150ms;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-primary-m3:hover{opacity:.88}
+.btn-outline-m3{padding:10px 16px;border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--md-sys-shape-corner-full);background:transparent;color:var(--md-sys-color-on-surface-variant);font:.875rem/1 'Inter',sans-serif;cursor:pointer;transition:background 150ms}
+.btn-outline-m3:hover{background:var(--md-sys-color-surface-container-high)}
+
+/* edit modal */
+.ann-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:2000;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.ann-modal-backdrop.open{display:flex}
+.ann-modal{background:var(--md-sys-color-surface);border-radius:var(--md-sys-shape-corner-large);width:min(480px,94vw);box-shadow:0 8px 40px rgba(0,0,0,.25);overflow:hidden}
+.ann-modal-head{padding:20px 24px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--md-sys-color-outline-variant)}
+.ann-modal-head .material-symbols-outlined{font-size:22px;color:var(--md-sys-color-primary)}
+.ann-modal-head .title{font:600 1rem/1 'Inter',sans-serif;color:var(--md-sys-color-on-surface);flex:1}
+.ann-modal-head .close-btn{width:32px;height:32px;border:none;background:transparent;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--md-sys-color-on-surface-variant);transition:background 150ms}
+.ann-modal-head .close-btn:hover{background:var(--md-sys-color-surface-container-high)}
+.ann-modal-body{padding:20px 24px}
+.ann-modal-foot{padding:16px 24px;border-top:1px solid var(--md-sys-color-outline-variant);display:flex;justify-content:flex-end;gap:8px}
+</style>
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show mb-4" role="alert" style="border-radius:12px">
+        {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Stat strip -->
+<div class="ann-stats">
+    <div class="ann-stat-card">
+        <div class="ann-stat-icon green"><span class="material-symbols-outlined">campaign</span></div>
+        <div>
+            <div class="ann-stat-val">{{ announcements|length }}</div>
+            <div class="ann-stat-label">Total</div>
+        </div>
+    </div>
+    <div class="ann-stat-card">
+        <div class="ann-stat-icon blue"><span class="material-symbols-outlined">visibility</span></div>
+        <div>
+            <div class="ann-stat-val">{{ announcements|length }}<!-- active count via template filter below --></div>
+            <div class="ann-stat-label">Active</div>
+        </div>
+    </div>
+    <div class="ann-stat-card">
+        <div class="ann-stat-icon amber"><span class="material-symbols-outlined">visibility_off</span></div>
+        <div>
+            <div class="ann-stat-val" id="inactiveCount">0</div>
+            <div class="ann-stat-label">Hidden</div>
+        </div>
+    </div>
+</div>
+
+<div class="ann-page">
+    <!-- Left: table -->
+    <div>
+        <div class="ann-card">
+            <div class="ann-card-header">
+                <div class="ann-card-title">
+                    <span class="material-symbols-outlined">list</span>
+                    All Announcements
+                </div>
+            </div>
+
+            {% if announcements %}
+            <table class="ann-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Icon</th>
+                        <th>Message</th>
+                        <th>Order</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for ann in announcements %}
+                <tr>
+                    <td style="color:var(--md-sys-color-on-surface-variant);font-size:.8rem">{{ forloop.counter }}</td>
+                    <td>
+                        <div class="ann-icon-preview">
+                            <span class="material-symbols-outlined">{{ ann.icon }}</span>
+                            <span style="font-size:.78rem;color:var(--md-sys-color-on-surface-variant)">{{ ann.get_icon_display }}</span>
+                        </div>
+                    </td>
+                    <td style="max-width:320px">{{ ann.text }}</td>
+                    <td style="font-weight:600;color:var(--md-sys-color-on-surface-variant)">{{ ann.order }}</td>
+                    <td>
+                        {% if ann.is_active %}
+                            <span class="badge-active on"><span class="material-symbols-outlined" style="font-size:11px">circle</span>Active</span>
+                        {% else %}
+                            <span class="badge-active off">Hidden</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="ann-actions">
+                            <!-- Edit -->
+                            <button class="btn-icon edit" title="Edit"
+                                onclick="openEditModal({{ ann.pk }},'{{ ann.text|escapejs }}','{{ ann.icon }}',{{ ann.order }},{{ ann.is_active|yesno:'true,false' }})">
+                                <span class="material-symbols-outlined">edit</span>
+                            </button>
+                            <!-- Toggle -->
+                            <form method="post" action="{% url 'announcement_toggle' ann.pk %}" style="margin:0">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-icon {% if ann.is_active %}toggle-on{% else %}toggle-off{% endif %}"
+                                    title="{% if ann.is_active %}Hide{% else %}Show{% endif %}">
+                                    <span class="material-symbols-outlined">{% if ann.is_active %}visibility{% else %}visibility_off{% endif %}</span>
+                                </button>
+                            </form>
+                            <!-- Delete -->
+                            <form method="post" action="{% url 'announcement_delete' ann.pk %}" style="margin:0"
+                                onsubmit="return confirm('Delete this announcement?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-icon del" title="Delete">
+                                    <span class="material-symbols-outlined">delete</span>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="ann-empty">
+                <span class="material-symbols-outlined">campaign</span>
+                <p style="font-weight:600;margin-bottom:4px">No announcements yet</p>
+                <p style="font-size:.85rem">Add your first announcement using the form on the right.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right: add form -->
+    <div>
+        <div class="ann-form-card">
+            <div class="ann-form-header">
+                <span class="material-symbols-outlined">add_circle</span>
+                <span class="title">New Announcement</span>
+            </div>
+            <form method="post" action="{% url 'announcement_create' %}">
+                {% csrf_token %}
+                <div class="ann-form-body">
+                    <div class="ann-form-group">
+                        <label>Message <span id="charCount" style="font-weight:400;float:right;font-size:.7rem;color:var(--md-sys-color-on-surface-variant)">0 / 200</span></label>
+                        <textarea name="text" id="annText" maxlength="200" placeholder="e.g. New properties available in Kigali this week!" required></textarea>
+                    </div>
+                    <div class="ann-form-group">
+                        <label>Icon</label>
+                        <select name="icon" id="annIcon">
+                            <option value="campaign">📣 Campaign</option>
+                            <option value="home_work">🏠 Home / Property</option>
+                            <option value="real_estate_agent">🤝 Agent</option>
+                            <option value="verified">✅ Verified</option>
+                            <option value="star">⭐ Star</option>
+                            <option value="info">ℹ️ Info</option>
+                            <option value="warning">⚠️ Warning</option>
+                            <option value="celebration">🎉 Celebration</option>
+                            <option value="local_offer">🏷️ Offer</option>
+                            <option value="schedule">🕐 Schedule</option>
+                        </select>
+                    </div>
+                    <div class="ann-form-group">
+                        <label>Display Order</label>
+                        <input type="number" name="order" value="0" min="0" max="999">
+                    </div>
+                    <div class="ann-toggle-row">
+                        <label for="createActive">Active (show in ticker)</label>
+                        <label class="m3-switch">
+                            <input type="checkbox" name="is_active" id="createActive" checked>
+                            <span class="m3-switch-track"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="ann-form-footer">
+                    <button type="submit" class="btn-primary-m3">
+                        <span class="material-symbols-outlined" style="font-size:18px">add</span>
+                        Add Announcement
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="ann-modal-backdrop" id="editModal">
+    <div class="ann-modal">
+        <div class="ann-modal-head">
+            <span class="material-symbols-outlined">edit</span>
+            <span class="title">Edit Announcement</span>
+            <button class="close-btn" onclick="closeEditModal()"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <form method="post" id="editForm" action="">
+            {% csrf_token %}
+            <div class="ann-modal-body">
+                <div class="ann-form-group">
+                    <label>Message</label>
+                    <textarea name="text" id="editText" maxlength="200" required></textarea>
+                </div>
+                <div class="ann-form-group">
+                    <label>Icon</label>
+                    <select name="icon" id="editIcon">
+                        <option value="campaign">📣 Campaign</option>
+                        <option value="home_work">🏠 Home / Property</option>
+                        <option value="real_estate_agent">🤝 Agent</option>
+                        <option value="verified">✅ Verified</option>
+                        <option value="star">⭐ Star</option>
+                        <option value="info">ℹ️ Info</option>
+                        <option value="warning">⚠️ Warning</option>
+                        <option value="celebration">🎉 Celebration</option>
+                        <option value="local_offer">🏷️ Offer</option>
+                        <option value="schedule">🕐 Schedule</option>
+                    </select>
+                </div>
+                <div class="ann-form-group">
+                    <label>Display Order</label>
+                    <input type="number" name="order" id="editOrder" min="0" max="999">
+                </div>
+                <div class="ann-toggle-row">
+                    <label for="editActive">Active</label>
+                    <label class="m3-switch">
+                        <input type="checkbox" name="is_active" id="editActive">
+                        <span class="m3-switch-track"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="ann-modal-foot">
+                <button type="button" class="btn-outline-m3" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn-primary-m3" style="flex:none;padding:10px 24px">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// char counter
+const annText = document.getElementById('annText');
+const charCount = document.getElementById('charCount');
+if(annText) annText.addEventListener('input', () => {
+    charCount.textContent = annText.value.length + ' / 200';
+});
+
+// stat: count active/inactive
+document.addEventListener('DOMContentLoaded', () => {
+    const rows = document.querySelectorAll('.ann-table tbody tr');
+    let active = 0, inactive = 0;
+    rows.forEach(r => {
+        if(r.querySelector('.badge-active.on')) active++;
+        else inactive++;
+    });
+    document.querySelectorAll('.ann-stat-val')[1].textContent = active;
+    document.getElementById('inactiveCount').textContent = inactive;
+});
+
+// edit modal
+function openEditModal(pk, text, icon, order, isActive) {
+    document.getElementById('editForm').action = '/admin_dashboard/announcements/' + pk + '/edit/';
+    document.getElementById('editText').value   = text;
+    document.getElementById('editOrder').value  = order;
+    document.getElementById('editActive').checked = isActive;
+    const sel = document.getElementById('editIcon');
+    for(let o of sel.options) o.selected = (o.value === icon);
+    document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('open');
+}
+document.getElementById('editModal').addEventListener('click', e => {
+    if(e.target === e.currentTarget) closeEditModal();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,227 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+
+{% block content %}
+<!-- Dashboard Hero -->
+<div class="m3-dash-hero m3-slide-up">
+    <div class="m3-dash-hero-inner">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2>Welcome back, <span>{{ user.get_full_name|default:"Admin" }}</span> 👋</h2>
+                <p>Overview of your platform — quick insights and recent activity.</p>
+            </div>
+            <div class="m3-dash-hero-actions">
+                <a href="{% url 'adding_update' %}" class="m3-btn-filled m3-btn-sm" style="background:var(--md-sys-color-inverse-primary);color:#0f1f14"><span class="material-symbols-outlined" style="font-size:18px">add</span>Create Update</a>
+                <a href="{% url 'adding_user' %}" class="m3-btn-outlined m3-btn-sm" style="border-color:rgba(255,255,255,.3);color:#fff"><span class="material-symbols-outlined" style="font-size:18px">person_add</span>Add User</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Metrics Grid -->
+<div class="m3-metrics">
+    <div class="m3-metric m3-slide-up m3-stagger-1">
+        <div class="m3-metric-icon m3-icon-primary"><span class="material-symbols-outlined">apartment</span></div>
+        <div><div class="m3-metric-val" data-count="{{ property_total|default:'0' }}">0</div><div class="m3-metric-label">Properties</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-2">
+        <div class="m3-metric-icon m3-icon-success"><span class="material-symbols-outlined">people</span></div>
+        <div><div class="m3-metric-val" data-count="{{ tenant_total|default:'0' }}">0</div><div class="m3-metric-label">Tenants</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-3">
+        <div class="m3-metric-icon m3-icon-warning"><span class="material-symbols-outlined">mail</span></div>
+        <div><div class="m3-metric-val" data-count="{{ message_total|default:'0' }}">0</div><div class="m3-metric-label">Unread Messages</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-4">
+        <div class="m3-metric-icon m3-icon-info"><span class="material-symbols-outlined">person</span></div>
+        <div><div class="m3-metric-val" data-count="{{ owner_total|default:'0' }}">0</div><div class="m3-metric-label">Owners</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-5">
+        <div class="m3-metric-icon m3-icon-tertiary"><span class="material-symbols-outlined">help</span></div>
+        <div><div class="m3-metric-val" data-count="{{ total_enquiries|default:'0' }}">0</div><div class="m3-metric-label">Open Enquiries</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-6">
+        <div class="m3-metric-icon m3-icon-success"><span class="material-symbols-outlined">check_circle</span></div>
+        <div><div class="m3-metric-val" data-count="{{ read_enquiries|default:'0' }}">0</div><div class="m3-metric-label">Resolved</div></div>
+    </div>
+</div>
+
+<!-- Content Grid -->
+<div class="row g-4">
+    <!-- Left Column -->
+    <div class="col-lg-7">
+        <!-- User Registrations Chart -->
+        <div class="m3-card mb-4 m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">trending_up</span>User Registrations</h5>
+                <span class="m3-badge m3-badge-primary">Last 7 days</span>
+            </div>
+            <div class="m3-card-body">
+                <div class="m3-chart"><canvas id="lineChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Messages & Enquiries -->
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">forum</span>Messages & Enquiries</h5>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'message_list' %}" class="m3-btn-outlined m3-btn-sm"><span class="material-symbols-outlined" style="font-size:16px">mail</span>Messages</a>
+                    <a href="{% url 'admin_inquiries' %}" class="m3-btn-tonal m3-btn-sm"><span class="material-symbols-outlined" style="font-size:16px">help</span>Enquiries</a>
+                </div>
+            </div>
+            <div class="m3-card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="d-flex flex-column gap-2">
+                            <div class="m3-metric" style="padding:14px">
+                                <div><div class="m3-metric-val" style="font-size:1.2rem">{{ unread_messages.count|default:'0' }}</div><div class="m3-metric-label">Unread</div></div>
+                            </div>
+                            <div class="m3-metric" style="padding:14px">
+                                <div><div class="m3-metric-val" style="font-size:1.2rem">{{ read_messages.count|default:'0' }}</div><div class="m3-metric-label">Read</div></div>
+                            </div>
+                            <div class="m3-metric" style="padding:14px">
+                                <div><div class="m3-metric-val" style="font-size:1.2rem">{{ archived_enquiries|default:'0' }}</div><div class="m3-metric-label">Archived</div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="table-responsive">
+                        <table class="m3-table">
+                            <thead><tr><th>From</th><th>Message</th><th>Date</th></tr></thead>
+                            <tbody>
+                            {% for msg in all_messages|slice:":5" %}
+                            <tr>
+                                <td><strong>{{ msg.name|default:msg.email }}</strong></td>
+                                <td>{{ msg.message|truncatechars:50 }}</td>
+                                <td><span class="m3-badge m3-badge-info">{{ msg.created_at|date:"M d" }}</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center" style="color:var(--md-sys-color-on-surface-variant)">No recent messages</td></tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-5">
+        <!-- Platform Overview -->
+        <div class="m3-card mb-4 m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">monitoring</span>Platform Overview</h5>
+                <span class="m3-badge m3-badge-success">Live</span>
+            </div>
+            <div class="m3-card-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="m3-metric" style="flex-direction:column;text-align:center;padding:20px 16px">
+                            <div class="m3-metric-val" data-count="{{ property_total|default:'0' }}">0</div>
+                            <div class="m3-metric-label">Properties</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="m3-metric" style="flex-direction:column;text-align:center;padding:20px 16px">
+                            <div class="m3-metric-val" data-count="{{ total_enquiries|default:'0' }}">0</div>
+                            <div class="m3-metric-label">Enquiries</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="m3-metric" style="flex-direction:column;text-align:center;padding:20px 16px">
+                            <div class="m3-metric-val" data-count="{{ tenant_total|default:'0' }}">0</div>
+                            <div class="m3-metric-label">Tenants</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="m3-metric" style="flex-direction:column;text-align:center;padding:20px 16px">
+                            <div class="m3-metric-val" data-count="{{ owner_total|default:'0' }}">0</div>
+                            <div class="m3-metric-label">Owners</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Properties -->
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">real_estate_agent</span>Recent Properties</h5>
+                <a href="{% url 'admin_properties' %}" class="m3-btn-tonal m3-btn-sm">View All</a>
+            </div>
+            <div class="m3-card-body" style="padding:12px 24px">
+                {% for p in property_list|slice:":6" %}
+                <div class="m3-list-item">
+                    <div>
+                        <div class="m3-list-item-title"><strong>{{ p.name }}</strong></div>
+                        <div class="m3-list-item-sub">{{ p.address|truncatechars:40 }}</div>
+                    </div>
+                    <span class="m3-badge m3-badge-primary">{{ p.number_of_units }} units</span>
+                </div>
+                {% empty %}
+                <div class="m3-empty"><span class="material-symbols-outlined">apartment</span><p>No properties yet</p></div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // M3-themed chart
+    var ctxLine = document.getElementById('lineChart').getContext('2d');
+    new Chart(ctxLine, {
+        type: 'line',
+        data: {
+            labels: {{ daily_user_registration_dates|safe }},
+            datasets: [{
+                label: 'Daily Registrations',
+                data: {{ daily_user_registration_counts|safe }},
+                backgroundColor: 'rgba(40,167,69,0.08)',
+                borderColor: '#2D5A27',
+                borderWidth: 2.5,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 5,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#2D5A27',
+                pointBorderWidth: 2.5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#162a1c',
+                    titleColor: '#6ddf74',
+                    bodyColor: '#fff',
+                    cornerRadius: 12,
+                    padding: 12
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,.04)' }, ticks: { color: '#72796f', font: { family: 'Inter' } } },
+                x: { grid: { display: false }, ticks: { color: '#72796f', font: { family: 'Inter' } } }
+            }
+        }
+    });
+
+    // Animated counters
+    document.querySelectorAll('.m3-metric-val[data-count]').forEach(function(el) {
+        var end = parseInt(el.dataset.count || '0', 10);
+        var cur = 0, step = Math.max(1, Math.round(end / 40));
+        var iv = setInterval(function() {
+            cur += step;
+            if (cur >= end) { cur = end; clearInterval(iv); }
+            el.textContent = cur.toLocaleString();
+        }, 30);
+    });
+</script>
+{% endblock %}
+{% endblock %}

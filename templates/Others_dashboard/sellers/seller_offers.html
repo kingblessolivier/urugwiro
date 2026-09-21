@@ -1,0 +1,94 @@
+{% extends 'Others_dashboard/sellers/seller_base.html' %}
+{% block title %}Offers | Urugwiro{% endblock %}
+{% block topbar_title %}Offers Received{% endblock %}
+{% block breadcrumb %}<a href="{% url 'seller_dashboard' user.id %}">Home</a> / Offers{% endblock %}
+
+{% block content %}
+<!-- Page Hero -->
+<div class="m3-dash-hero m3-slide-up">
+    <div class="m3-dash-hero-inner">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2><span class="material-symbols-outlined" style="font-size:28px;vertical-align:middle">handshake</span> Offers Received</h2>
+                <p>Review and respond to offers on your listed properties.</p>
+            </div>
+            <div class="m3-dash-hero-actions">
+                <a href="{% url 'seller_dashboard' user.id %}" class="m3-btn-filled m3-btn-sm" style="background:rgba(255,255,255,.15);backdrop-filter:blur(4px)"><span class="material-symbols-outlined" style="font-size:18px">dashboard</span>Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Offers Table -->
+<div class="m3-card m3-slide-up" style="animation-delay:.15s">
+    <div class="m3-card-header">
+        <h5><span class="material-symbols-outlined">local_offer</span>All Offers</h5>
+        {% if offers %}<span class="m3-badge m3-badge-primary">{{ offers|length }} total</span>{% endif %}
+    </div>
+    <div class="m3-card-body">
+        {% if offers %}
+        <div class="table-responsive">
+            <table class="table m3-table">
+                <thead><tr><th>Property</th><th>Buyer</th><th>Offer</th><th>Counter</th><th>Message</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+                <tbody>
+                {% for o in offers %}
+                <tr>
+                    <td><a href="{% url 'sale_property_detail' o.sale_property.id %}" style="color:var(--md-sys-color-primary);font-weight:500">{{ o.sale_property.title|truncatechars:25 }}</a></td>
+                    <td>{{ o.buyer.username }}</td>
+                    <td><strong>{{ o.amount|floatformat:0 }} Frw</strong></td>
+                    <td>{% if o.counter_amount %}<strong>{{ o.counter_amount|floatformat:0 }} Frw</strong>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                    <td>{{ o.message|truncatechars:40|default:"-" }}</td>
+                    <td><span class="m3-badge {% if o.status == 'accepted' %}m3-badge-success{% elif o.status == 'pending' %}m3-badge-warning{% elif o.status == 'rejected' %}m3-badge-error{% elif o.status == 'countered' %}m3-badge-info{% else %}m3-badge-primary{% endif %}">{{ o.get_status_display }}</span></td>
+                    <td>{{ o.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        {% if o.status == 'pending' %}
+                        <div class="d-flex gap-1">
+                            <form method="post" action="{% url 'seller_respond_offer' user.id o.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="accept">
+                                <button type="submit" class="m3-btn-tonal m3-btn-sm" style="background:#E8F5E9;color:#2D5A27" title="Accept"><span class="material-symbols-outlined" style="font-size:16px">check</span></button>
+                            </form>
+                            <form method="post" action="{% url 'seller_respond_offer' user.id o.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="reject">
+                                <button type="submit" class="m3-btn-tonal m3-btn-sm" style="background:#FFEBEE;color:#C62828" title="Reject"><span class="material-symbols-outlined" style="font-size:16px">close</span></button>
+                            </form>
+                            <button class="m3-btn-tonal m3-btn-sm" style="background:#E3F2FD;color:#1565C0" data-bs-toggle="modal" data-bs-target="#counterModal{{ o.id }}" title="Counter"><span class="material-symbols-outlined" style="font-size:16px">swap_horiz</span></button>
+                        </div>
+                        <!-- Counter Modal -->
+                        <div class="modal fade" id="counterModal{{ o.id }}" tabindex="-1">
+                            <div class="modal-dialog"><div class="modal-content" style="border-radius:20px;overflow:hidden">
+                                <div class="modal-header" style="background:var(--md-sys-color-primary-container)"><h6 class="modal-title fw-bold"><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle">swap_horiz</span> Counter Offer</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                                <form method="post" action="{% url 'seller_respond_offer' user.id o.id %}">
+                                    {% csrf_token %}
+                                    <div class="modal-body p-4">
+                                        <input type="hidden" name="action" value="counter">
+                                        <p class="small text-muted mb-3">Original offer: <strong>{{ o.amount|floatformat:0 }} Frw</strong></p>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-medium">Counter Amount (Frw)</label>
+                                            <input type="number" name="counter_amount" class="form-control" required>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer"><button type="button" class="m3-btn-outlined" data-bs-dismiss="modal">Cancel</button><button type="submit" class="m3-btn-filled">Send Counter</button></div>
+                                </form>
+                            </div></div>
+                        </div>
+                        {% else %}
+                        <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="m3-empty">
+            <span class="material-symbols-outlined">handshake</span>
+            <h5>No offers received yet</h5>
+            <p>Offers will appear here when buyers make offers on your properties</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

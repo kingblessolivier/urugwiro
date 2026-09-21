@@ -1,0 +1,111 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+
+{% block topbar_title %}Add Property{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / <a href="{% url 'admin_properties' %}">Properties</a> / Add{% endblock %}
+
+{% block content %}
+<style>
+.unit-container{margin-bottom:20px;padding:20px;border:1px solid var(--md-sys-color-outline-variant);border-radius:var(--md-sys-shape-corner-large);background:var(--md-sys-color-surface-container-lowest)}
+</style>
+
+<div class="m3-card" style="max-width:900px;margin:0 auto">
+    <div class="m3-card-header" style="background:var(--md-sys-color-primary);border:none">
+        <h5 style="color:#fff;margin:0"><span class="material-symbols-outlined" style="color:#fff">add_home</span> Add Property</h5>
+    </div>
+    <div class="m3-card-body" style="padding:32px">
+        <form id="addPropertyForm" method="POST" action="{% url 'add_property' %}" enctype="multipart/form-data" novalidate class="needs-validation">
+            {% csrf_token %}
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="propertyName" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">home</span> Property Name</label>
+                    <input type="text" class="form-control" id="propertyName" placeholder="e.g., MIC" name="name" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="propertyAddress" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">location_on</span> Address</label>
+                    <input type="text" class="form-control" id="propertyAddress" placeholder="e.g., Kigali, Rwanda" name="address" required>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="propertyPrice" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">payments</span> Price</label>
+                    <input type="number" class="form-control" id="propertyPrice" placeholder="e.g., 1000000" name="price" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="propertyType" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">apartment</span> Type</label>
+                    <select class="form-select" id="propertyType" name="property_type" required>
+                        <option selected disabled>Select type</option>
+                        <option value="Apartment">Apartment</option>
+                        <option value="House">House</option>
+                        <option value="Commercial">Commercial</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="propertyDescription" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">description</span> Description</label>
+                    <textarea class="form-control" id="propertyDescription" rows="3" name="description" required></textarea>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="propertyImage" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">image</span> Cover Image</label>
+                    <input type="file" class="form-control" id="propertyImage" name="image" accept="image/*" required>
+                </div>
+                <div class="col-12 mb-3">
+                    <label class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">photo_library</span> Additional Photos <span class="text-muted" style="font-size:.8rem">(optional, select multiple)</span></label>
+                    <input type="file" class="form-control" name="extra_images" id="extraImages" accept="image/*" multiple>
+                    <div id="extraPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="propertyOwner" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">person</span> Owner</label>
+                    <select class="form-select" id="propertyOwner" name="owner" required>
+                        <option selected disabled>Select owner</option>
+                        {% for owner in owner_list %}
+                        <option value="{{ owner.id }}">{{ owner.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="propertyUnits" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">grid_view</span> Number of Units</label>
+                    <input type="number" class="form-control" id="propertyUnits" placeholder="e.g., 10" name="number_of_units" required>
+                </div>
+            </div>
+            <div id="units"></div>
+            <div class="text-center mb-4">
+                <button type="button" class="m3-btn-tonal" onclick="addUnit()"><span class="material-symbols-outlined" style="font-size:18px">add</span> Add Unit</button>
+            </div>
+            <div class="d-flex justify-content-center gap-2">
+                <a href="{% url 'admin_properties' %}" class="m3-btn-outlined"><span class="material-symbols-outlined" style="font-size:18px">arrow_back</span> Go Back</a>
+                <button type="submit" class="m3-btn-filled"><span class="material-symbols-outlined" style="font-size:18px">save</span> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// extra image preview
+document.getElementById('extraImages').addEventListener('change', function(){
+    var preview = document.getElementById('extraPreview');
+    preview.innerHTML = '';
+    Array.from(this.files).forEach(function(file){
+        var reader = new FileReader();
+        reader.onload = function(e){
+            var wrap = document.createElement('div');
+            wrap.style.cssText = 'position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid #ddd';
+            var img = document.createElement('img');
+            img.src = e.target.result;
+            img.style.cssText = 'width:100%;height:100%;object-fit:cover';
+            wrap.appendChild(img);
+            preview.appendChild(wrap);
+        };
+        reader.readAsDataURL(file);
+    });
+});
+function addUnit(){
+    var c=document.getElementById('units'),n=c.children.length+1,d=document.createElement('div');
+    d.className='unit-container';
+    d.innerHTML='<h5>Unit '+n+'</h5><div class="row mb-3"><div class="col-md-6 mb-3"><label class="form-label">Unit Number</label><input type="text" class="form-control" name="unit_number[]" required></div><div class="col-md-6 mb-3"><label class="form-label">Bedrooms</label><input type="number" class="form-control" name="bedrooms[]" required></div></div><div class="row mb-3"><div class="col-md-6 mb-3"><label class="form-label">Bathrooms</label><input type="number" class="form-control" name="bathrooms[]" required></div><div class="col-md-6 mb-3"><label class="form-label">Rent</label><input type="number" class="form-control" name="rent[]" required></div></div><div class="form-check mb-2"><input type="checkbox" class="form-check-input" name="is_available[]" checked><label class="form-check-label">Is Available</label></div>';
+    c.appendChild(d);
+}
+</script>
+{% endblock %}

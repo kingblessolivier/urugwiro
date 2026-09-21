@@ -1,0 +1,292 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block title %}Sign In - Urugwiro Ltd{% endblock %}
+{% block content %}
+<style>
+:root{--hp:#2D5A27;--hp-dk:#1e3d1a;--hp-lt:#C8E6C9;--hp-txt:#1F2937;--hp-muted:#6B7280;--hp-bg:#F5F7FA;--hp-border:#E5E7EB}
+
+/* ===== Page layout ===== */
+.auth-page{display:flex;min-height:100vh;padding-top:72px}
+
+/* ===== Left panel ===== */
+.auth-left{flex:0 0 52%;background-color:#091a0f;background-image:linear-gradient(rgba(40,167,69,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(40,167,69,.07) 1px,transparent 1px);background-size:40px 40px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:60px 48px}
+.auth-left-top-bar{position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#2D5A27 30%,#6fcf97 50%,#2D5A27 70%,transparent)}
+
+/* orbs */
+.auth-orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;animation:orb-breathe var(--od,9s) ease-in-out infinite alternate}
+@keyframes orb-breathe{from{transform:scale(1);opacity:.3}to{transform:scale(1.3);opacity:.65}}
+
+/* particles */
+.auth-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.auth-p{position:absolute;border-radius:50%;animation:auth-pfloat var(--d,7s) var(--dl,0s) ease-in-out infinite alternate}
+@keyframes auth-pfloat{from{transform:translateY(0) scale(1);opacity:.15}to{transform:translateY(-30px) scale(1.2);opacity:.5}}
+
+/* brand content */
+.auth-brand{position:relative;z-index:2;text-align:center;max-width:440px;color:#fff}
+.auth-brand-logo{width:76px;height:76px;border-radius:20px;background:rgba(255,255,255,.08);backdrop-filter:blur(16px);border:1.5px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;margin:0 auto 28px;animation:logo-pulse 3s ease-in-out infinite}
+@keyframes logo-pulse{0%,100%{box-shadow:0 0 0 0 rgba(67,160,71,.4)}60%{box-shadow:0 0 0 14px rgba(67,160,71,0)}}
+.auth-brand-logo .material-symbols-outlined{font-size:36px;color:#a5d6a7}
+.auth-brand h2{font:700 2rem/1.2 'Inter',sans-serif;margin-bottom:12px;letter-spacing:-.3px}
+.auth-brand p{color:rgba(255,255,255,.6);font:400 .95rem/1.7 'Inter',sans-serif;margin-bottom:36px}
+
+/* stat chips */
+.auth-stats{display:flex;gap:14px;justify-content:center;margin-bottom:40px;flex-wrap:wrap}
+.auth-stat{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 20px;text-align:center;backdrop-filter:blur(8px);transition:all .3s}
+.auth-stat:hover{background:rgba(255,255,255,.12);transform:translateY(-3px)}
+.auth-stat-v{font:700 1.4rem/1 'Inter',sans-serif;color:#fff;display:block;margin-bottom:4px}
+.auth-stat-l{font:500 .7rem/1 'Inter',sans-serif;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.6px}
+
+/* illustration */
+.auth-illust{margin-top:8px}
+.auth-illust svg{width:100%;max-width:380px;display:block;margin:0 auto;filter:drop-shadow(0 20px 40px rgba(0,0,0,.3))}
+
+/* feature list */
+.auth-feats{display:flex;flex-direction:column;gap:14px;text-align:left;margin-top:32px}
+.auth-feat{display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.85);font:.88rem/1.4 'Inter',sans-serif}
+.auth-feat-dot{width:28px;height:28px;border-radius:8px;background:rgba(67,160,71,.2);border:1px solid rgba(67,160,71,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.auth-feat-dot .material-symbols-outlined{font-size:15px;color:#a5d6a7}
+
+/* ===== Right panel ===== */
+.auth-right{flex:1;background:#fff;display:flex;align-items:center;justify-content:center;padding:60px 40px;position:relative;overflow:hidden}
+.auth-right::before{content:'';position:absolute;top:-80px;right:-80px;width:300px;height:300px;background:radial-gradient(circle,rgba(165,214,167,.12) 0%,transparent 70%);border-radius:50%;pointer-events:none}
+.auth-right::after{content:'';position:absolute;bottom:-60px;left:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(46,125,50,.08) 0%,transparent 70%);border-radius:50%;pointer-events:none}
+
+.auth-form-wrap{width:100%;max-width:420px;position:relative;z-index:2}
+
+/* top logo on right (visible on mobile) */
+.auth-mobile-brand{display:none;align-items:center;gap:10px;margin-bottom:32px}
+.auth-mobile-brand .material-symbols-outlined{font-size:28px;color:var(--hp)}
+.auth-mobile-brand span{font:700 1.2rem/1 'Inter',sans-serif;color:var(--hp-txt)}
+
+.auth-form-wrap h1{font:700 1.9rem/1.2 'Inter',sans-serif;color:var(--hp-txt);margin-bottom:6px;letter-spacing:-.3px}
+.auth-subtitle{font:.93rem/1.6 'Inter',sans-serif;color:var(--hp-muted);margin-bottom:32px}
+
+/* form fields */
+.auth-field{position:relative;margin-bottom:20px}
+.auth-field-icon{position:absolute;top:50%;left:16px;transform:translateY(-50%);color:var(--hp-muted);z-index:2;transition:color .2s}
+.auth-field-icon .material-symbols-outlined{font-size:20px}
+.auth-field label{position:absolute;top:50%;left:48px;transform:translateY(-50%);font:.93rem/1 'Inter',sans-serif;color:var(--hp-muted);transition:all .2s;pointer-events:none;padding:0 4px;background:transparent}
+.auth-field input:focus~label,.auth-field input:not(:placeholder-shown)~label{top:-1px;font:.72rem/1 'Inter',sans-serif;color:var(--hp);background:#fff;padding:0 5px}
+.auth-field input{width:100%;padding:16px 16px 16px 48px;border:1.5px solid var(--hp-border);border-radius:12px;font:.93rem/1 'Inter',sans-serif;background:#fff;color:var(--hp-txt);transition:all .25s;outline:none}
+.auth-field input:focus{border-color:var(--hp);box-shadow:0 0 0 4px rgba(46,125,50,.09)}
+.auth-field input:focus~.auth-field-icon .material-symbols-outlined{color:var(--hp)}
+.auth-eye{position:absolute;top:50%;right:14px;transform:translateY(-50%);background:none;border:none;color:var(--hp-muted);cursor:pointer;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:all .15s;z-index:2}
+.auth-eye:hover{background:#f0f7f0;color:var(--hp)}
+.auth-eye .material-symbols-outlined{font-size:20px}
+
+/* options row */
+.auth-opts{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.auth-opts label{font:.83rem/1 'Inter',sans-serif;color:var(--hp-muted);display:flex;align-items:center;gap:7px;cursor:pointer}
+.auth-opts input[type=checkbox]{width:16px;height:16px;accent-color:var(--hp);cursor:pointer}
+.auth-opts a{font:.83rem/1 'Inter',sans-serif;color:var(--hp);text-decoration:none;font-weight:600}
+.auth-opts a:hover{text-decoration:underline}
+
+/* submit button */
+.auth-btn{width:100%;height:50px;background:linear-gradient(135deg,var(--hp-dk),var(--hp));color:#fff;border:none;border-radius:100px;font:600 .95rem/1 'Inter',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .25s;box-shadow:0 4px 15px rgba(46,125,50,.35);position:relative;overflow:hidden}
+.auth-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.2) 50%,transparent 60%);transform:translateX(-100%);transition:transform .55s ease}
+.auth-btn:hover{box-shadow:0 6px 20px rgba(46,125,50,.5);transform:translateY(-2px)}
+.auth-btn:hover::after{transform:translateX(100%)}
+.auth-btn:active{transform:translateY(0);box-shadow:0 2px 8px rgba(46,125,50,.3)}
+.auth-btn .material-symbols-outlined{font-size:20px}
+
+/* divider */
+.auth-divider{display:flex;align-items:center;gap:14px;margin:24px 0;color:var(--hp-muted);font:.8rem/1 'Inter',sans-serif}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--hp-border)}
+
+/* footer link */
+.auth-switch{text-align:center;font:.88rem/1 'Inter',sans-serif;color:var(--hp-muted)}
+.auth-switch a{color:var(--hp);font-weight:700;text-decoration:none}
+.auth-switch a:hover{text-decoration:underline}
+
+/* alerts */
+.auth-alert{border-radius:10px;padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;gap:10px;font:.88rem/1.4 'Inter',sans-serif;border:none}
+.auth-alert .material-symbols-outlined{font-size:18px;flex-shrink:0}
+
+/* ===== Entrance animations ===== */
+@keyframes au-up{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes au-left{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:none}}
+@keyframes au-right{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+@keyframes au-scale{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+
+.auth-left{animation:au-left .8s .1s cubic-bezier(.4,0,.2,1) both}
+.auth-right{animation:au-right .8s .1s cubic-bezier(.4,0,.2,1) both}
+
+.auth-brand-logo{animation:au-scale .7s .3s both,logo-pulse 3s 1s ease-in-out infinite}
+.auth-brand h2{animation:au-up .7s .45s both}
+.auth-brand p{animation:au-up .6s .58s both}
+.auth-stats{animation:au-up .6s .7s both}
+.auth-illust{animation:au-up .7s .55s both}
+
+.auth-form-wrap h1{animation:au-up .65s .2s both}
+.auth-subtitle{animation:au-up .6s .32s both}
+.auth-field:nth-child(1){animation:au-up .6s .44s both}
+.auth-field:nth-child(2){animation:au-up .6s .54s both}
+.auth-opts{animation:au-up .55s .64s both}
+.auth-btn{animation:au-up .6s .74s both}
+.auth-divider{animation:au-up .5s .84s both}
+.auth-switch{animation:au-up .5s .9s both}
+
+/* ===== Responsive ===== */
+@media(max-width:992px){
+    .auth-left{display:none}
+    .auth-right{padding:40px 24px;min-height:calc(100vh - 72px)}
+    .auth-mobile-brand{display:flex}
+}
+@media(max-width:576px){
+    .auth-right{padding:32px 16px}
+    .auth-form-wrap h1{font-size:1.6rem}
+}
+</style>
+
+<div class="auth-page">
+    <!-- ===== Left brand panel ===== -->
+    <div class="auth-left">
+        <div class="auth-left-top-bar"></div>
+
+        <!-- Ambient orbs -->
+        <div class="auth-orb" style="width:500px;height:500px;background:rgba(46,125,50,.2);top:-180px;left:-180px;--od:10s"></div>
+        <div class="auth-orb" style="width:350px;height:350px;background:rgba(129,199,132,.12);bottom:-100px;right:-100px;--od:7s"></div>
+        <div class="auth-orb" style="width:200px;height:200px;background:rgba(67,160,71,.14);top:50%;left:55%;--od:12s"></div>
+
+        <!-- Floating particles -->
+        <div class="auth-particles">
+            <div class="auth-p" style="width:10px;height:10px;background:rgba(165,214,167,.55);top:12%;left:10%;--d:6s;--dl:0s"></div>
+            <div class="auth-p" style="width:6px;height:6px;background:rgba(255,255,255,.4);top:30%;left:22%;--d:8s;--dl:1.2s"></div>
+            <div class="auth-p" style="width:12px;height:12px;background:rgba(165,214,167,.3);top:65%;left:8%;--d:7s;--dl:0.5s"></div>
+            <div class="auth-p" style="width:8px;height:8px;background:rgba(255,255,255,.35);top:20%;right:12%;--d:9s;--dl:2s"></div>
+            <div class="auth-p" style="width:5px;height:5px;background:rgba(165,214,167,.6);top:75%;right:18%;--d:6.5s;--dl:0.8s"></div>
+            <div class="auth-p" style="width:9px;height:9px;background:rgba(255,255,255,.3);top:48%;right:8%;--d:7.5s;--dl:1.5s"></div>
+            <div class="auth-p" style="width:7px;height:7px;background:rgba(165,214,167,.4);top:85%;left:38%;--d:8.5s;--dl:3s"></div>
+        </div>
+
+        <div class="auth-brand">
+            <div class="auth-brand-logo"><span class="material-symbols-outlined">apartment</span></div>
+            <h2>Welcome Back!</h2>
+            <p>Access your Urugwiro dashboard to manage properties, track leases, and stay connected with your portfolio.</p>
+
+            <!-- Stats -->
+            <div class="auth-stats">
+                <div class="auth-stat"><span class="auth-stat-v">1,500+</span><span class="auth-stat-l">Properties</span></div>
+                <div class="auth-stat"><span class="auth-stat-v">500+</span><span class="auth-stat-l">Happy Clients</span></div>
+                <div class="auth-stat"><span class="auth-stat-v">4.8★</span><span class="auth-stat-l">Rating</span></div>
+            </div>
+
+            <!-- Inline SVG illustration -->
+            <div class="auth-illust">
+                <svg viewBox="0 0 380 200" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Sky -->
+                    <rect width="380" height="200" rx="16" fill="rgba(255,255,255,.04)"/>
+                    <!-- Moon -->
+                    <circle cx="330" cy="38" r="22" fill="rgba(255,220,100,.18)"/>
+                    <circle cx="342" cy="32" r="18" fill="#091a0f" opacity=".85"/>
+                    <!-- Stars -->
+                    <circle cx="60" cy="25" r="2" fill="rgba(255,255,255,.7)"/><circle cx="100" cy="15" r="1.5" fill="rgba(255,255,255,.5)"/><circle cx="150" cy="30" r="1" fill="rgba(255,255,255,.6)"/><circle cx="220" cy="12" r="2" fill="rgba(255,255,255,.5)"/><circle cx="280" cy="22" r="1.5" fill="rgba(255,255,255,.6)"/>
+                    <!-- Ground -->
+                    <rect x="0" y="155" width="380" height="45" rx="0" fill="rgba(46,125,50,.25)"/>
+                    <rect x="0" y="165" width="380" height="35" fill="rgba(27,94,32,.35)"/>
+                    <!-- Road -->
+                    <rect x="160" y="145" width="60" height="55" rx="3" fill="rgba(255,255,255,.06)"/>
+                    <rect x="187" y="145" width="6" height="55" fill="rgba(255,255,255,.08)"/>
+                    <!-- Main building -->
+                    <rect x="80" y="80" width="150" height="90" rx="5" fill="rgba(255,255,255,.08)" stroke="rgba(165,214,167,.3)" stroke-width="1.5"/>
+                    <!-- Roof -->
+                    <polygon points="65,83 155,30 245,83" fill="rgba(165,214,167,.2)"/>
+                    <polygon points="78,83 155,37 232,83" fill="rgba(165,214,167,.12)"/>
+                    <!-- Chimney -->
+                    <rect x="195" y="40" width="14" height="30" rx="2" fill="rgba(255,255,255,.12)"/>
+                    <!-- Door -->
+                    <rect x="137" y="133" width="32" height="37" rx="4" fill="rgba(165,214,167,.25)"/>
+                    <circle cx="164" cy="153" r="3" fill="rgba(255,220,100,.6)"/>
+                    <!-- Windows main -->
+                    <rect x="93" y="100" width="36" height="28" rx="3" fill="rgba(255,220,100,.15)" stroke="rgba(165,214,167,.2)" stroke-width="1"/>
+                    <line x1="111" y1="100" x2="111" y2="128" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+                    <line x1="93" y1="114" x2="129" y2="114" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+                    <rect x="181" y="100" width="36" height="28" rx="3" fill="rgba(255,220,100,.15)" stroke="rgba(165,214,167,.2)" stroke-width="1"/>
+                    <line x1="199" y1="100" x2="199" y2="128" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+                    <line x1="181" y1="114" x2="217" y2="114" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+                    <!-- Small building left -->
+                    <rect x="10" y="110" width="62" height="55" rx="4" fill="rgba(255,255,255,.06)" stroke="rgba(165,214,167,.2)" stroke-width="1"/>
+                    <polygon points="4,113 41,80 78,113" fill="rgba(165,214,167,.15)"/>
+                    <rect x="27" y="138" width="20" height="27" rx="3" fill="rgba(165,214,167,.2)"/>
+                    <rect x="14" y="120" width="20" height="15" rx="2" fill="rgba(255,220,100,.12)"/>
+                    <!-- Small building right -->
+                    <rect x="260" y="100" width="100" height="65" rx="4" fill="rgba(255,255,255,.06)" stroke="rgba(165,214,167,.2)" stroke-width="1"/>
+                    <polygon points="253,103 310,65 367,103" fill="rgba(165,214,167,.15)"/>
+                    <rect x="292" y="128" width="24" height="37" rx="3" fill="rgba(165,214,167,.2)"/>
+                    <circle cx="312" cy="148" r="2.5" fill="rgba(255,220,100,.5)"/>
+                    <rect x="266" y="112" width="26" height="18" rx="2" fill="rgba(255,220,100,.12)"/>
+                    <!-- Trees -->
+                    <rect x="233" y="135" width="6" height="30" fill="rgba(255,255,255,.12)"/>
+                    <ellipse cx="236" cy="125" rx="16" ry="18" fill="rgba(46,125,50,.4)"/>
+                    <ellipse cx="236" cy="116" rx="11" ry="13" fill="rgba(67,160,71,.35)"/>
+                    <rect x="46" y="138" width="6" height="27" fill="rgba(255,255,255,.1)"/>
+                    <ellipse cx="49" cy="128" rx="14" ry="16" fill="rgba(46,125,50,.35)"/>
+                    <ellipse cx="49" cy="120" rx="10" ry="12" fill="rgba(67,160,71,.3)"/>
+                    <!-- Location pin -->
+                    <circle cx="155" cy="52" r="14" fill="rgba(255,255,255,.12)" stroke="rgba(165,214,167,.4)" stroke-width="1.5"/>
+                    <path d="M155 44 a6 6 0 0 1 0 12 a6 6 0 0 1 0-12 z" fill="rgba(165,214,167,.8)"/>
+                    <circle cx="155" cy="50" r="2.5" fill="rgba(9,26,15,.8)"/>
+                    <line x1="155" y1="56" x2="155" y2="63" stroke="rgba(165,214,167,.8)" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Right form panel ===== -->
+    <div class="auth-right">
+        <div class="auth-form-wrap">
+            <!-- Mobile brand -->
+            <div class="auth-mobile-brand">
+                <span class="material-symbols-outlined">apartment</span>
+                <span>Urugwiro</span>
+            </div>
+
+            <h1>Sign In</h1>
+            <p class="auth-subtitle">Welcome back! Enter your credentials to continue.</p>
+
+            {% if messages %}
+                {% for message in messages %}
+                <div class="auth-alert alert-{{ message.tags|default:'info' }}{% if message.tags == 'error' %}" style="background:#fff5f5;color:#c62828{% else %}" style="background:#f0faf2;color:#1b5e20{% endif %}">
+                    <span class="material-symbols-outlined">{% if message.tags == 'error' %}error{% else %}check_circle{% endif %}</span>
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            <form action="{% url 'user_login' %}" method="POST">{% csrf_token %}
+                <div class="auth-field">
+                    <div class="auth-field-icon"><span class="material-symbols-outlined">person</span></div>
+                    <input type="text" id="username" name="username" placeholder=" " required autocomplete="username">
+                    <label for="username">Username</label>
+                </div>
+                <div class="auth-field">
+                    <div class="auth-field-icon"><span class="material-symbols-outlined">lock</span></div>
+                    <input type="password" id="password" name="password" placeholder=" " required autocomplete="current-password" style="padding-right:52px">
+                    <label for="password">Password</label>
+                    <button type="button" class="auth-eye" onclick="togglePwd('password','eyeIcon')">
+                        <span class="material-symbols-outlined" id="eyeIcon">visibility</span>
+                    </button>
+                </div>
+                <div class="auth-opts">
+                    <label><input type="checkbox"> Remember me</label>
+                    <a href="#">Forgot Password?</a>
+                </div>
+                <button type="submit" class="auth-btn">
+                    <span class="material-symbols-outlined">login</span>Sign In
+                </button>
+            </form>
+
+            <div class="auth-divider">or</div>
+            <p class="auth-switch">Don't have an account? <a href="{% url 'register' %}">Create one free</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePwd(id,iconId){
+    var p=document.getElementById(id),i=document.getElementById(iconId);
+    if(p.type==='password'){p.type='text';i.textContent='visibility_off'}
+    else{p.type='password';i.textContent='visibility'}
+}
+</script>
+{% endblock %}

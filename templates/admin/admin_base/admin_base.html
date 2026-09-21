@@ -1,0 +1,267 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Dashboard{% endblock %} | Urugwiro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/m3-theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/m3-dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/mobile-responsive.css' %}">
+    <style>
+    /* Notification dropdown */
+    .notif-dropdown{min-width:320px;max-height:400px;overflow-y:auto;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.12);padding:4px 0}
+    .notif-dropdown .dropdown-item{white-space:normal;padding:10px 16px;border-radius:8px;margin:2px 4px}
+    .notif-dropdown .dropdown-item:hover{background:var(--md-sys-color-surface-container)}
+    .notif-dropdown .notif-unread{background:rgba(var(--md-sys-color-primary-rgb,.18,122,.50),.06);font-weight:600}
+    .notif-icon-wrap{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+    .notif-badge-live{position:absolute;top:4px;right:4px;width:18px;height:18px;background:var(--md-sys-color-error,#ba1a1a);color:#fff;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;pointer-events:none}
+    .m3-topbar-icon{position:relative}
+    /* Toast notification */
+    .ws-toast{position:fixed;bottom:24px;right:24px;z-index:99999;min-width:280px;max-width:360px;background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.15);padding:14px 18px;display:flex;align-items:flex-start;gap:12px;animation:toastIn .3s ease;border-left:4px solid var(--md-sys-color-primary,#2D5A27)}
+    .ws-toast .ws-toast-close{margin-left:auto;cursor:pointer;opacity:.6;font-size:18px;line-height:1}
+    @keyframes toastIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="m3-dash" data-uid="{{ user.id }}">
+    <div class="m3-sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="m3-dash-layout">
+        <!-- Sidebar -->
+        <aside class="m3-sidebar" id="m3Sidebar">
+            <div class="m3-sidebar-brand">
+                <img src="{% static 'images/Urugwiro.png' %}" alt="Urugwiro">
+                <span>Urugwiro</span>
+            </div>
+
+            <div class="m3-sidebar-profile">
+                <div class="m3-sidebar-avatar-placeholder">{{ user.username|slice:":1"|upper }}</div>
+                <div class="m3-sidebar-user">
+                    <div class="m3-sidebar-name">{{ user.get_full_name|default:user.username }}</div>
+                    <div class="m3-sidebar-role">Admin</div>
+                </div>
+            </div>
+
+            <nav class="m3-sidebar-nav">
+                <div class="m3-sidebar-section">Main</div>
+                <a class="m3-sidebar-link" href="{% url 'admin_dashboard' %}" id="dashboardLink"><span class="material-symbols-outlined">dashboard</span>Dashboard</a>
+                <a class="m3-sidebar-link" href="{% url 'admin_users' %}" id="usersLink"><span class="material-symbols-outlined">group</span>Users</a>
+                <a class="m3-sidebar-link" href="{% url 'admin_properties' %}" id="propertiesLink"><span class="material-symbols-outlined">apartment</span>Properties</a>
+                <a class="m3-sidebar-link" href="{% url 'admin_owners' %}" id="ownersLink"><span class="material-symbols-outlined">person</span>Owners</a>
+                <a class="m3-sidebar-link" href="{% url 'admin_tenants' %}" id="tenantsLink"><span class="material-symbols-outlined">people</span>Tenants</a>
+
+                <div class="m3-sidebar-section">Management</div>
+                <a class="m3-sidebar-link" href="{% url 'manage_leases' %}" id="leaseLink"><span class="material-symbols-outlined">description</span>Leases</a>
+                <a class="m3-sidebar-link" href="{% url 'message_list' %}" id="messagesLink"><span class="material-symbols-outlined">mail</span>Messages{% if message_total %}<span class="m3-sidebar-badge">{{ message_total }}</span>{% endif %}</a>
+                <a class="m3-sidebar-link" href="{% url 'admin_tenant_inbox' %}" id="tenantInboxLink"><span class="material-symbols-outlined">forum</span>Tenant Messages</a>
+                <a class="m3-sidebar-link" href="{% url 'admin_maintenance' %}" id="maintenanceLink"><span class="material-symbols-outlined">build</span>Maintenance</a>
+                <a class="m3-sidebar-link" href="{% url 'admin_inquiries' %}" id="EnquiriesLink"><span class="material-symbols-outlined">help</span>Enquiries{% if total_enquiries %}<span class="m3-sidebar-badge">{{ total_enquiries }}</span>{% endif %}</a>
+                <a class="m3-sidebar-link" href="{% url 'admin_updates' %}" id="UpdatesLink"><span class="material-symbols-outlined">campaign</span>Updates</a>
+                <a class="m3-sidebar-link" href="{% url 'feed' %}" id="feedLink"><span class="material-symbols-outlined">dynamic_feed</span>Feed</a>
+                <a class="m3-sidebar-link" href="{% url 'notifications' %}" id="notifSideLink"><span class="material-symbols-outlined">notifications_active</span>Notifications{% if unread_notifications_count %}<span class="m3-sidebar-badge" id="notifSideBadge">{{ unread_notifications_count }}</span>{% endif %}</a>
+
+                <div class="m3-sidebar-section">Marketplace</div>
+                <a class="m3-sidebar-link" href="{% url 'admin_sale_properties' %}" id="salePropsLink"><span class="material-symbols-outlined">real_estate_agent</span>Sale Properties</a>
+                <a class="m3-sidebar-link" href="{% url 'admin_agents' %}" id="agentsLink"><span class="material-symbols-outlined">badge</span>Agents</a>
+                <a class="m3-sidebar-link" href="{% url 'admin_sellers' %}" id="sellersLink"><span class="material-symbols-outlined">storefront</span>Sellers</a>
+                <a class="m3-sidebar-link" href="{% url 'admin_all_offers' %}" id="offersLink"><span class="material-symbols-outlined">local_offer</span>Offers</a>
+
+                <div class="m3-sidebar-section">System</div>
+                <a class="m3-sidebar-link" href="{% url 'announcements_admin' %}" id="announcementsLink"><span class="material-symbols-outlined">campaign</span>Announcements</a>
+                <a class="m3-sidebar-link" href="{% url 'system_logs' %}" id="syslogsLink"><span class="material-symbols-outlined">terminal</span>System Logs</a>
+                <a class="m3-sidebar-link" href="{% url 'admin_reports' %}" id="ReportsLink"><span class="material-symbols-outlined">analytics</span>Reports</a>
+                <a class="m3-sidebar-link" href="#" id="SettingsLink"><span class="material-symbols-outlined">settings</span>Settings</a>
+                <a class="m3-sidebar-link" href="{% url 'index' %}" id="siteLink"><span class="material-symbols-outlined">language</span>Visit Site</a>
+            </nav>
+
+            <div class="m3-sidebar-footer">
+                <a href="{% url 'user_logout' %}"><span class="material-symbols-outlined" style="font-size:18px">logout</span>Sign Out</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="m3-main">
+            <header class="m3-topbar">
+                <div class="m3-topbar-left">
+                    <button class="m3-topbar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                        <span class="material-symbols-outlined">menu</span>
+                    </button>
+                    <div>
+                        <div class="m3-topbar-title">{% block topbar_title %}Admin Dashboard{% endblock %}</div>
+                        <div class="m3-topbar-breadcrumb">{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / Dashboard{% endblock %}</div>
+                    </div>
+                </div>
+                <div class="m3-topbar-right">
+                    <!-- Notification Bell with Dropdown -->
+                    <div class="dropdown" style="position:relative">
+                        <button class="m3-topbar-icon" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications" id="notifBellBtn">
+                            <span class="material-symbols-outlined">notifications</span>
+                            {% if unread_notifications_count %}
+                            <span class="notif-badge-live" id="notifBadgeLive">{{ unread_notifications_count }}</span>
+                            {% else %}
+                            <span class="notif-badge-live" id="notifBadgeLive" style="display:none">0</span>
+                            {% endif %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end notif-dropdown" id="notifDropdown">
+                            {% for n in recent_notifications %}
+                            <li>
+                                <a class="dropdown-item d-flex align-items-start gap-2 {% if not n.is_read %}notif-unread{% endif %}"
+                                   href="{% url 'mark_notification_read' n.id %}">
+                                    <span class="notif-icon-wrap" style="background:{% if n.notification_type == 'like' %}#FFF3E0{% elif n.notification_type == 'comment' %}#E3F2FD{% elif n.notification_type == 'repost' %}#F3E5F5{% elif n.notification_type == 'message' %}#E8F5E9{% else %}#F5F5F5{% endif %}">
+                                        <span class="material-symbols-outlined" style="font-size:18px;color:{% if n.notification_type == 'like' %}#E65100{% elif n.notification_type == 'comment' %}#1565C0{% elif n.notification_type == 'repost' %}#6A1B9A{% elif n.notification_type == 'message' %}#2D5A27{% else %}#616161{% endif %}">
+                                            {% if n.notification_type == 'like' %}favorite{% elif n.notification_type == 'comment' %}chat_bubble{% elif n.notification_type == 'repost' %}repeat{% elif n.notification_type == 'message' %}mail{% else %}info{% endif %}
+                                        </span>
+                                    </span>
+                                    <div>
+                                        <div style="font-size:0.875rem;line-height:1.4">{{ n.message }}</div>
+                                        <small class="text-muted">{{ n.created_at|timesince }} ago</small>
+                                    </div>
+                                </a>
+                            </li>
+                            {% empty %}
+                            <li><span class="dropdown-item text-muted text-center py-3">No notifications yet</span></li>
+                            {% endfor %}
+                            <li><hr class="dropdown-divider m-0"></li>
+                            <li><a class="dropdown-item text-center py-2" href="{% url 'notifications' %}" style="color:var(--md-sys-color-primary);font-weight:600">View all notifications</a></li>
+                        </ul>
+                    </div>
+                    <button class="m3-topbar-icon" title="Search">
+                        <span class="material-symbols-outlined">search</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="m3-content m3-fade-in" id="m3Content">
+                <!-- Floating squares -->
+                <div class="m3-sq m3-sq--lg m3-sq--c1 m3-sq--a1 m3-sq--d1" style="top:5%;right:3%"></div>
+                <div class="m3-sq m3-sq--sm m3-sq--c2 m3-sq--a2 m3-sq--d2" style="top:30%;left:2%"></div>
+                <div class="m3-sq m3-sq--md m3-sq--c3 m3-sq--a3 m3-sq--d3" style="bottom:20%;right:8%"></div>
+                <div class="m3-sq m3-sq--xl m3-sq--c4 m3-sq--a4 m3-sq--d4" style="bottom:5%;left:5%"></div>
+                {% block content %}{% endblock %}
+            </div>
+
+            <footer class="m3-dash-footer">
+                <div class="m3-footer-inner">
+                    <div class="m3-footer-brand">
+                        <span class="m3-footer-dot"></span>
+                        <span class="m3-footer-name">Urugwiro</span>
+                        <span class="m3-footer-version">Admin v2.0</span>
+                    </div>
+                    <div class="m3-footer-links">
+                        <a href="{% url 'admin_dashboard' %}"><span class="material-symbols-outlined">dashboard</span>Dashboard</a>
+                        <a href="{% url 'admin_reports' %}"><span class="material-symbols-outlined">analytics</span>Reports</a>
+                        <a href="{% url 'system_logs' %}"><span class="material-symbols-outlined">terminal</span>Logs</a>
+                        <a href="{% url 'index' %}" target="_blank"><span class="material-symbols-outlined">language</span>View Site</a>
+                    </div>
+                    <p class="m3-footer-copy">&copy; 2026 Urugwiro Ltd.</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    (function(){
+        var sidebar=document.getElementById('m3Sidebar');
+        var overlay=document.getElementById('sidebarOverlay');
+        var toggle=document.getElementById('sidebarToggle');
+        if(toggle)toggle.addEventListener('click',function(){sidebar.classList.toggle('open');overlay.classList.toggle('active')});
+        if(overlay)overlay.addEventListener('click',function(){sidebar.classList.remove('open');overlay.classList.remove('active')});
+
+        // Active link highlighting
+        var path=window.location.pathname.toLowerCase();
+        document.querySelectorAll('.m3-sidebar-link').forEach(function(a){
+            var href=(a.getAttribute('href')||'').toLowerCase();
+            if(href!=='#'&&href!=='/'&&path.indexOf(href)===0)a.classList.add('active');
+        });
+
+        // Tooltips
+        [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).forEach(function(el){new bootstrap.Tooltip(el)});
+
+        // Page-exit transition
+        document.querySelectorAll('.m3-sidebar-link, .m3-topbar-breadcrumb a').forEach(function(a){
+            if(a.getAttribute('href')&&a.getAttribute('href')!=='#'){
+                a.addEventListener('click',function(e){
+                    var href=a.getAttribute('href');
+                    if(href.startsWith('http')&&!href.includes(location.host))return;
+                    e.preventDefault();
+                    var content=document.getElementById('m3Content');
+                    if(content){content.classList.add('m3-page-exit');}
+                    setTimeout(function(){window.location.href=href;},200);
+                });
+            }
+        });
+    })();
+    </script>
+
+    <!-- WebSocket: Real-time notifications -->
+    <script>
+    (function(){
+        var uid = document.body.dataset.uid;
+        if(!uid) return;
+        var wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
+        var ws;
+        function connect(){
+            ws = new WebSocket(wsProto + '://' + location.host + '/ws/notifications/' + uid + '/');
+            ws.onmessage = function(e){
+                var d = JSON.parse(e.data);
+                if(d.type === 'notification'){
+                    updateNotifBadge(d.unread_count);
+                    showToast(d.notification_type, d.message, d.link);
+                } else if(d.type === 'init'){
+                    updateNotifBadge(d.unread_count);
+                }
+            };
+            ws.onclose = function(){ setTimeout(connect, 3000); };
+        }
+        connect();
+
+        function updateNotifBadge(count){
+            var badge = document.getElementById('notifBadgeLive');
+            var sideBadge = document.getElementById('notifSideBadge');
+            if(!badge) return;
+            if(count > 0){
+                badge.textContent = count;
+                badge.style.display = 'flex';
+                if(sideBadge){ sideBadge.textContent = count; sideBadge.style.display = ''; }
+                else {
+                    var sideLink = document.getElementById('notifSideLink');
+                    if(sideLink && !sideLink.querySelector('.m3-sidebar-badge')){
+                        var b = document.createElement('span');
+                        b.id = 'notifSideBadge';
+                        b.className = 'm3-sidebar-badge';
+                        b.textContent = count;
+                        sideLink.appendChild(b);
+                    }
+                }
+            } else {
+                badge.style.display = 'none';
+                if(sideBadge) sideBadge.remove();
+            }
+        }
+
+        var iconMap = {like:'favorite',comment:'chat_bubble',repost:'repeat',message:'mail',system:'info'};
+        var colorMap = {like:'#E65100',comment:'#1565C0',repost:'#6A1B9A',message:'#2D5A27',system:'#616161'};
+
+        function showToast(type, message, link){
+            var t = document.createElement('div');
+            t.className = 'ws-toast';
+            t.innerHTML = '<span class="material-symbols-outlined" style="color:' + (colorMap[type]||'#2D5A27') + ';font-size:22px">' + (iconMap[type]||'notifications') + '</span>'
+                + '<div style="flex:1"><div style="font-size:.9rem;font-weight:600">' + message + '</div>'
+                + (link ? '<a href="' + link + '" style="font-size:.8rem;color:var(--md-sys-color-primary)">View</a>' : '') + '</div>'
+                + '<span class="ws-toast-close material-symbols-outlined" onclick="this.parentElement.remove()">close</span>';
+            document.body.appendChild(t);
+            setTimeout(function(){ if(t.parentElement) t.remove(); }, 5000);
+        }
+    })();
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,56 @@
+{% extends 'Others_dashboard/agents/agent_base.html' %}
+{% block title %}Offers | Urugwiro{% endblock %}
+{% block topbar_title %}Offers{% endblock %}
+{% block breadcrumb %}<a href="{% url 'agent_dashboard' user.id %}">Home</a> / Offers{% endblock %}
+
+{% block content %}
+<!-- Page Hero -->
+<div class="m3-dash-hero m3-slide-up">
+    <div class="m3-dash-hero-inner">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2><span class="material-symbols-outlined" style="font-size:28px;vertical-align:middle">handshake</span> Offers Handled</h2>
+                <p>View all offers on properties you're managing.</p>
+            </div>
+            <div class="m3-dash-hero-actions">
+                <a href="{% url 'agent_dashboard' user.id %}" class="m3-btn-filled m3-btn-sm" style="background:rgba(255,255,255,.15);backdrop-filter:blur(4px)"><span class="material-symbols-outlined" style="font-size:18px">dashboard</span>Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Offers Table -->
+<div class="m3-card m3-slide-up" style="animation-delay:.15s">
+    <div class="m3-card-header">
+        <h5><span class="material-symbols-outlined">local_offer</span>All Offers</h5>
+        {% if offers %}<span class="m3-badge m3-badge-primary">{{ offers|length }} total</span>{% endif %}
+    </div>
+    <div class="m3-card-body">
+        {% if offers %}
+        <div class="table-responsive">
+            <table class="table m3-table">
+                <thead><tr><th>Property</th><th>Buyer</th><th>Offer Amount</th><th>Counter</th><th>Status</th><th>Date</th></tr></thead>
+                <tbody>
+                {% for o in offers %}
+                <tr>
+                    <td><a href="{% url 'sale_property_detail' o.sale_property.id %}" style="color:var(--md-sys-color-primary);font-weight:500">{{ o.sale_property.title|truncatechars:30 }}</a></td>
+                    <td>{{ o.buyer.username }}</td>
+                    <td><strong>{{ o.amount|floatformat:0 }} Frw</strong></td>
+                    <td>{% if o.counter_amount %}<strong>{{ o.counter_amount|floatformat:0 }} Frw</strong>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                    <td><span class="m3-badge {% if o.status == 'accepted' %}m3-badge-success{% elif o.status == 'pending' %}m3-badge-warning{% elif o.status == 'rejected' %}m3-badge-error{% elif o.status == 'countered' %}m3-badge-info{% else %}m3-badge-primary{% endif %}">{{ o.get_status_display }}</span></td>
+                    <td>{{ o.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="m3-empty">
+            <span class="material-symbols-outlined">handshake</span>
+            <h5>No offers yet</h5>
+            <p>Offers will appear here when buyers make offers on your assigned properties</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

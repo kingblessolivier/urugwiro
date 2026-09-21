@@ -1,0 +1,144 @@
+{% extends 'Others_dashboard/sellers/seller_base.html' %}
+{% block title %}Seller Dashboard | Urugwiro{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Dashboard Hero -->
+<div class="m3-dash-hero m3-slide-up">
+    <div class="m3-dash-hero-inner">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2>Welcome, <span>{{ seller.name }}</span> 👋</h2>
+                <p>Manage your property listings, view offers, and track inquiries.</p>
+            </div>
+            <div class="m3-dash-hero-actions">
+                <a href="{% url 'seller_add_property' user.id %}" class="m3-btn-filled m3-btn-sm" style="background:var(--md-sys-color-inverse-primary);color:#0f1f14"><span class="material-symbols-outlined" style="font-size:18px">add</span>List Property</a>
+                <a href="{% url 'seller_offers' user.id %}" class="m3-btn-filled m3-btn-sm" style="background:rgba(255,255,255,.15);backdrop-filter:blur(4px)"><span class="material-symbols-outlined" style="font-size:18px">handshake</span>View Offers</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Metrics -->
+<div class="m3-metrics">
+    <div class="m3-metric m3-slide-up m3-stagger-1">
+        <div class="m3-metric-icon m3-icon-primary"><span class="material-symbols-outlined">storefront</span></div>
+        <div><div class="m3-metric-val">{{ total_listed }}</div><div class="m3-metric-label">Listed Properties</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-2">
+        <div class="m3-metric-icon m3-icon-warning"><span class="material-symbols-outlined">handshake</span></div>
+        <div><div class="m3-metric-val">{{ total_under_neg }}</div><div class="m3-metric-label">Negotiating</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-3">
+        <div class="m3-metric-icon m3-icon-success"><span class="material-symbols-outlined">sell</span></div>
+        <div><div class="m3-metric-val">{{ total_sold }}</div><div class="m3-metric-label">Sold</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-4">
+        <div class="m3-metric-icon m3-icon-info"><span class="material-symbols-outlined">local_offer</span></div>
+        <div><div class="m3-metric-val">{{ total_offers }}</div><div class="m3-metric-label">Total Offers</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-5">
+        <div class="m3-metric-icon m3-icon-tertiary"><span class="material-symbols-outlined">pending</span></div>
+        <div><div class="m3-metric-val">{{ pending_offers }}</div><div class="m3-metric-label">Pending Offers</div></div>
+    </div>
+    <div class="m3-metric m3-slide-up m3-stagger-6">
+        <div class="m3-metric-icon m3-icon-secondary"><span class="material-symbols-outlined">help</span></div>
+        <div><div class="m3-metric-val">{{ total_inquiries }}</div><div class="m3-metric-label">Inquiries</div></div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">bar_chart</span>Listing Overview</h5>
+                <span class="m3-badge m3-badge-primary">Status</span>
+            </div>
+            <div class="m3-card-body"><div class="m3-chart"><canvas id="listingChart"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="m3-card m3-slide-up">
+            <div class="m3-card-header">
+                <h5><span class="material-symbols-outlined">trending_up</span>Offers & Inquiries</h5>
+                <span class="m3-badge m3-badge-success">Summary</span>
+            </div>
+            <div class="m3-card-body"><div class="m3-chart"><canvas id="offersChart"></canvas></div></div>
+        </div>
+    </div>
+</div>
+
+<!-- My Listings Table -->
+<div class="m3-card m3-slide-up mt-4">
+    <div class="m3-card-header">
+        <h5><span class="material-symbols-outlined">apartment</span>My Listings</h5>
+        <a href="{% url 'seller_add_property' user.id %}" class="m3-btn-text"><span class="material-symbols-outlined" style="font-size:16px">add</span>Add New</a>
+    </div>
+    <div class="m3-card-body">
+        {% if properties %}
+        <div class="table-responsive">
+            <table class="table m3-table">
+                <thead><tr><th>Image</th><th>Title</th><th>Type</th><th>Price</th><th>Location</th><th>Agent</th><th>Status</th><th>Views</th><th>Actions</th></tr></thead>
+                <tbody>
+                {% for p in properties %}
+                <tr>
+                    <td>{% if p.image %}<img src="{{ p.image.url }}" alt="" style="width:50px;height:50px;object-fit:cover;border-radius:8px">{% else %}<div style="width:50px;height:50px;background:var(--md-sys-color-surface-variant);border-radius:8px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="color:var(--md-sys-color-outline)">image</span></div>{% endif %}</td>
+                    <td><a href="{% url 'sale_property_detail' p.id %}" style="color:var(--md-sys-color-primary);font-weight:500">{{ p.title|truncatechars:30 }}</a></td>
+                    <td>{{ p.get_property_type_display }}</td>
+                    <td><strong>{{ p.price|floatformat:0 }} Frw</strong></td>
+                    <td>{{ p.city }}</td>
+                    <td>{{ p.assigned_agent.name|default:"Not assigned" }}</td>
+                    <td><span class="m3-badge {% if p.status == 'listed' %}m3-badge-success{% elif p.status == 'under_negotiation' %}m3-badge-warning{% elif p.status == 'sold' %}m3-badge-info{% else %}m3-badge-primary{% endif %}">{{ p.get_status_display }}</span></td>
+                    <td>{{ p.views_count }}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'seller_edit_property' user.id p.id %}" class="m3-btn-tonal m3-btn-sm" title="Edit"><span class="material-symbols-outlined" style="font-size:16px">edit</span></a>
+                            <a href="{% url 'seller_delete_property' user.id p.id %}" class="m3-btn-tonal m3-btn-sm" style="background:#FDDEDE;color:#B71C1C" title="Delete" onclick="return confirm('Delete this listing?')"><span class="material-symbols-outlined" style="font-size:16px">delete</span></a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="m3-empty">
+            <span class="material-symbols-outlined">add_home</span>
+            <h5>No listings yet</h5>
+            <p>Start by listing your first property for sale</p>
+            <a href="{% url 'seller_add_property' user.id %}" class="m3-btn-filled mt-2"><span class="material-symbols-outlined">add</span>List Property</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var m3Green='#2D5A27', m3Teal='#20c997', m3Orange='#ff9800', m3Blue='#1565C0', m3Purple='#6A1B9A';
+    var chartOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#72796f',font:{family:'Inter'}}},tooltip:{backgroundColor:'#162a1c',titleColor:'#6ddf74',bodyColor:'#fff',cornerRadius:12,padding:12}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{color:'#72796f',font:{family:'Inter'}}},x:{grid:{display:false},ticks:{color:'#72796f',font:{family:'Inter'}}}}};
+
+    // Listing status chart
+    new Chart(document.getElementById('listingChart'),{
+        type:'doughnut',
+        data:{
+            labels:['Listed','Negotiating','Sold'],
+            datasets:[{data:[{{ total_listed }},{{ total_under_neg }},{{ total_sold }}],backgroundColor:[m3Green,m3Orange,m3Blue],borderWidth:0,borderRadius:4}]
+        },
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#72796f',font:{family:'Inter'},padding:16}},tooltip:{backgroundColor:'#162a1c',titleColor:'#6ddf74',bodyColor:'#fff',cornerRadius:12,padding:12}}}
+    });
+
+    // Offers & inquiries chart
+    new Chart(document.getElementById('offersChart'),{
+        type:'bar',
+        data:{
+            labels:['Total Offers','Pending','Inquiries'],
+            datasets:[{label:'Count',data:[{{ total_offers }},{{ pending_offers }},{{ total_inquiries }}],backgroundColor:['rgba(40,167,69,0.12)','rgba(255,152,0,0.12)','rgba(106,27,154,0.12)'],borderColor:[m3Green,m3Orange,m3Purple],borderWidth:2,borderRadius:8}]
+        },
+        options:chartOpts
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

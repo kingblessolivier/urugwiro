@@ -1,0 +1,47 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+
+{% block topbar_title %}Reply Message{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / <a href="{% url 'message_list' %}">Messages</a> / Reply{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;margin:0 auto">
+    <div class="m3-card">
+        <div class="m3-card-header" style="border:none">
+            <div class="d-flex align-items-center gap-2">
+                <a href="{% url 'message_list' %}" class="m3-btn-outlined m3-btn-sm" style="padding:6px"><span class="material-symbols-outlined" style="font-size:18px">arrow_back</span></a>
+                <span style="color:var(--md-sys-color-on-surface-variant)">Replying to: <strong>{{ message.name }}</strong></span>
+            </div>
+        </div>
+        <div class="m3-card-body" style="padding:32px">
+            <div style="background:var(--md-sys-color-surface-container);padding:16px;border-radius:var(--md-sys-shape-corner-large);margin-bottom:24px">
+                <label style="font:var(--md-sys-typescale-label-medium);color:var(--md-sys-color-on-surface-variant)">Original message:</label>
+                <p style="margin:8px 0 0">{{ message.message }}</p>
+            </div>
+
+            <form method="POST" action="{% url 'send_email' %}" novalidate>
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="senderEmail" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">mail</span> From</label>
+                    <input type="email" class="form-control" id="senderEmail" name="sender_email" value="nsengimanaolivier100@gmail.com" required>
+                </div>
+                <div class="mb-3">
+                    <label for="recipientEmail" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">forward_to_inbox</span> To</label>
+                    <input type="email" class="form-control" id="recipientEmail" name="recipient_email" value="{{ message.email }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="emailSubject" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">title</span> Subject</label>
+                    <input type="text" class="form-control" id="emailSubject" name="subject" placeholder="Subject" required>
+                </div>
+                <div class="mb-4">
+                    <label for="emailBody" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">edit_note</span> Message</label>
+                    <textarea class="form-control" id="emailBody" name="body" rows="8" placeholder="Write your reply..." required></textarea>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="reset" class="m3-btn-outlined"><span class="material-symbols-outlined" style="font-size:18px">close</span> Discard</button>
+                    <button type="submit" class="m3-btn-filled"><span class="material-symbols-outlined" style="font-size:18px">send</span> Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

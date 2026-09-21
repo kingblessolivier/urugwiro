@@ -1,0 +1,24 @@
+{% load static %}
+<nav class="navbar navbar-expand-lg navbar-dark" style="background-color: var(--sidebar-bg);">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center" href="{% url 'index' %}">
+      <img src="{% static 'images/p.png' %}" alt="urugwiro Logo" width="38" height="38" class="d-inline-block align-top me-2">
+      <span style="color: #fff; font-weight:700;">urugwiro</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#siteNav" aria-controls="siteNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="siteNav">
+      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link text-white" href="{% url 'property_list' %}">Properties</a></li>
+        <li class="nav-item"><a class="nav-link text-white" href="{% url 'about' %}">About</a></li>
+        <li class="nav-item"><a class="nav-link text-white" href="{% url 'contact' %}">Contact</a></li>
+        {% if user.is_authenticated %}
+          <li class="nav-item"><a class="nav-link text-white" href="{% url 'user_logout' %}">Logout</a></li>
+        {% else %}
+          <li class="nav-item"><a class="nav-link text-white" href="{% url 'user_login' %}">Login</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>

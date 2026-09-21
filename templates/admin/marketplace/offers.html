@@ -1,0 +1,38 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+{% block title %}All Offers{% endblock %}
+{% block topbar_title %}All Offers{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / Marketplace / Offers{% endblock %}
+
+{% block content %}
+<div class="m3-grid mb-4">
+    <div class="m3-stat-card"><div class="m3-stat-icon" style="background:#E8F5E9"><span class="material-symbols-outlined" style="color:#2D5A27">local_offer</span></div><div class="m3-stat-info"><div class="m3-stat-value">{{ offers|length }}</div><div class="m3-stat-label">Total Offers</div></div></div>
+    <div class="m3-stat-card"><div class="m3-stat-icon" style="background:#FFF3E0"><span class="material-symbols-outlined" style="color:#E65100">hourglass_top</span></div><div class="m3-stat-info"><div class="m3-stat-value">{{ pending_count }}</div><div class="m3-stat-label">Pending</div></div></div>
+    <div class="m3-stat-card"><div class="m3-stat-icon" style="background:#E8F5E9"><span class="material-symbols-outlined" style="color:#2D5A27">check_circle</span></div><div class="m3-stat-info"><div class="m3-stat-value">{{ accepted_count }}</div><div class="m3-stat-label">Accepted</div></div></div>
+    <div class="m3-stat-card"><div class="m3-stat-icon" style="background:#FCE4EC"><span class="material-symbols-outlined" style="color:#C62828">cancel</span></div><div class="m3-stat-info"><div class="m3-stat-value">{{ rejected_count }}</div><div class="m3-stat-label">Rejected</div></div></div>
+</div>
+
+<div class="m3-card">
+    <div class="m3-card-header"><h5 class="m3-card-title mb-0">All Offers</h5></div>
+    <div class="table-responsive">
+        <table class="m3-table">
+            <thead><tr><th>Property</th><th>Buyer</th><th>Seller</th><th>Agent</th><th>Offer</th><th>Counter</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>
+                {% for offer in offers %}
+                <tr>
+                    <td><a href="{% url 'sale_property_detail' offer.sale_property.id %}" target="_blank" class="fw-bold" style="color:#2D5A27">{{ offer.sale_property.title|truncatechars:25 }}</a></td>
+                    <td>{{ offer.buyer.first_name|default:offer.buyer.username }}</td>
+                    <td>{{ offer.sale_property.seller.name }}</td>
+             ~       <td>{{ offer.agent.name|default:"-" }}</td>
+                    <td class="fw-bold">{{ offer.amount|floatformat:0 }} Frw</td>
+                    <td>{% if offer.counter_amount %}{{ offer.counter_amount|floatformat:0 }} Frw{% else %}-{% endif %}</td>
+                    <td><span class="badge bg-{% if offer.status == 'pending' %}warning text-dark{% elif offer.status == 'accepted' %}success{% elif offer.status == 'rejected' %}danger{% elif offer.status == 'countered' %}info{% else %}secondary{% endif %}">{{ offer.get_status_display }}</span></td>
+                    <td>{{ offer.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No offers yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+import React from 'react';
+
+export type ListingCategory = 'PROPERTY' | 'LAND' | 'VEHICLE' | 'MOTORCYCLE' | 'SERVICE';
+
+export type PropertySubtype =
+  | 'House'
+  | 'Apartment'
+  | 'Villa'
+  | 'Townhouse'
+  | 'Commercial Building'
+  | 'Office'
+  | 'Shop'
+  | 'Warehouse'
+  | 'Hotel'
+  | 'Other';
+
+export type VehicleSubtype = 'Car' | 'Motorcycle';
+
+export interface ListingWizardState {
+  category: ListingCategory | null;
+  subtype: string | null;
+  step: number;
+  data: {
+    // Base Fields
+    title: string;
+    description: string;
+    price: number;
+    currency: string;
+    location: string;
+
+    // Property Specifics
+    propertyType?: PropertySubtype;
+    transactionType?: 'Sale' | 'Rent';
+    bedrooms?: number;
+    bathrooms?: number;
+    plotSize?: number;
+    buildingSize?: number;
+    floors?: number;
+    parkingSpaces?: number;
+    yearBuilt?: number;
+    condition?: string;
+    furnishingStatus?: 'Furnished' | 'Unfurnished' | 'Semi-Furnished';
+
+    // Hotel Specifics
+    starRating?: number;
+    totalRooms?: number;
+    managementType?: string;
+
+    // Land Specifics
+    landUse?: string;
+    terrain?: string;
+    roadAccess?: boolean;
+
+    // Vehicle Specifics
+    make?: string;
+    model?: string;
+    year?: number;
+    mileage?: number;
+    fuelType?: string;
+    transmission?: string;
+
+    // Media & Docs
+    media: any[];
+    documents: any[];
+  };
+  aiNarrative: string;
+}

@@ -1,0 +1,760 @@
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block title %}Home - Urugwiro Properties{% endblock %}
+
+{% block content %}
+<style>
+    /* M3 Design Tokens already loaded from m3-theme.css */
+
+    /* ===== HERO ===== */
+    .hero {
+        position: relative;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        background: linear-gradient(160deg, #1a2f2f 0%, var(--secondary) 40%, var(--primary-dark) 100%);
+        overflow: hidden;
+    }
+    .hero::before {
+        content:'';position:absolute;top:-120px;right:-120px;width:500px;height:500px;
+        background:radial-gradient(circle, rgba(40,167,69,.15) 0%, transparent 70%);
+        border-radius:50%;animation:float 8s ease-in-out infinite;
+    }
+    .hero::after {
+        content:'';position:absolute;bottom:-80px;left:-80px;width:400px;height:400px;
+        background:radial-gradient(circle, rgba(32,201,151,.12) 0%, transparent 70%);
+        border-radius:50%;animation:float 10s ease-in-out infinite reverse;
+    }
+    @keyframes float {
+        0%,100%{transform:translate(0,0) scale(1)}
+        50%{transform:translate(30px,-30px) scale(1.05)}
+    }
+
+    .hero-shapes .shape {
+        position:absolute;border-radius:50%;opacity:.06;background:#fff;
+    }
+    .hero-shapes .s1{width:200px;height:200px;top:15%;left:5%;animation:float 12s ease-in-out infinite}
+    .hero-shapes .s2{width:120px;height:120px;top:60%;right:10%;animation:float 9s ease-in-out infinite 2s}
+    .hero-shapes .s3{width:80px;height:80px;top:30%;right:25%;animation:float 7s ease-in-out infinite 1s}
+
+    .hero-inner {position:relative;z-index:2}
+
+    .hero-badge {
+        display:inline-flex;align-items:center;gap:6px;
+        background:rgba(40,167,69,.2);color:#7ddf9b;
+        padding:8px 18px;border-radius:50px;font-size:.78rem;
+        font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+        border:1px solid rgba(40,167,69,.3);margin-bottom:20px;
+    }
+    .hero-title {
+        font-size:3.5rem;font-weight:800;color:#fff;line-height:1.15;margin-bottom:20px;
+    }
+    .hero-title .gradient-text {
+        background:linear-gradient(135deg, var(--primary), var(--accent));
+        -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .hero-subtitle {
+        color:rgba(255,255,255,.65);font-size:1.15rem;line-height:1.7;
+        max-width:520px;margin-bottom:36px;
+    }
+    .hero-btns {display:flex;gap:14px;flex-wrap:wrap}
+    .btn-hero-primary {
+        background:var(--primary);color:#fff;border:none;padding:15px 34px;
+        border-radius:50px;font-weight:600;font-size:1rem;
+        display:inline-flex;align-items:center;gap:10px;
+        transition:var(--transition);text-decoration:none;
+        box-shadow:0 8px 25px rgba(40,167,69,.35);
+    }
+    .btn-hero-primary:hover {
+        background:var(--primary-dark);transform:translateY(-3px);
+        box-shadow:0 12px 35px rgba(40,167,69,.45);color:#fff;
+    }
+    .btn-hero-outline {
+        background:transparent;color:#fff;border:2px solid rgba(255,255,255,.25);
+        padding:15px 34px;border-radius:50px;font-weight:600;font-size:1rem;
+        display:inline-flex;align-items:center;gap:10px;
+        transition:var(--transition);text-decoration:none;
+    }
+    .btn-hero-outline:hover {
+        background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.5);
+        transform:translateY(-3px);color:#fff;
+    }
+
+    .hero-visual {position:relative;display:flex;justify-content:center;align-items:center}
+    .hero-card-stack {position:relative;width:100%;max-width:420px}
+    .hero-card-stack .hc {
+        background:rgba(255,255,255,.07);backdrop-filter:blur(16px);
+        border:1px solid rgba(255,255,255,.1);border-radius:var(--radius);
+        padding:24px;color:#fff;transition:var(--transition);
+    }
+    .hc-main {position:relative;z-index:3}
+    .hc-back-1 {
+        position:absolute;top:20px;left:20px;right:-20px;bottom:-20px;
+        z-index:1;opacity:.5;transform:rotate(3deg);
+    }
+    .hc-back-2 {
+        position:absolute;top:40px;left:40px;right:-40px;bottom:-40px;
+        z-index:0;opacity:.3;transform:rotate(6deg);
+    }
+    .hc-price {font-size:1.8rem;font-weight:800;margin-bottom:4px}
+    .hc-label {font-size:.8rem;color:rgba(255,255,255,.5);margin-bottom:16px}
+    .hc-row {display:flex;gap:16px;margin-top:12px}
+    .hc-stat {
+        flex:1;background:rgba(255,255,255,.06);border-radius:10px;
+        padding:12px;text-align:center;
+    }
+    .hc-stat-val {font-weight:700;font-size:1.1rem}
+    .hc-stat-lbl {font-size:.7rem;color:rgba(255,255,255,.5)}
+
+    /* ===== STATS ===== */
+    .stats {
+        background:#fff;padding:0;position:relative;z-index:5;
+    }
+    .stats-inner {
+        display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+        background:#fff;border-radius:var(--radius);
+        box-shadow:0 20px 60px rgba(0,0,0,.08);
+        margin-top:-50px;overflow:hidden;
+    }
+    .stat-card {
+        padding:36px 24px;text-align:center;position:relative;
+        transition:var(--transition);
+    }
+    .stat-card:not(:last-child)::after {
+        content:'';position:absolute;right:0;top:20%;height:60%;width:1px;
+        background:linear-gradient(transparent,#e9ecef,transparent);
+    }
+    .stat-card:hover {background:var(--primary-light)}
+    .stat-icon {
+        width:50px;height:50px;border-radius:12px;
+        background:var(--primary-light);display:flex;
+        align-items:center;justify-content:center;
+        margin:0 auto 14px;color:var(--primary);font-size:1.2rem;
+    }
+    .stat-card:hover .stat-icon {background:var(--primary);color:#fff}
+    .stat-val {
+        font-size:2.2rem;font-weight:800;color:var(--secondary);
+        line-height:1;margin-bottom:6px;
+    }
+    .stat-lbl {font-size:.82rem;color:#6c757d;font-weight:500}
+
+    /* ===== SECTION UTILITIES ===== */
+    .sec {padding:100px 0}
+    .sec-light {background:var(--bg-light)}
+    .sec-white {background:#fff}
+    .sec-heading {text-align:center;margin-bottom:56px}
+    .sec-tag {
+        display:inline-flex;align-items:center;gap:6px;
+        background:var(--primary-light);color:var(--primary-dark);
+        padding:6px 16px;border-radius:50px;font-size:.76rem;
+        font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+        margin-bottom:14px;
+    }
+    .sec-title {
+        font-size:2.2rem;font-weight:800;color:var(--secondary);
+        margin-bottom:14px;line-height:1.3;
+    }
+    .sec-subtitle {
+        color:#6c757d;font-size:1.05rem;max-width:560px;
+        margin:0 auto;line-height:1.7;
+    }
+
+    /* ===== SERVICES ===== */
+    .svc-card {
+        background:#fff;border-radius:var(--radius);padding:36px 28px;
+        text-align:center;border:1px solid #e9ecef;
+        transition:var(--transition);height:100%;position:relative;overflow:hidden;
+    }
+    .svc-card::before {
+        content:'';position:absolute;top:0;left:0;right:0;height:3px;
+        background:linear-gradient(90deg, var(--primary), var(--accent));
+        transform:scaleX(0);transition:transform .4s ease;transform-origin:left;
+    }
+    .svc-card:hover::before {transform:scaleX(1)}
+    .svc-card:hover {
+        transform:translateY(-8px);
+        box-shadow:0 20px 50px rgba(0,0,0,.08);border-color:transparent;
+    }
+    .svc-icon {
+        width:70px;height:70px;border-radius:16px;
+        background:linear-gradient(135deg, var(--primary), var(--accent));
+        display:flex;align-items:center;justify-content:center;
+        margin:0 auto 22px;font-size:1.6rem;color:#fff;
+        transition:var(--transition);
+    }
+    .svc-card:hover .svc-icon {transform:scale(1.1) rotate(5deg)}
+    .svc-card h3 {font-size:1.15rem;font-weight:700;color:var(--secondary);margin-bottom:12px}
+    .svc-card p {color:#6c757d;font-size:.9rem;line-height:1.65;margin:0}
+
+    /* ===== PROPERTIES ===== */
+    .prop-card {
+        background:#fff;border-radius:var(--radius);overflow:hidden;
+        border:1px solid #e9ecef;transition:var(--transition);height:100%;
+        display:flex;flex-direction:column;
+    }
+    .prop-card:hover {
+        transform:translateY(-8px);box-shadow:0 20px 50px rgba(0,0,0,.1);
+        border-color:transparent;
+    }
+    .prop-img {position:relative;height:240px;overflow:hidden}
+    .prop-img img {width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
+    .prop-card:hover .prop-img img {transform:scale(1.08)}
+    .prop-img::after {
+        content:'';position:absolute;bottom:0;left:0;right:0;height:80px;
+        background:linear-gradient(transparent,rgba(0,0,0,.4));pointer-events:none;
+    }
+    .prop-type-badge {
+        position:absolute;top:14px;left:14px;z-index:2;
+        background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
+        padding:5px 14px;border-radius:50px;font-size:.72rem;
+        font-weight:700;text-transform:uppercase;color:var(--secondary);
+    }
+    .prop-price-tag {
+        position:absolute;bottom:14px;left:14px;z-index:2;
+        font-size:1.35rem;font-weight:800;color:#fff;
+        text-shadow:0 2px 8px rgba(0,0,0,.3);
+    }
+    .prop-price-tag small {font-size:.7rem;font-weight:500;opacity:.85}
+    .prop-body {padding:22px;flex:1;display:flex;flex-direction:column}
+    .prop-body h5 {
+        font-size:1.1rem;font-weight:700;color:var(--secondary);
+        margin-bottom:8px;line-height:1.3;
+        display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;
+    }
+    .prop-location {
+        display:flex;align-items:center;gap:6px;color:#6c757d;
+        font-size:.85rem;margin-bottom:16px;
+    }
+    .prop-location i {color:var(--primary);font-size:.8rem}
+    .prop-features {
+        display:flex;padding:14px 0;border-top:1px solid #e9ecef;
+        border-bottom:1px solid #e9ecef;margin-bottom:16px;
+    }
+    .prop-feat {
+        flex:1;text-align:center;position:relative;
+    }
+    .prop-feat:not(:last-child)::after {
+        content:'';position:absolute;right:0;top:4px;bottom:4px;width:1px;background:#e9ecef;
+    }
+    .prop-feat i {color:var(--primary);font-size:.9rem;margin-bottom:4px;display:block}
+    .prop-feat-val {font-weight:700;font-size:.88rem;color:var(--secondary)}
+    .prop-feat-lbl {font-size:.68rem;color:#adb5bd}
+    .prop-desc {
+        font-size:.85rem;color:#6c757d;line-height:1.6;flex:1;
+        display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+        margin-bottom:16px;
+    }
+    .prop-footer {padding:0 22px 22px}
+    .btn-prop {
+        display:flex;align-items:center;justify-content:center;gap:8px;
+        width:100%;padding:12px;background:var(--secondary);color:#fff;
+        border:none;border-radius:10px;font-weight:600;font-size:.88rem;
+        transition:var(--transition);text-decoration:none;cursor:pointer;
+    }
+    .btn-prop:hover {background:var(--primary);color:#fff;transform:translateY(-2px)}
+    .btn-prop i {transition:transform .3s ease}
+    .btn-prop:hover i {transform:translateX(4px)}
+
+    /* ===== TESTIMONIALS ===== */
+    .testi-card {
+        background:#fff;border-radius:var(--radius);padding:32px;
+        border:1px solid #e9ecef;transition:var(--transition);
+        height:100%;position:relative;
+    }
+    .testi-card::before {
+        content:'\201C';position:absolute;top:16px;right:24px;
+        font-size:4rem;color:var(--primary-light);font-family:Georgia,serif;line-height:1;
+    }
+    .testi-card:hover {
+        transform:translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,.08);
+        border-color:transparent;
+    }
+    .testi-stars {margin-bottom:16px;color:#ffc107;font-size:.9rem}
+    .testi-text {
+        font-size:.95rem;color:#555;line-height:1.7;font-style:italic;margin-bottom:24px;
+    }
+    .testi-author {display:flex;align-items:center;gap:14px}
+    .testi-avatar {
+        width:52px;height:52px;border-radius:50%;object-fit:cover;
+        border:3px solid var(--primary-light);
+    }
+    .testi-name {font-weight:700;color:var(--secondary);font-size:.95rem;margin-bottom:2px}
+    .testi-role {font-size:.78rem;color:var(--primary);font-weight:600}
+
+    /* ===== NEWS ===== */
+    .news-card {
+        background:#fff;border-radius:var(--radius);overflow:hidden;
+        border:1px solid #e9ecef;transition:var(--transition);height:100%;
+        display:flex;flex-direction:column;
+    }
+    .news-card:hover {
+        transform:translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,.08);
+        border-color:transparent;
+    }
+    .news-img {height:200px;overflow:hidden;position:relative}
+    .news-img img {width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+    .news-card:hover .news-img img {transform:scale(1.06)}
+    .news-date-chip {
+        position:absolute;top:14px;left:14px;
+        background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
+        padding:6px 14px;border-radius:50px;font-size:.72rem;
+        font-weight:700;color:var(--primary);
+    }
+    .news-body {padding:22px;flex:1;display:flex;flex-direction:column}
+    .news-body h5 {
+        font-size:1.05rem;font-weight:700;color:var(--secondary);
+        margin-bottom:10px;line-height:1.4;
+    }
+    .news-body p {font-size:.88rem;color:#6c757d;line-height:1.65;flex:1;margin:0}
+
+    /* ===== CTA ===== */
+    .cta {
+        padding:100px 0;position:relative;overflow:hidden;
+        background:linear-gradient(135deg, var(--secondary) 0%, var(--primary-dark) 100%);
+    }
+    .cta::before {
+        content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+        background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="40" cy="40" r="1.5" fill="rgba(255,255,255,.05)"/></svg>');
+        background-size:40px 40px;
+    }
+    .cta-inner {position:relative;z-index:2;text-align:center}
+    .cta h2 {font-size:2.6rem;font-weight:800;color:#fff;margin-bottom:16px}
+    .cta p {color:rgba(255,255,255,.7);font-size:1.1rem;max-width:560px;margin:0 auto 36px;line-height:1.7}
+    .cta-btns {display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+    .btn-cta-white {
+        background:#fff;color:var(--secondary);border:none;padding:15px 34px;
+        border-radius:50px;font-weight:600;font-size:1rem;
+        display:inline-flex;align-items:center;gap:10px;
+        transition:var(--transition);text-decoration:none;
+    }
+    .btn-cta-white:hover {
+        background:rgba(255,255,255,.9);transform:translateY(-3px);
+        box-shadow:0 8px 25px rgba(255,255,255,.2);color:var(--secondary);
+    }
+    .btn-cta-outline {
+        background:transparent;color:#fff;border:2px solid rgba(255,255,255,.3);
+        padding:15px 34px;border-radius:50px;font-weight:600;font-size:1rem;
+        display:inline-flex;align-items:center;gap:10px;
+        transition:var(--transition);text-decoration:none;
+    }
+    .btn-cta-outline:hover {
+        border-color:#fff;background:rgba(255,255,255,.1);
+        transform:translateY(-3px);color:#fff;
+    }
+
+    /* ===== SCROLL ANIMATIONS ===== */
+    .reveal {opacity:0;transform:translateY(30px);transition:opacity .6s ease, transform .6s ease}
+    .reveal.visible {opacity:1;transform:translateY(0)}
+
+    /* ===== RESPONSIVE ===== */
+    @media(max-width:992px){
+        .hero-title{font-size:2.6rem}
+        .stats-inner{grid-template-columns:repeat(2,1fr)}
+        .stat-card:nth-child(2)::after{display:none}
+        .hero-visual{margin-top:40px}
+    }
+    @media(max-width:768px){
+        .hero-title{font-size:2.2rem}
+        .hero-subtitle{font-size:1rem}
+        .stats-inner{margin-top:-30px}
+        .stat-val{font-size:1.8rem}
+        .sec{padding:70px 0}
+        .sec-title{font-size:1.8rem}
+        .cta h2{font-size:2rem}
+    }
+    @media(max-width:576px){
+        .hero-title{font-size:1.8rem}
+        .stats-inner{grid-template-columns:1fr 1fr}
+        .hero-btns{flex-direction:column}
+        .cta-btns{flex-direction:column;align-items:center}
+    }
+</style>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+    <div class="hero-shapes">
+        <div class="shape s1"></div>
+        <div class="shape s2"></div>
+        <div class="shape s3"></div>
+    </div>
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <div class="hero-inner">
+                    <div class="hero-badge"><i class="fas fa-crown"></i> #1 Property Platform in Rwanda</div>
+                    <h1 class="hero-title">
+                        Smart Property<br>
+                        Management<br>
+                        <span class="gradient-text">Made Simple.</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        Streamline your real estate journey with Urugwiro — the all-in-one platform for property owners, tenants, and professionals.
+                    </p>
+                    <div class="hero-btns">
+                        <a href="{% url 'property_list' %}" class="btn-hero-primary">
+                            <i class="fas fa-search"></i> Browse Properties
+                        </a>
+                        <a href="#services" class="btn-hero-outline">
+                            <i class="fas fa-play-circle"></i> Learn More
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 d-none d-lg-block">
+                <div class="hero-visual">
+                    <div class="hero-card-stack">
+                        <div class="hc hc-back-2"></div>
+                        <div class="hc hc-back-1"></div>
+                        <div class="hc hc-main">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                                <div>
+                                    <div class="hc-price">{{ total_properties|default:"150" }}+</div>
+                                    <div class="hc-label">Listed Properties</div>
+                                </div>
+                                <div style="width:48px;height:48px;border-radius:12px;background:rgba(40,167,69,.3);display:flex;align-items:center;justify-content:center">
+                                    <i class="fas fa-building" style="color:#7ddf9b;font-size:1.2rem"></i>
+                                </div>
+                            </div>
+                            <div class="hc-row">
+                                <div class="hc-stat">
+                                    <div class="hc-stat-val">{{ total_owners|default:"50" }}+</div>
+                                    <div class="hc-stat-lbl">Owners</div>
+                                </div>
+                                <div class="hc-stat">
+                                    <div class="hc-stat-val">{{ total_tenants|default:"200" }}+</div>
+                                    <div class="hc-stat-lbl">Tenants</div>
+                                </div>
+                                <div class="hc-stat">
+                                    <div class="hc-stat-val">4.8</div>
+                                    <div class="hc-stat-lbl">Rating</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== STATS ===== -->
+<section class="stats">
+    <div class="container">
+        <div class="stats-inner">
+            <div class="stat-card reveal">
+                <div class="stat-icon"><i class="fas fa-building"></i></div>
+                <div class="stat-val" data-count="1500">0</div>
+                <div class="stat-lbl">Properties Managed</div>
+            </div>
+            <div class="stat-card reveal">
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div class="stat-val" data-count="500">0</div>
+                <div class="stat-lbl">Happy Clients</div>
+            </div>
+            <div class="stat-card reveal">
+                <div class="stat-icon"><i class="fas fa-handshake"></i></div>
+                <div class="stat-val" data-count="50">0</div>
+                <div class="stat-lbl">Real Estate Partners</div>
+            </div>
+            <div class="stat-card reveal">
+                <div class="stat-icon"><i class="fas fa-award"></i></div>
+                <div class="stat-val" data-count="3">0</div>
+                <div class="stat-lbl">Years of Excellence</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== SERVICES ===== -->
+<section id="services" class="sec sec-light">
+    <div class="container">
+        <div class="sec-heading">
+            <div class="sec-tag"><i class="fas fa-cogs"></i> Our Services</div>
+            <h2 class="sec-title">What We Do</h2>
+            <p class="sec-subtitle">We revolutionize property management with innovative solutions for owners, tenants, and real estate professionals.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6">
+                <div class="svc-card reveal">
+                    <div class="svc-icon"><i class="fas fa-home"></i></div>
+                    <h3>Property Listings</h3>
+                    <p>Manage and list properties with our intuitive interface for quick uploads and modifications.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="svc-card reveal">
+                    <div class="svc-icon"><i class="fas fa-user-check"></i></div>
+                    <h3>Tenant Management</h3>
+                    <p>Comprehensive tenant management with screening, background checks, and lease tracking.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="svc-card reveal">
+                    <div class="svc-icon"><i class="fas fa-bell"></i></div>
+                    <h3>Real-time Updates</h3>
+                    <p>Stay informed with instant notifications through our integrated communication system.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="svc-card reveal">
+                    <div class="svc-icon"><i class="fas fa-headset"></i></div>
+                    <h3>Customer Support</h3>
+                    <p>Our dedicated support team ensures all your queries are resolved promptly.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="svc-card reveal">
+                    <div class="svc-icon"><i class="fas fa-shield-alt"></i></div>
+                    <h3>Secure Transactions</h3>
+                    <p>All transactions and data are protected with advanced security measures.</p>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="svc-card reveal">
+                    <div class="svc-icon"><i class="fas fa-chart-line"></i></div>
+                    <h3>Market Insights</h3>
+                    <p>Gain valuable real estate market insights with advanced analytics and reporting.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== FEATURED PROPERTIES ===== -->
+<section class="sec sec-white">
+    <div class="container">
+        <div class="sec-heading">
+            <div class="sec-tag"><i class="fas fa-star"></i> Featured</div>
+            <h2 class="sec-title">Featured Properties</h2>
+            <p class="sec-subtitle">Discover our handpicked selection of premium properties across Rwanda.</p>
+        </div>
+        <div class="row g-4">
+            {% for property in featured_properties %}
+            <div class="col-lg-4 col-md-6">
+                <div class="prop-card reveal">
+                    <div class="prop-img">
+                        {% if property.image %}
+                            <img src="{{ property.image.url }}" alt="{{ property.name }}" loading="lazy">
+                        {% else %}
+                            <img src="{% static 'images/placeholder.jpg' %}" alt="{{ property.name }}">
+                        {% endif %}
+                        <span class="prop-type-badge">{{ property.get_types_display }}</span>
+                        <div class="prop-price-tag">{{ property.price|floatformat:0 }} <small>Frw/mo</small></div>
+                    </div>
+                    <div class="prop-body">
+                        <h5>{{ property.name }}</h5>
+                        <div class="prop-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>{{ property.address }}</span>
+                        </div>
+                        <div class="prop-features">
+                            <div class="prop-feat">
+                                <i class="fas fa-bed"></i>
+                                <div class="prop-feat-val">
+                                    {% with u=property.units.first %}{{ u.bedrooms|default:"—" }}{% endwith %}
+                                </div>
+                                <div class="prop-feat-lbl">Beds</div>
+                            </div>
+                            <div class="prop-feat">
+                                <i class="fas fa-bath"></i>
+                                <div class="prop-feat-val">
+                                    {% with u=property.units.first %}{{ u.bathrooms|default:"—" }}{% endwith %}
+                                </div>
+                                <div class="prop-feat-lbl">Baths</div>
+                            </div>
+                            <div class="prop-feat">
+                                <i class="fas fa-layer-group"></i>
+                                <div class="prop-feat-val">{{ property.number_of_units }}</div>
+                                <div class="prop-feat-lbl">Units</div>
+                            </div>
+                        </div>
+                        <p class="prop-desc">{{ property.description|truncatewords:18 }}</p>
+                    </div>
+                    <div class="prop-footer">
+                        <a href="{% url 'property_view' property.id %}" class="btn-prop">
+                            View Details <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-5">
+            <a href="{% url 'property_list' %}" class="btn-hero-primary" style="box-shadow:none">
+                View All Properties <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ===== TESTIMONIALS ===== -->
+<section class="sec sec-light">
+    <div class="container">
+        <div class="sec-heading">
+            <div class="sec-tag"><i class="fas fa-quote-right"></i> Testimonials</div>
+            <h2 class="sec-title">What Our Clients Say</h2>
+            <p class="sec-subtitle">Hear from property owners and tenants who transformed their experience with Urugwiro.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6">
+                <div class="testi-card reveal">
+                    <div class="testi-stars">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    </div>
+                    <p class="testi-text">"Urugwiro Properties has completely transformed how I manage my rental properties. Everything is streamlined and efficient!"</p>
+                    <div class="testi-author">
+                        <img src="{% static 'images/man5.jpeg' %}" alt="Sarah K." class="testi-avatar">
+                        <div>
+                            <div class="testi-name">Sarah K.</div>
+                            <div class="testi-role">Property Owner</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="testi-card reveal">
+                    <div class="testi-stars">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    </div>
+                    <p class="testi-text">"The customer support team is exceptional! They're always responsive and helpful with any questions I have."</p>
+                    <div class="testi-author">
+                        <img src="{% static 'images/man0.jpeg' %}" alt="Mike T." class="testi-avatar">
+                        <div>
+                            <div class="testi-name">Mike T.</div>
+                            <div class="testi-role">Tenant</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="testi-card reveal">
+                    <div class="testi-stars">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                    </div>
+                    <p class="testi-text">"The market insights feature has helped me make smarter investment decisions. This platform is a game-changer!"</p>
+                    <div class="testi-author">
+                        <img src="{% static 'images/man3.jpeg' %}" alt="Lisa M." class="testi-avatar">
+                        <div>
+                            <div class="testi-name">Lisa M.</div>
+                            <div class="testi-role">Real Estate Pro</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== NEWS ===== -->
+<section class="sec sec-white">
+    <div class="container">
+        <div class="sec-heading">
+            <div class="sec-tag"><i class="fas fa-newspaper"></i> Latest News</div>
+            <h2 class="sec-title">News & Updates</h2>
+            <p class="sec-subtitle">Stay informed with the latest trends and updates in property management.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6">
+                <div class="news-card reveal">
+                    <div class="news-img">
+                        <img src="{% static 'images/p1.jpg' %}" alt="Market Trends" loading="lazy">
+                        <span class="news-date-chip"><i class="fas fa-calendar-alt me-1"></i> Oct 15, 2023</span>
+                    </div>
+                    <div class="news-body">
+                        <h5>Property Market Trends in 2023</h5>
+                        <p>Discover the latest trends shaping the property market, including rising demand in urban areas and sustainable housing options.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="news-card reveal">
+                    <div class="news-img">
+                        <img src="{% static 'images/p2.webp' %}" alt="New Features" loading="lazy">
+                        <span class="news-date-chip"><i class="fas fa-calendar-alt me-1"></i> Oct 10, 2023</span>
+                    </div>
+                    <div class="news-body">
+                        <h5>New Features Added to Urugwiro</h5>
+                        <p>We've enhanced our platform with advanced analytics and improved tenant communication tools.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="news-card reveal">
+                    <div class="news-img">
+                        <img src="{% static 'images/p3.jpeg' %}" alt="Investment" loading="lazy">
+                        <span class="news-date-chip"><i class="fas fa-calendar-alt me-1"></i> Oct 5, 2023</span>
+                    </div>
+                    <div class="news-body">
+                        <h5>Investment Opportunities in Real Estate</h5>
+                        <p>Explore emerging markets and investment strategies to maximize returns in the current real estate landscape.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section class="cta">
+    <div class="container">
+        <div class="cta-inner reveal">
+            <h2>Ready to Get Started?</h2>
+            <p>Join thousands of satisfied property owners and tenants who have simplified their real estate journey with Urugwiro.</p>
+            <div class="cta-btns">
+                <a href="{% url 'user_login' %}" class="btn-cta-white">
+                    <i class="fas fa-sign-in-alt"></i> Login to Your Account
+                </a>
+                <a href="{% url 'register' %}" class="btn-cta-outline">
+                    <i class="fas fa-user-plus"></i> Create New Account
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Scroll reveal
+    const reveals = document.querySelectorAll('.reveal');
+    const obs = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible') });
+    }, {threshold:.1});
+    reveals.forEach(el => obs.observe(el));
+
+    // Counter animation
+    const counters = document.querySelectorAll('.stat-val[data-count]');
+    const cObs = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if(entry.isIntersecting) {
+                counters.forEach(c => {
+                    const target = parseInt(c.dataset.count);
+                    let current = 0;
+                    const inc = target / 60;
+                    const timer = setInterval(() => {
+                        current += inc;
+                        if(current >= target) { c.textContent = target.toLocaleString(); clearInterval(timer); }
+                        else c.textContent = Math.floor(current).toLocaleString();
+                    }, 25);
+                });
+                cObs.unobserve(entry.target);
+            }
+        });
+    }, {threshold:.5});
+    const statsEl = document.querySelector('.stats-inner');
+    if(statsEl) cObs.observe(statsEl);
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', function(e) {
+            e.preventDefault();
+            const t = this.getAttribute('href');
+            if(t === '#') return;
+            const el = document.querySelector(t);
+            if(el) window.scrollTo({top: el.offsetTop - 80, behavior:'smooth'});
+        });
+    });
+});
+</script>
+
+{% endblock %}

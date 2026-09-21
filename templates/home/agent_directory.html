@@ -1,0 +1,182 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block title %}Our Agents - Urugwiro Ltd{% endblock %}
+
+{% block content %}
+<style>
+    /* Page Header */
+    .m3-page-header{margin-top:112px;padding:40px 0;position:relative;background:var(--md-sys-color-surface-container-lowest);border-bottom:3px solid var(--md-sys-color-secondary);box-shadow:var(--md-sys-elevation-1)}
+    .m3-page-header-inner{max-width:800px;margin:0 auto;text-align:center;padding:0 20px}
+    .m3-page-header-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(40,167,69,.1);color:var(--md-sys-color-primary);padding:6px 16px;border-radius:var(--md-sys-shape-corner-full);font:var(--md-sys-typescale-label-medium);letter-spacing:.5px;text-transform:uppercase;margin-bottom:16px;border:1px solid rgba(40,167,69,.2)}
+    .m3-page-header-badge .material-symbols-outlined{font-size:16px}
+    .m3-page-header h1{font:700 2.2rem/1.2 'Inter',sans-serif;color:var(--md-sys-color-on-surface);margin-bottom:12px}
+    .m3-page-header h1 em{color:var(--md-sys-color-primary);font-style:normal}
+    .m3-page-header p{color:var(--md-sys-color-on-surface-variant);font:var(--md-sys-typescale-body-large);margin-bottom:32px;line-height:1.6}
+    .m3-ag-searchbox{display:flex;max-width:580px;margin:0 auto;background:#fff;backdrop-filter:blur(20px);border-radius:var(--md-sys-shape-corner-full);padding:6px;border:1px solid var(--md-sys-color-outline-variant);transition:all 300ms}
+    .m3-ag-searchbox:focus-within{border-color:var(--md-sys-color-primary);box-shadow:0 0 0 4px rgba(40,167,69,.15)}
+    .m3-ag-searchbox input{flex:1;background:transparent;border:none;padding:14px 24px;color:var(--md-sys-color-on-surface);font:var(--md-sys-typescale-body-large);outline:none}
+    .m3-ag-searchbox input::placeholder{color:var(--md-sys-color-on-surface-variant)}
+    .m3-ag-searchbox button{background:var(--md-sys-color-primary);border:none;border-radius:var(--md-sys-shape-corner-full);padding:12px 28px;color:#fff;font:var(--md-sys-typescale-label-large);cursor:pointer;transition:all 200ms;display:flex;align-items:center;gap:8px}
+    .m3-ag-searchbox button:hover{box-shadow:var(--md-sys-elevation-1)}
+    .m3-ag-hero-stats{display:flex;justify-content:center;gap:40px;margin-top:36px;flex-wrap:wrap}
+    .m3-ag-hero-stat{text-align:center}
+    .m3-ag-hero-stat-val{font:500 1.5rem/1 'Inter',sans-serif;color:var(--md-sys-color-on-surface)}
+    .m3-ag-hero-stat-lbl{font:var(--md-sys-typescale-label-small);color:var(--md-sys-color-on-surface-variant);text-transform:uppercase;letter-spacing:.5px}
+
+    /* Main */
+    .m3-ag-main{background:var(--md-sys-color-surface-container);padding:0 0 60px}
+    .m3-ag-content{padding-top:30px}
+
+    /* Filter Bar */
+    .m3-ag-filter{background:var(--md-sys-color-surface-container-lowest);border-radius:var(--md-sys-shape-corner-large);padding:20px 24px;box-shadow:var(--md-sys-elevation-1);border:1px solid var(--md-sys-color-outline-variant);margin-bottom:32px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+    .m3-ag-filter-label{font:var(--md-sys-typescale-label-medium);color:var(--md-sys-color-on-surface-variant);text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:6px}
+    .m3-ag-filter-label .material-symbols-outlined{font-size:18px;color:var(--md-sys-color-primary)}
+    .m3-ag-chips{display:flex;flex-wrap:wrap;gap:8px;flex:1}
+    .m3-ag-chip{display:inline-flex;align-items:center;gap:4px;padding:8px 16px;border-radius:var(--md-sys-shape-corner-small);font:var(--md-sys-typescale-label-large);cursor:pointer;transition:all 200ms;border:1px solid var(--md-sys-color-outline-variant);background:var(--md-sys-color-surface-container);color:var(--md-sys-color-on-surface-variant);text-decoration:none}
+    .m3-ag-chip:hover{border-color:var(--md-sys-color-primary);color:var(--md-sys-color-primary);background:rgba(40,167,69,.04)}
+    .m3-ag-chip.active{background:var(--md-sys-color-primary);color:#fff;border-color:var(--md-sys-color-primary)}
+
+    .m3-ag-results{font:var(--md-sys-typescale-body-medium);color:var(--md-sys-color-on-surface-variant);margin-bottom:24px}
+    .m3-ag-results strong{color:var(--md-sys-color-on-surface);font-weight:700}
+
+    /* ── Agent Card (compact redesign) ── */
+    .m3-ag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:14px}
+
+    .m3-ag-card{background:#fff;border-radius:16px;border:1px solid var(--md-sys-color-outline-variant);overflow:hidden;transition:transform .22s,box-shadow .22s,border-color .22s;display:flex;flex-direction:column}
+    .m3-ag-card:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,.09);border-color:transparent}
+
+    /* header row: avatar + info */
+    .m3-ag-card-head{display:flex;align-items:center;gap:12px;padding:14px 14px 11px}
+    .m3-ag-avatar{width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--md-sys-color-primary-container);display:flex;align-items:center;justify-content:center;border:2px solid var(--md-sys-color-outline-variant)}
+    .m3-ag-avatar img{width:100%;height:100%;object-fit:cover}
+    .m3-ag-avatar .material-symbols-outlined{font-size:26px;color:var(--md-sys-color-on-primary-container)}
+    .m3-ag-info{flex:1;min-width:0}
+    .m3-ag-name{font-size:.875rem;font-weight:700;color:var(--md-sys-color-on-surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+    .m3-ag-spec{font-size:.72rem;color:var(--md-sys-color-on-surface-variant);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+    .m3-ag-verified{display:inline-flex;align-items:center;gap:2px;font-size:.65rem;font-weight:700;color:var(--md-sys-color-primary);margin-top:3px}
+    .m3-ag-verified .material-symbols-outlined{font-size:12px}
+
+    /* stats row */
+    .m3-ag-card-stats{display:flex;border-top:1px solid var(--md-sys-color-outline-variant);border-bottom:1px solid var(--md-sys-color-outline-variant)}
+    .m3-ag-stat{flex:1;text-align:center;padding:9px 4px;position:relative}
+    .m3-ag-stat:not(:last-child)::after{content:'';position:absolute;right:0;top:6px;bottom:6px;width:1px;background:var(--md-sys-color-outline-variant)}
+    .m3-ag-stat-val{font-size:.875rem;font-weight:700;color:var(--md-sys-color-on-surface);line-height:1}
+    .m3-ag-stat-val.star{color:#FF9800}
+    .m3-ag-stat-lbl{font-size:.62rem;color:var(--md-sys-color-on-surface-variant);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+
+    /* action footer */
+    .m3-ag-card-foot{display:flex;gap:8px;padding:10px 12px 12px}
+    .m3-ag-btn-profile{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px;background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container);border:none;border-radius:24px;font-size:.78rem;font-weight:700;cursor:pointer;transition:background .18s,color .18s;text-decoration:none}
+    .m3-ag-btn-profile:hover{background:var(--md-sys-color-primary);color:#fff}
+    .m3-ag-btn-profile .material-symbols-outlined{font-size:15px;transition:transform .2s}
+    .m3-ag-btn-profile:hover .material-symbols-outlined{transform:translateX(3px)}
+    .m3-ag-btn-call{width:36px;height:36px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--md-sys-color-primary);color:#fff;border:none;border-radius:50%;cursor:pointer;transition:opacity .18s;text-decoration:none}
+    .m3-ag-btn-call:hover{opacity:.82;color:#fff}
+    .m3-ag-btn-call .material-symbols-outlined{font-size:17px}
+
+    /* Empty */
+    .m3-ag-empty{text-align:center;padding:80px 30px;background:var(--md-sys-color-surface-container-lowest);border-radius:var(--md-sys-shape-corner-large);border:2px dashed var(--md-sys-color-outline-variant)}
+    .m3-ag-empty-icon{width:80px;height:80px;margin:0 auto 20px;background:var(--md-sys-color-surface-container);border-radius:var(--md-sys-shape-corner-full);display:flex;align-items:center;justify-content:center}
+    .m3-ag-empty-icon .material-symbols-outlined{font-size:2rem;color:var(--md-sys-color-on-surface-variant)}
+    .m3-ag-empty h3{font:var(--md-sys-typescale-title-large);color:var(--md-sys-color-on-surface);margin-bottom:8px}
+    .m3-ag-empty p{color:var(--md-sys-color-on-surface-variant);font:var(--md-sys-typescale-body-medium)}
+
+    /* Pagination */
+    .m3-ag-pagination{display:flex;justify-content:center;margin-top:40px;gap:6px;list-style:none;padding:0}
+    .m3-ag-pagination .page-link{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:var(--md-sys-shape-corner-small);font:var(--md-sys-typescale-label-large);border:1.5px solid var(--md-sys-color-outline-variant);color:var(--md-sys-color-on-surface);background:var(--md-sys-color-surface-container-lowest);transition:all 200ms;text-decoration:none}
+    .m3-ag-pagination .page-link:hover{background:var(--md-sys-color-primary-container);border-color:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary-container)}
+    .m3-ag-pagination .page-item.active .page-link{background:var(--md-sys-color-primary);border-color:var(--md-sys-color-primary);color:#fff}
+
+    @media(max-width:992px){.m3-ag-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}}
+    @media(max-width:768px){.m3-ag-hero{padding:40px 16px 30px}.m3-ag-hero h1{font-size:1.9rem}.m3-ag-filter{flex-direction:column;align-items:stretch}.m3-ag-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:576px){.m3-ag-hero h1{font-size:1.6rem}.m3-ag-searchbox{flex-direction:column;border-radius:var(--md-sys-shape-corner-medium)}.m3-ag-searchbox button{border-radius:var(--md-sys-shape-corner-small);justify-content:center}.m3-ag-grid{grid-template-columns:1fr}}
+</style>
+
+<!-- Page Header -->
+<header class="m3-page-header">
+    <div class="container">
+        <div class="m3-page-header-inner">
+            <div class="m3-page-header-badge"><span class="material-symbols-outlined">groups</span> Agent Directory</div>
+            <h1>Our Trusted <em>Agents</em></h1>
+            <p>Professional real estate agents ready to help you find or sell your property in Rwanda.</p>
+            <form class="m3-ag-searchbox" method="GET" action="{% url 'agent_directory' %}">
+                {% if request.GET.spec %}<input type="hidden" name="spec" value="{{ request.GET.spec }}">{% endif %}
+                <input type="text" name="search" placeholder="Search by name or specialization..." value="{{ request.GET.search }}">
+                <button type="submit"><span class="material-symbols-outlined" style="font-size:20px">search</span><span class="d-none d-sm-inline">Search</span></button>
+            </form>
+            <div class="m3-ag-hero-stats">
+                <div class="m3-ag-hero-stat"><div class="m3-ag-hero-stat-val">{% if agents.paginator %}{{ agents.paginator.count }}{% else %}{{ agents|length }}{% endif %}</div><div class="m3-ag-hero-stat-lbl">Agents</div></div>
+                <div class="m3-ag-hero-stat"><div class="m3-ag-hero-stat-val">24/7</div><div class="m3-ag-hero-stat-lbl">Available</div></div>
+                <div class="m3-ag-hero-stat"><div class="m3-ag-hero-stat-val">4+</div><div class="m3-ag-hero-stat-lbl">Specializations</div></div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Main -->
+<section class="m3-ag-main">
+    <div class="container m3-ag-content">
+        <!-- Filter Bar -->
+        <div class="m3-ag-filter">
+            <div class="m3-ag-filter-label"><span class="material-symbols-outlined">tune</span> Specialization</div>
+            <div class="m3-ag-chips">
+                <a href="{% url 'agent_directory' %}{% if request.GET.search %}?search={{ request.GET.search }}{% endif %}" class="m3-ag-chip {% if not request.GET.spec %}active{% endif %}">All</a>
+                <a href="{% url 'agent_directory' %}?spec=Residential{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="m3-ag-chip {% if request.GET.spec == 'Residential' %}active{% endif %}">Residential</a>
+                <a href="{% url 'agent_directory' %}?spec=Commercial{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="m3-ag-chip {% if request.GET.spec == 'Commercial' %}active{% endif %}">Commercial</a>
+                <a href="{% url 'agent_directory' %}?spec=Land{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="m3-ag-chip {% if request.GET.spec == 'Land' %}active{% endif %}">Land</a>
+                <a href="{% url 'agent_directory' %}?spec=Luxury{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="m3-ag-chip {% if request.GET.spec == 'Luxury' %}active{% endif %}">Luxury</a>
+            </div>
+        </div>
+
+        {% if agents %}
+        <div class="m3-ag-results">Showing <strong>{% if agents.paginator %}{{ agents.paginator.count }}{% else %}{{ agents|length }}{% endif %}</strong> agent{{ agents|length|pluralize }}</div>
+
+        <div class="m3-ag-grid">
+            {% for agent in agents %}
+            <div class="m3-ag-card md-reveal">
+                <div class="m3-ag-card-head">
+                    <div class="m3-ag-avatar">
+                        {% if agent.image %}<img src="{{ agent.image.url }}" alt="{{ agent.name }}">
+                        {% else %}<span class="material-symbols-outlined">person</span>{% endif %}
+                    </div>
+                    <div class="m3-ag-info">
+                        <div class="m3-ag-name">{{ agent.name }}</div>
+                        <div class="m3-ag-spec">{{ agent.specialization|default:"General" }}</div>
+                        {% if agent.is_verified %}<div class="m3-ag-verified"><span class="material-symbols-outlined">verified</span> Verified</div>{% endif %}
+                    </div>
+                </div>
+                <div class="m3-ag-card-stats">
+                    <div class="m3-ag-stat"><div class="m3-ag-stat-val star">★ {{ agent.rating }}</div><div class="m3-ag-stat-lbl">Rating</div></div>
+                    <div class="m3-ag-stat"><div class="m3-ag-stat-val">{{ agent.total_deals }}</div><div class="m3-ag-stat-lbl">Deals</div></div>
+                    <div class="m3-ag-stat"><div class="m3-ag-stat-val">{{ agent.experience_years|default:"—" }}</div><div class="m3-ag-stat-lbl">Yrs</div></div>
+                </div>
+                <div class="m3-ag-card-foot">
+                    <a href="{% url 'agent_profile_public' agent.id %}" class="m3-ag-btn-profile">Profile <span class="material-symbols-outlined">arrow_forward</span></a>
+                    <a href="tel:{{ agent.phone }}" class="m3-ag-btn-call"><span class="material-symbols-outlined">call</span></a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if agents.has_other_pages %}
+        <ul class="m3-ag-pagination">
+            {% if agents.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ agents.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.spec %}&spec={{ request.GET.spec }}{% endif %}"><span class="material-symbols-outlined" style="font-size:18px">chevron_left</span></a></li>{% endif %}
+            {% for num in agents.paginator.page_range %}
+            <li class="page-item {% if agents.number == num %}active{% endif %}"><a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.spec %}&spec={{ request.GET.spec }}{% endif %}">{{ num }}</a></li>
+            {% endfor %}
+            {% if agents.has_next %}<li class="page-item"><a class="page-link" href="?page={{ agents.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.spec %}&spec={{ request.GET.spec }}{% endif %}"><span class="material-symbols-outlined" style="font-size:18px">chevron_right</span></a></li>{% endif %}
+        </ul>
+        {% endif %}
+
+        {% else %}
+        <div class="m3-ag-empty">
+            <div class="m3-ag-empty-icon"><span class="material-symbols-outlined">person_off</span></div>
+            <h3>No Agents Found</h3>
+            <p>Try adjusting your search criteria or browse all agents</p>
+            <a href="{% url 'agent_directory' %}" class="m3-ag-btn-profile" style="max-width:200px;margin:20px auto 0"><span class="material-symbols-outlined">refresh</span> Clear Filters</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+
+{% block topbar_title %}View Enquiry{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / <a href="{% url 'admin_inquiries' %}">Enquiries</a> / View{% endblock %}
+
+{% block content %}
+<div style="max-width:800px;margin:0 auto">
+    <!-- Back -->
+    <a href="{% url 'admin_inquiries' %}" class="m3-btn-outlined m3-btn-sm" style="margin-bottom:20px;display:inline-flex"><span class="material-symbols-outlined" style="font-size:18px">arrow_back</span> Back</a>
+
+    <div class="m3-card">
+        <div class="m3-card-header" style="background:var(--md-sys-color-primary);border:none">
+            <h5 style="color:#fff;margin:0"><span class="material-symbols-outlined" style="color:#fff">help</span> Enquiry Details</h5>
+        </div>
+        <div class="m3-card-body" style="padding:32px">
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">person</span> Sender</label>
+                    <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ enquiry.name }}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">mail</span> Email</label>
+                    <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ enquiry.email }}</p>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">apartment</span> Property</label>
+                    <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ enquiry.property.name }}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">supervisor_account</span> Owner</label>
+                    <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ enquiry.property.owner.name }}</p>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">location_on</span> Location</label>
+                    <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ enquiry.property.address }}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">payments</span> Price</label>
+                    <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ enquiry.property.price }} Frw</p>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">flag</span> Status</label>
+                    <p>{% if enquiry.property.status == 'Available' %}<span class="m3-badge m3-badge-success">Available</span>{% else %}<span class="m3-badge m3-badge-error">Rented</span>{% endif %}</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">calendar_today</span> Date Sent</label>
+                    <p style="border-bottom:1px solid var(--md-sys-color-outline-variant);padding-bottom:8px">{{ enquiry.created_at }}</p>
+                </div>
+            </div>
+
+            {% if enquiry.property.image %}
+            <div class="mb-4">
+                <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">image</span> Property Image</label>
+                <div style="margin-top:8px"><img src="{{ enquiry.property.image.url }}" alt="Property" style="max-height:180px;border-radius:var(--md-sys-shape-corner-large);object-fit:cover"></div>
+            </div>
+            {% endif %}
+
+            <div class="mb-4">
+                <label style="font:var(--md-sys-typescale-label-large);color:var(--md-sys-color-primary)"><span class="material-symbols-outlined" style="font-size:16px">chat</span> Enquiry Message</label>
+                <div style="background:var(--md-sys-color-surface-container);padding:20px;border-radius:var(--md-sys-shape-corner-large);margin-top:8px">{{ enquiry.message }}</div>
+            </div>
+
+            <p><strong>Read Status:</strong>
+                <span class="m3-badge {% if not enquiry.is_read %}m3-badge-warning{% elif enquiry.is_archived %}m3-badge-info{% else %}m3-badge-success{% endif %}">
+                    {% if not enquiry.is_read %}Unread{% elif enquiry.is_archived %}Archived{% else %}Read{% endif %}
+                </span>
+            </p>
+
+            <!-- Actions -->
+            <div class="d-flex gap-2 flex-wrap mt-4">
+                {% if not enquiry.is_read %}
+                <a href="{% url 'mark_as_read_enquiry' enquiry.id %}" class="m3-btn-filled" style="background:#2e7d32"><span class="material-symbols-outlined" style="font-size:18px">done</span> Mark as Read</a>
+                {% elif not enquiry.is_archived %}
+                <a href="{% url 'archive_enquiry' enquiry.id %}" class="m3-btn-tonal"><span class="material-symbols-outlined" style="font-size:18px">archive</span> Archive</a>
+                {% endif %}
+                {% if enquiry.is_archived %}
+                <a href="{% url 'unarchive_enquiry' enquiry.id %}" class="m3-btn-filled" style="background:#2e7d32"><span class="material-symbols-outlined" style="font-size:18px">unarchive</span> Unarchive</a>
+                {% endif %}
+                <a href="{% url 'mail_enquiry' enquiry.id %}" class="m3-btn-filled"><span class="material-symbols-outlined" style="font-size:18px">reply</span> Reply</a>
+                <a href="{% url 'delete_enquiry' enquiry.id %}" class="m3-btn-filled" style="background:var(--md-sys-color-error)"><span class="material-symbols-outlined" style="font-size:18px">delete</span> Delete</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

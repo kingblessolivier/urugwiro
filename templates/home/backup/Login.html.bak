@@ -1,0 +1,197 @@
+{% extends 'home/base.html' %}
+{% load static %}
+{% block title %}Login - Urugwiro Properties{% endblock %}
+{% block content %}
+<style>
+    .auth-wrapper{display:flex;min-height:100vh;margin-top:76px}
+    .auth-brand{
+        flex:1;background:linear-gradient(160deg,#1a2f2f 0%,#2f4f4f 40%,#1e7e34 100%);
+        display:flex;align-items:center;justify-content:center;
+        padding:60px 40px;position:relative;overflow:hidden;
+    }
+    .auth-brand::before{
+        content:'';position:absolute;top:-100px;right:-100px;width:400px;height:400px;
+        background:radial-gradient(circle,rgba(40,167,69,.2) 0%,transparent 70%);border-radius:50%;
+    }
+    .auth-brand::after{
+        content:'';position:absolute;bottom:-60px;left:-60px;width=300px;height=300px;
+        background:radial-gradient(circle,rgba(32,201,151,.15) 0%,transparent 70%);border-radius:50%;
+    }
+    .brand-content{position:relative;z-index:2;text-align:center;max-width:400px;color:#fff}
+    .brand-logo{
+        width:80px;height:80px;border-radius:20px;
+        background:rgba(255,255,255,.1);backdrop-filter:blur(16px);
+        display:flex;align-items:center;justify-content:center;
+        margin:0 auto 24px;border:1px solid rgba(255,255,255,.15);
+    }
+    .brand-logo i{font-size:2rem;color:#7ddf9b}
+    .brand-content h2{font-size:1.8rem;font-weight:800;margin-bottom:12px}
+    .brand-content p{color:rgba(255,255,255,.6);font-size:.95rem;line-height:1.7;margin-bottom:32px}
+    .brand-stats{display:flex;gap:24px;justify-content:center}
+    .brand-stat{text-align:center}
+    .brand-stat-val{font-size:1.4rem;font-weight:700;color:#fff}
+    .brand-stat-lbl{font-size:.72rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px}
+
+    .auth-form-panel{
+        flex:1;display:flex;align-items:center;justify-content:center;
+        padding:60px 40px;background:#f8f9fa;
+    }
+    .auth-form-inner{width:100%;max-width:420px}
+    .auth-form-inner h1{
+        font-size:1.8rem;font-weight:800;color:#2f4f4f;margin-bottom:8px;
+    }
+    .auth-form-inner .auth-subtitle{
+        color:#6c757d;font-size:.92rem;margin-bottom:32px;
+    }
+
+    .form-floating-custom{position:relative;margin-bottom:20px}
+    .form-floating-custom label{
+        position:absolute;top:50%;left:48px;transform:translateY(-50%);
+        font-size:.9rem;color:#adb5bd;transition:all .2s ease;pointer-events:none;
+        background:transparent;padding:0 4px;
+    }
+    .form-floating-custom input:focus ~ label,
+    .form-floating-custom input:not(:placeholder-shown) ~ label{
+        top:0;font-size:.72rem;font-weight:600;color:#2D5A27;background:#fff;
+    }
+    .input-icon-wrap{
+        position:absolute;top:50%;left:16px;transform:translateY(-50%);
+        color:#adb5bd;font-size:.9rem;z-index:2;
+    }
+    .form-floating-custom input{
+        width:100%;padding:16px 16px 16px 48px;border:1.5px solid #e9ecef;
+        border-radius:12px;font-size:.92rem;background:#fff;
+        transition:all .3s ease;outline:none;
+    }
+    .form-floating-custom input:focus{
+        border-color:#2D5A27;box-shadow:0 0 0 4px rgba(40,167,69,.1);
+    }
+    .form-floating-custom input:focus ~ .input-icon-wrap{color:#2D5A27}
+
+    .pass-toggle{
+        position:absolute;top:50%;right:16px;transform:translateY(-50%);
+        background:none;border:none;color:#adb5bd;cursor:pointer;font-size:1rem;
+        transition:color .2s ease;z-index:2;
+    }
+    .pass-toggle:hover{color:#2D5A27}
+
+    .form-options{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+    .form-check-label{font-size:.85rem;color:#6c757d}
+    .forgot-link{
+        font-size:.85rem;color:#2D5A27;text-decoration:none;font-weight:600;
+        transition:color .2s ease;
+    }
+    .forgot-link:hover{color:#1e7e34}
+
+    .btn-auth{
+        width:100%;padding:14px;background:#2D5A27;color:#fff;border:none;
+        border-radius:12px;font-weight:600;font-size:1rem;
+        transition:all .3s ease;cursor:pointer;
+        display:flex;align-items:center;justify-content:center;gap:8px;
+    }
+    .btn-auth:hover{background:#1e7e34;transform:translateY(-2px);box-shadow:0 8px 25px rgba(40,167,69,.3)}
+
+    .auth-divider{
+        display:flex;align-items:center;gap:16px;margin:24px 0;
+        color:#adb5bd;font-size:.82rem;
+    }
+    .auth-divider::before,.auth-divider::after{
+        content:'';flex:1;height:1px;background:#e9ecef;
+    }
+
+    .auth-footer{text-align:center;font-size:.9rem;color:#6c757d}
+    .auth-footer a{color:#2D5A27;font-weight:600;text-decoration:none;transition:color .2s ease}
+    .auth-footer a:hover{color:#1e7e34}
+
+    .alert-auth{
+        border-radius:12px;border:none;padding:14px 18px;margin-bottom:20px;
+        display:flex;align-items:center;gap:10px;font-size:.88rem;
+    }
+
+    @media(max-width:992px){
+        .auth-brand{display:none}
+        .auth-form-panel{padding:40px 24px}
+    }
+    @media(max-width:576px){
+        .auth-form-panel{padding:30px 16px}
+        .auth-form-inner h1{font-size:1.5rem}
+    }
+</style>
+
+<div class="auth-wrapper">
+    <div class="auth-brand">
+        <div class="brand-content">
+            <div class="brand-logo"><i class="fas fa-building"></i></div>
+            <h2>Welcome Back!</h2>
+            <p>Access your Urugwiro dashboard to manage properties, track leases, and stay connected with your real estate portfolio.</p>
+            <div class="brand-stats">
+                <div class="brand-stat"><div class="brand-stat-val">1,500+</div><div class="brand-stat-lbl">Properties</div></div>
+                <div class="brand-stat"><div class="brand-stat-val">500+</div><div class="brand-stat-lbl">Clients</div></div>
+                <div class="brand-stat"><div class="brand-stat-val">4.8★</div><div class="brand-stat-lbl">Rating</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-form-panel">
+        <div class="auth-form-inner">
+            <h1>Sign In</h1>
+            <p class="auth-subtitle">Enter your credentials to access your account</p>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-auth alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{% if message.tags == 'error' %}exclamation-circle{% else %}check-circle{% endif %}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form action="{% url 'user_login' %}" method="POST">
+                {% csrf_token %}
+                <div class="form-floating-custom">
+                    <span class="input-icon-wrap"><i class="fas fa-user"></i></span>
+                    <input type="text" id="username" name="username" placeholder=" " required autocomplete="username">
+                    <label for="username">Username</label>
+                </div>
+
+                <div class="form-floating-custom">
+                    <span class="input-icon-wrap"><i class="fas fa-lock"></i></span>
+                    <input type="password" id="password" name="password" placeholder=" " required autocomplete="current-password">
+                    <label for="password">Password</label>
+                    <button type="button" class="pass-toggle" onclick="togglePassword()">
+                        <i class="fas fa-eye" id="toggleIcon"></i>
+                    </button>
+                </div>
+
+                <div class="form-options">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="remember">
+                        <label class="form-check-label" for="remember">Remember me</label>
+                    </div>
+                    <a href="#" class="forgot-link">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="btn-auth">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+            </form>
+
+            <div class="auth-divider">or</div>
+
+            <div class="auth-footer">
+                Don't have an account? <a href="{% url 'register' %}">Create one</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword(){
+    const p=document.getElementById('password');
+    const i=document.getElementById('toggleIcon');
+    if(p.type==='password'){p.type='text';i.classList.replace('fa-eye','fa-eye-slash')}
+    else{p.type='password';i.classList.replace('fa-eye-slash','fa-eye')}
+}
+</script>
+{% endblock %}

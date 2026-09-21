@@ -1,0 +1,58 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+
+{% block topbar_title %}Add Owner{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / <a href="{% url 'admin_owners' %}">Owners</a> / Add{% endblock %}
+
+{% block content %}
+<div class="m3-card" style="max-width:800px;margin:0 auto">
+    <div class="m3-card-header" style="background:var(--md-sys-color-primary);border:none">
+        <h5 style="color:#fff;margin:0"><span class="material-symbols-outlined" style="color:#fff">person_add</span> Add Owner</h5>
+    </div>
+    <div class="m3-card-body" style="padding:32px">
+        <form id="addOwnerForm" method="POST" action="{% url 'add_owner' %}" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="ownerName" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">person</span> Name</label>
+                    <input type="text" class="form-control" id="ownerName" placeholder="e.g., John Doe" name="name" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="ownerEmail" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">mail</span> Email</label>
+                    <input type="email" class="form-control" id="ownerEmail" placeholder="e.g., john@example.com" name="email" required>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="ownerPhoneNumber" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">phone</span> Phone</label>
+                    <input type="text" class="form-control" id="ownerPhoneNumber" placeholder="+250 123 456 789" name="phone_number" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="ownerAddress" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">location_on</span> Address</label>
+                    <input type="text" class="form-control" id="ownerAddress" placeholder="Kigali, Rwanda" name="address" required>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="ownerUsername" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">badge</span> Username</label>
+                    <select class="form-select" id="ownerUsername" name="user_id" required>
+                        <option value="" selected disabled>Select a username</option>
+                        {% for user in available_users %}
+                        {% if not user.is_superuser and user.role == 'Owner' %}
+                        <option value="{{ user.id }}">{{ user.username }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="ownerImage" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">image</span> Image</label>
+                    <input type="file" class="form-control" id="ownerImage" name="image">
+                </div>
+            </div>
+            <div class="d-flex justify-content-center gap-2 mt-3">
+                <a href="{% url 'admin_owners' %}" class="m3-btn-outlined"><span class="material-symbols-outlined" style="font-size:18px">arrow_back</span> Go Back</a>
+                <button type="submit" class="m3-btn-filled"><span class="material-symbols-outlined" style="font-size:18px">save</span> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

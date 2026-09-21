@@ -1,0 +1,48 @@
+<!-- others_dashboard/tenants/edit_tenant_profile.html -->
+{% extends 'Others_dashboard/Tenants/tenant_base.html' %}
+
+{% block content %}
+<h3 style="display:flex;align-items:center;gap:10px;margin-bottom:24px"><span class="material-symbols-outlined" style="color:var(--md-sys-color-primary)">edit</span> Edit Profile</h3>
+
+<div class="card">
+    <div class="card-header" style="background:var(--md-sys-color-primary);color:#fff;text-align:center">
+        <h5 class="mb-0" style="color:#fff">Welcome {{ user.username }}, edit your profile details</h5>
+    </div>
+    <div class="card-body p-4">
+        <form id="editTenantForm" method="POST" action="{% url 'tenant_edit_profile' user.id %}" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="id_name" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">person</span> Tenant Name</label>
+                    {{ form.name }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="id_email" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">mail</span> Email</label>
+                    {{ form.email }}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3">
+                    <label for="id_phone_number" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">phone</span> Phone Number</label>
+                    {{ form.phone_number }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="id_address" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">location_on</span> Address</label>
+                    {{ form.address }}
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="id_image" class="form-label"><span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">photo_camera</span> Profile Image</label>
+                {{ form.image }}
+                {% if tenant.image %}
+                    <img src="{{ tenant.image.url }}" alt="Tenant Image" class="img-thumbnail mt-2" style="max-width:120px;border-radius:var(--md-sys-shape-corner-large)">
+                {% endif %}
+            </div>
+            <div class="d-flex justify-content-center gap-2 mt-4">
+                <a href="{% url 'tenant_profile' user.id %}" class="m3-btn-outlined"><span class="material-symbols-outlined" style="font-size:18px">arrow_back</span> Go Back</a>
+                <button type="submit" class="m3-btn-filled"><span class="material-symbols-outlined" style="font-size:18px">save</span> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

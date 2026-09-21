@@ -1,0 +1,125 @@
+{% extends 'admin/admin_base/admin_base.html' %}
+
+{% block topbar_title %}Properties{% endblock %}
+{% block breadcrumb %}<a href="{% url 'admin_dashboard' %}">Home</a> / Properties{% endblock %}
+
+{% block content %}
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Page Header -->
+<div class="m3-page-header">
+    <h4>
+        <span class="material-symbols-outlined" style="color:var(--md-sys-color-primary)">apartment</span>Properties Management
+    </h4>
+    <a href="{% url 'adding_property' %}" class="m3-btn-filled"><span class="material-symbols-outlined" style="font-size:18px">add_home</span> Add Property</a>
+</div>
+
+<!-- Filter & Search -->
+<div class="m3-card mb-4">
+    <div class="m3-card-body" style="padding:16px 24px">
+        <form class="d-flex gap-2 flex-wrap" method="GET" action="{% url 'admin_properties' %}">
+            <select class="form-select" id="typeSelect" onchange="filterProperties()" style="max-width:180px">
+                <option value="" selected disabled>Filter by Type</option>
+                {% for type in type_list %}
+                <option value="{{ type.types }}">{{ type.types }}</option>
+                {% endfor %}
+            </select>
+            <select class="form-select" id="ownerSelect" onchange="filterProperties()" style="max-width:180px">
+                <option value="" selected disabled>Filter by Owner</option>
+                {% for owner in owner_list %}
+                <option value="{{ owner.id }}">{{ owner.name }}</option>
+                {% endfor %}
+            </select>
+            <input class="form-control" type="search" placeholder="Address or Price" id="searchInput" name="search" style="max-width:250px">
+            <button class="m3-btn-tonal m3-btn-sm" type="submit"><span class="material-symbols-outlined" style="font-size:18px">search</span></button>
+        </form>
+    </div>
+</div>
+
+<!-- Properties Table -->
+<div class="m3-card">
+    <div class="m3-card-header">
+        <h5><span class="material-symbols-outlined">real_estate_agent</span>All Properties</h5>
+    </div>
+    <div class="m3-card-body" style="padding:0">
+        <div class="table-responsive">
+            <table class="m3-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Property Name</th>
+                        <th>Address</th>
+                        <th>Type</th>
+                        <th>Price</th>
+                        <th>Owner</th>
+                        <th>Units</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for property in properties %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><strong>{{ property.name }}</strong></td>
+                        <td>{{ property.address }}</td>
+                        <td><span class="m3-badge m3-badge-info">{{ property.types }}</span></td>
+                        <td>{{ property.price }} Frw</td>
+                        <td>{{ property.owner.name }}</td>
+                        <td>{{ property.number_of_units }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{% url 'editing_property' property.id %}" class="m3-icon-btn m3-icon-btn-primary" title="Edit"><span class="material-symbols-outlined" style="font-size:16px">edit</span></a>
+                                <button class="m3-icon-btn m3-icon-btn-error" data-bs-toggle="modal" data-bs-target="#deletePropertyModal{{ property.id }}" title="Delete"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Delete Modal -->
+                    <div class="modal fade" id="deletePropertyModal{{ property.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog"><div class="modal-content">
+                            <div class="modal-header"><h5 class="modal-title"><span class="material-symbols-outlined" style="color:var(--md-sys-color-error)">delete</span> Delete Property</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                            <div class="modal-body">Are you sure you want to delete <strong>{{ property.name }}</strong>?</div>
+                            <div class="modal-footer"><form method="POST" action="delete_property/{{ property.id }}">{% csrf_token %}<button type="submit" class="btn btn-danger">Yes, Delete</button></form><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button></div>
+                        </div></div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if properties.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ properties.previous_page_number }}"><span class="material-symbols-outlined" style="font-size:18px">chevron_left</span></a></li>
+        {% endif %}
+        {% for num in properties.paginator.page_range %}
+            {% if properties.number == num %}
+            <li class="page-item active"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            {% elif num > properties.number|add:'-3' and num < properties.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            {% endif %}
+        {% endfor %}
+        {% if properties.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ properties.next_page_number }}"><span class="material-symbols-outlined" style="font-size:18px">chevron_right</span></a></li>
+        {% endif %}
+    </ul>
+</nav>
+
+<script>
+function filterProperties(){
+    var type=document.getElementById("typeSelect").value||'';
+    var owner=document.getElementById("ownerSelect").value||'';
+    var search=document.getElementById("searchInput").value||'';
+    window.location.href="{% url 'admin_properties' %}?type="+type+"&owner="+owner+"&search="+search;
+}
+</script>
+{% endblock %}

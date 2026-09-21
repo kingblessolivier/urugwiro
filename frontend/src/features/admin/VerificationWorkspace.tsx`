@@ -1,0 +1,124 @@
+import React from 'react';
+import {
+  FileText, CheckCircle2, XCircle, Clock,
+  Eye, Check, X, MessageSquare, Filter
+} from 'lucide-react';
+import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
+import { cn } from '../../lib/utils';
+
+interface VerificationRequest {
+  id: string;
+  listingTitle: string;
+  sellerName: string;
+  submittedAt: string;
+  status: 'pending' | 'approved' | 'rejected';
+  docType: string;
+}
+
+export const AdminVerificationWorkspace = () => {
+  const requests: VerificationRequest[] = [
+    { id: '1', listingTitle: 'Modern Villa in Kicukiro', sellerName: 'Olivier', submittedAt: '2026-09-18', status: 'pending', docType: 'Title Deed' },
+    { id: '2', listingTitle: 'Prime Plot Gasabo', sellerName: 'Jean Paul', submittedAt: '2026-09-17', status: 'pending', docType: 'ID Card' },
+    { id: '3', listingTitle: 'Toyota RAV4 2021', sellerName: 'Marie', submittedAt: '2026-09-16', status: 'approved', docType: 'Registration' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-8">
+      <div className="max-w-7xl mx-auto">
+        <header className="flex justify-between items-center mb-10">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Trust Engine Command Center</h1>
+            <p className="text-slate-500">Review and verify submitted asset documentation.</p>
+          </div>
+          <Button variant="secondary" className="flex items-center gap-2">
+            <Filter size={18} />
+            Filter Queue
+          </Button>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* VERIFICATION QUEUE */}
+          <div className="lg:col-span-1 space-y-4">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Pending Queue</h3>
+            {requests.map((req) => (
+              <div
+                key={req.id}
+                className="p-4 bg-white rounded-2xl border border-slate-200 cursor-pointer hover:border-emerald-500 transition-all group shadow-sm"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <Badge variant="neutral">{req.docType}</Badge>
+                  <span className="text-[10px] text-slate-400">{req.submittedAt}</span>
+                </div>
+                <p className="font-bold text-slate-900 truncate mb-1">{req.listingTitle}</p>
+                <p className="text-xs text-slate-500 flex items-center gap-1">
+                  <UserIcon size={12} /> {req.sellerName}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* REVIEW WORKSPACE */}
+          <div className="lg:col-span-3 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Review: Modern Villa in Kicukiro</h2>
+                <p className="text-slate-500 text-sm">Document: <span className="font-semibold">Title Deed (PDF)</span></p>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="secondary" className="text-red-600 hover:bg-red-50 flex items-center gap-2">
+                  <X size={18} /> Reject
+                </Button>
+                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2">
+                  <Check size={18} /> Approve
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-12">
+              {/* Document Viewer Placeholder */}
+              <div className="aspect-[3/4] bg-slate-100 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 p-12 text-center">
+                <FileText size={48} className="mb-4 opacity-20" />
+                <p className="font-medium">Secure Document Viewer</p>
+                <p className="text-xs mt-2">PDF content would render here with high-res zoom and forensic tools.</p>
+                <Button variant="secondary" className="mt-6 text-xs">Open Fullscreen</Button>
+              </div>
+
+              {/* Review Panel */}
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                    <ShieldCheck className="text-emerald-600" size={20} />
+                    Verification Checklist
+                  </h3>
+                  {[
+                    { label: 'Seller Identity Matches Deed', status: 'verified' },
+                    { label: 'Plot Boundaries Consistent', status: 'pending' },
+                    { label: 'No Active Liens/Encumbrances', status: 'pending' },
+                    { label: 'Zoning Approval Confirmed', status: 'pending' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <span className="text-sm text-slate-600">{item.label}</span>
+                      {item.status === 'verified' ? <CheckCircle2 className="text-emerald-500" size={18} /> : <Clock className="text-slate-300" size={18} />}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-slate-900">Reviewer Notes</label>
+                  <textarea
+                    className="w-full h-32 p-4 rounded-2xl border border-slate-200 outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm"
+                    placeholder="Note any discrepancies or reasons for rejection..."
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Simple Icon component to avoid import errors
+const UserIcon = ({ size }: { size: number }) => <div style={{width: size, height: size}} className="bg-slate-300 rounded-full" />;
