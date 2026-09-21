@@ -39,160 +39,65 @@ interface HomePageProps {
 
 interface HeroSlide {
   id: string;
-  category: string;
   pillLabel: string;
   icon: React.ElementType;
   query: string;
   image: string;
-  badge: string;
-  badgeTone: 'emerald' | 'orange';
-  headlinePrefix: string;
-  headlineHighlight: string;
-  headlineSuffix: string;
-  highlightTone: 'emerald' | 'orange';
+  title: string;
   subtitle: string;
   searchPlaceholder: string;
-  popularTags: string[];
-  spotlight: {
-    category: string;
-    badge: string;
-    title: string;
-    location: string;
-    priceRwf: string;
-    priceUsd: string;
-    specs: { label: string; value: string }[];
-    tag: string;
-  };
+  caption: string;
+  price: string;
 }
 
 const HERO_SLIDES: HeroSlide[] = [
   {
     id: 'house',
-    category: 'Luxury Residences',
     pillLabel: 'Homes & Villas',
     icon: Home,
     query: 'house',
     image: '/images/hero/house.jpg',
-    badge: 'RLMUA Title & Deed Verified',
-    badgeTone: 'emerald',
-    headlinePrefix: 'The finest luxury',
-    headlineHighlight: 'villas & private residences',
-    headlineSuffix: 'in Rwanda.',
-    highlightTone: 'emerald',
-    subtitle: 'Curated architectural estates in Kigali’s most prestigious neighbourhoods — with verified titles, cadastral boundaries, and escrow protection.',
+    title: 'Luxury Homes & Villas',
+    subtitle: 'Kigali, Rwanda',
     searchPlaceholder: 'Search villas in Nyarutarama, Gacuriro, Kiyovu...',
-    popularTags: ['5-Bed Villa Nyarutarama', 'Modern Duplex Gacuriro', 'Kiyovu Hill Residence', 'Pool & Garden Villa'],
-    spotlight: {
-      category: 'RESIDENTIAL ESTATE',
-      badge: 'VERIFIED DEED',
-      title: 'The Hilltop Glass Villa',
-      location: 'Nyarutarama Ridge, Gasabo',
-      priceRwf: '480,000,000 RWF',
-      priceUsd: '$360,000 USD',
-      specs: [
-        { label: 'Bedrooms', value: '5 Beds' },
-        { label: 'Bathrooms', value: '6 Baths' },
-        { label: 'Plot Area', value: '820 m²' },
-        { label: 'Feature', value: 'Infinity Pool' },
-      ],
-      tag: 'Architectural Masterpiece',
-    },
+    caption: 'Modern Villa, Nyarutarama',
+    price: '480,000,000 RWF',
   },
   {
     id: 'land',
-    category: 'Titled Land & Plots',
     pillLabel: 'Titled Land',
     icon: MapIcon,
     query: 'land',
     image: '/images/hero/land.jpg',
-    badge: 'UPI Cadastre Direct Match',
-    badgeTone: 'emerald',
-    headlinePrefix: 'Prime titled land &',
-    headlineHighlight: 'strategic development plots',
-    headlineSuffix: 'with clean cadastre.',
-    highlightTone: 'orange',
-    subtitle: 'Every land parcel is cross-verified directly with Rwanda Land Management & Use Authority (RLMUA) UPI records for absolute ownership certainty.',
+    title: 'Prime Titled Land',
+    subtitle: 'RLMUA Cadastre Verified',
     searchPlaceholder: 'Search titled plots in Gasabo, Kicukiro, Bugesera...',
-    popularTags: ['Titled Plot Gasabo', 'Zoned R1A Kicukiro', 'Bugesera Airport Corridor', 'Commercial Acreage'],
-    spotlight: {
-      category: 'RLMUA TITLED LAND',
-      badge: 'UPI CLEAN MATCH',
-      title: 'Prime Hillside Acreage',
-      location: 'Gasabo District, Kigali',
-      priceRwf: '95,000,000 RWF',
-      priceUsd: '$71,000 USD',
-      specs: [
-        { label: 'Total Area', value: '2,400 m²' },
-        { label: 'Zoning Code', value: 'R1A Residential' },
-        { label: 'UPI Status', value: 'Clean Cadastre' },
-        { label: 'Topography', value: 'Gentle Slope' },
-      ],
-      tag: 'Ready for Immediate Conveyance',
-    },
+    caption: 'Titled Hillside Parcel, Gasabo',
+    price: '95,000,000 RWF',
   },
   {
     id: 'car',
-    category: 'Executive Vehicles',
     pillLabel: 'Executive SUVs',
     icon: Car,
     query: 'vehicle',
     image: '/images/hero/car.jpg',
-    badge: 'Yellow-Card & Customs Cleared',
-    badgeTone: 'emerald',
-    headlinePrefix: 'Certified executive',
-    headlineHighlight: '4x4s, SUVs & premium cars',
-    headlineSuffix: 'fully inspected.',
-    highlightTone: 'emerald',
-    subtitle: 'Verified motor vehicles with validated registration (carte jaune), clean customs duty clearance, and certified mechanical inspection reports.',
-    searchPlaceholder: 'Search Toyota Land Cruiser, RAV4 Hybrid, Defender...',
-    popularTags: ['Land Cruiser LC300', 'Toyota RAV4 Hybrid', 'Defender 110', 'Mercedes GLE 400d'],
-    spotlight: {
-      category: 'CERTIFIED VEHICLE',
-      badge: 'CUSTOMS CLEARED',
-      title: 'Land Cruiser LC300 GR-Sport',
-      location: 'Kigali Free Zone / Downtown',
-      priceRwf: '165,000,000 RWF',
-      priceUsd: '$124,000 USD',
-      specs: [
-        { label: 'Engine', value: '3.5L Twin Turbo' },
-        { label: 'Year', value: '2024 Model' },
-        { label: 'Mileage', value: '12,500 km' },
-        { label: 'Drivetrain', value: 'Full-Time 4WD' },
-      ],
-      tag: 'Yellow-Card Registered',
-    },
+    title: 'Executive SUVs',
+    subtitle: 'Certified & Inspected',
+    searchPlaceholder: 'Search Toyota Land Cruiser, RAV4, Defender...',
+    caption: 'Land Cruiser LC300 GR-Sport',
+    price: '165,000,000 RWF',
   },
   {
     id: 'motorbike',
-    category: 'Bikes & Mobility',
     pillLabel: 'Bikes & Fleets',
     icon: Bike,
     query: 'vehicle',
     image: '/images/hero/motorbike.jpg',
-    badge: 'RURA & Commercial Fleet Ready',
-    badgeTone: 'orange',
-    headlinePrefix: 'High-performance',
-    headlineHighlight: 'motorbikes & commercial fleets',
-    headlineSuffix: 'for modern mobility.',
-    highlightTone: 'orange',
-    subtitle: 'From urban delivery fleets and electric motorbikes to high-displacement adventure tourers, all title-transferred and tax-cleared seamlessly.',
-    searchPlaceholder: 'Search BMW GS, Ampersand Electric, TVS HLX, Yamaha...',
-    popularTags: ['BMW R1250 GS', 'Ampersand Electric Fleet', 'TVS HLX 150', 'Yamaha MT-07'],
-    spotlight: {
-      category: 'URBAN & FLEET MOBILITY',
-      badge: 'FLEET CERTIFIED',
-      title: 'Adventure Tourer & Urban Fleet',
-      location: 'Kicukiro District, Kigali',
-      priceRwf: '18,500,000 RWF',
-      priceUsd: '$13,900 USD',
-      specs: [
-        { label: 'Displacement', value: '1,250 cc' },
-        { label: 'Category', value: 'Adventure / Fleet' },
-        { label: 'Condition', value: 'Immaculate' },
-        { label: 'Transfer', value: 'Immediate RRA' },
-      ],
-      tag: 'Turnkey Commercial Ready',
-    },
+    title: 'Bikes & Fleet Mobility',
+    subtitle: 'Urban & Adventure',
+    searchPlaceholder: 'Search BMW GS, electric bikes, TVS...',
+    caption: 'Adventure Touring Machine',
+    price: '18,500,000 RWF',
   },
 ];
 
@@ -306,7 +211,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
             >
               <img
                 src={slide.image}
-                alt={slide.category}
+                alt={slide.title}
                 className={cn(
                   "w-full h-full object-cover object-center transition-transform duration-7000 ease-out",
                   activeSlide === idx ? "scale-105" : "scale-100"
@@ -326,67 +231,21 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
           <div className="absolute bottom-1/4 right-1/4 h-[300px] w-[300px] sm:h-[450px] sm:w-[450px] rounded-full bg-[#f98604]/[0.06] blur-[140px] pointer-events-none" />
         </div>
 
-        {/* TOP ROW: Category Switcher Pills */}
-        <div className="relative z-10 mx-auto w-full max-w-7xl flex items-center justify-center">
-          <div className="inline-flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar py-2 px-3 rounded-full bg-black/50 backdrop-blur-xl border border-white/15 shadow-2xl">
-            {HERO_SLIDES.map((slide, idx) => {
-              const Icon = slide.icon;
-              const isActive = activeSlide === idx;
-              return (
-                <button
-                  key={slide.id}
-                  type="button"
-                  onClick={() => setActiveSlide(idx)}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer",
-                    isActive
-                      ? slide.highlightTone === 'orange'
-                        ? "bg-[#f98604] text-white shadow-lg shadow-[#f98604]/40"
-                        : "bg-emerald-600 text-white shadow-lg shadow-emerald-600/40"
-                      : "text-zinc-300 hover:text-white hover:bg-white/10"
-                  )}
-                >
-                  <Icon size={16} />
-                  <span>{slide.pillLabel}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* CENTER ROW: Grand Architectural Headline, Subtitle, and Floating Search */}
-        <div className="relative z-10 mx-auto w-full max-w-4xl text-center space-y-5 my-auto py-6 sm:py-10">
-          {/* Trust Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-black/60 px-4 py-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 backdrop-blur-xl shadow-xl">
-            <ShieldCheck size={15} className="shrink-0" />
-            <span>{currentSlide.badge}</span>
-          </div>
-
-          {/* Main Headline */}
-          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.12] tracking-tight text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.9)]">
-            <span>{currentSlide.headlinePrefix} </span>
-            <span className={cn(
-              "transition-colors duration-500",
-              currentSlide.highlightTone === 'orange'
-                ? "text-[#fb923c] drop-shadow-[0_0_35px_rgba(249,134,4,0.6)]"
-                : "text-emerald-400 drop-shadow-[0_0_35px_rgba(8,126,57,0.6)]"
-            )}>
-              {currentSlide.headlineHighlight}
-            </span>
-            <br className="hidden sm:inline" />
-            <span className="text-zinc-300"> {currentSlide.headlineSuffix}</span>
+        {/* CENTER: Clean Headline & Search Bar */}
+        <div className="relative z-10 mx-auto w-full max-w-3xl text-center space-y-3 sm:space-y-4 my-auto py-8">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)]">
+            {currentSlide.title}
           </h1>
 
-          {/* Subtitle */}
-          <p className="text-sm sm:text-lg leading-relaxed text-zinc-200 max-w-2xl mx-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)] font-medium">
+          <p className="text-sm sm:text-base text-zinc-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] font-medium">
             {currentSlide.subtitle}
           </p>
 
-          {/* Floating Luxury Glass Search Bar */}
-          <form onSubmit={submitSearch} className="relative max-w-2xl mx-auto pt-2">
-            <div className="flex flex-col sm:flex-row gap-2 rounded-2xl border border-white/25 bg-black/70 p-2 sm:p-2.5 backdrop-blur-2xl shadow-2xl hover:border-emerald-400/50 transition-all">
+          {/* Clean Floating Search Bar */}
+          <form onSubmit={submitSearch} className="pt-2 max-w-2xl mx-auto">
+            <div className="flex flex-col sm:flex-row gap-2 rounded-2xl border border-white/20 bg-black/60 p-2 backdrop-blur-2xl shadow-2xl hover:border-emerald-400/40 transition-all">
               <div className="flex flex-1 items-center gap-3 px-3 sm:px-4">
-                <Search size={20} className="text-zinc-400 shrink-0" />
+                <Search size={18} className="text-zinc-400 shrink-0" />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -398,124 +257,71 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
               </div>
               <Button
                 variant="primary"
-                className="w-full sm:w-auto rounded-xl px-8 py-3 font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95 shadow-lg shadow-emerald-500/30 text-sm cursor-pointer"
+                className="w-full sm:w-auto rounded-xl px-7 py-3 font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95 shadow-md text-sm cursor-pointer"
               >
                 Search
               </Button>
             </div>
-
-            {/* Popular Search Chips */}
-            <div className="mt-3 flex items-center justify-center gap-2 overflow-x-auto no-scrollbar py-1 flex-wrap text-xs text-zinc-300">
-              <span className="font-semibold text-zinc-400 shrink-0">Popular:</span>
-              {currentSlide.popularTags.map((term) => (
-                <button
-                  key={term}
-                  type="button"
-                  onClick={() => {
-                    setQuery(term);
-                    onExplore(term);
-                  }}
-                  className="shrink-0 rounded-lg bg-black/60 border border-white/15 px-3 py-1 text-zinc-300 hover:text-emerald-300 hover:border-emerald-400/40 hover:bg-black/80 transition-all backdrop-blur-md cursor-pointer"
-                >
-                  {term}
-                </button>
-              ))}
-            </div>
           </form>
         </div>
 
-        {/* BOTTOM ROW: Panoramic Floating Glass Asset Dossier & Controls */}
-        <div className="relative z-10 mx-auto max-w-7xl w-full pt-4">
-          <div className="rounded-2xl border border-white/20 bg-black/60 p-4 sm:p-5 backdrop-blur-2xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-            
-            {/* Active Asset Showcase Info */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5 w-full md:w-auto">
-              <div className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 px-3 py-1.5 text-xs font-bold text-emerald-400 uppercase tracking-wider shrink-0">
-                <BadgeCheck size={15} />
-                <span>{currentSlide.spotlight.badge}</span>
-              </div>
-              
-              <div className="space-y-0.5 text-left">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] uppercase font-bold tracking-widest text-zinc-400">{currentSlide.spotlight.category}</span>
-                  <span className="text-zinc-600">•</span>
-                  <span className="text-xs text-emerald-400 font-semibold">{currentSlide.spotlight.tag}</span>
-                </div>
-                <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-2">
-                  <span>{currentSlide.spotlight.title}</span>
-                  <span className="text-xs font-normal text-zinc-400">({currentSlide.spotlight.location})</span>
-                </h3>
-              </div>
+        {/* BOTTOM ROW: Minimal Caption & Slide Controls */}
+        <div className="relative z-10 mx-auto max-w-7xl w-full flex items-center justify-between gap-4 text-xs">
+          {/* Active slide caption */}
+          <div className="flex items-center gap-2 text-zinc-300 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10">
+            <span className="font-semibold text-white">{currentSlide.caption}</span>
+            <span className="text-zinc-500">•</span>
+            <span className="text-emerald-400 font-mono font-medium">{currentSlide.price}</span>
+            <button
+              type="button"
+              onClick={() => onExplore(currentSlide.query)}
+              className="ml-1 text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <span>Explore</span>
+              <ArrowRight size={12} />
+            </button>
+          </div>
 
-              {/* Specs Pills */}
-              <div className="hidden lg:flex items-center gap-2">
-                {currentSlide.spotlight.specs.map((s, i) => (
-                  <span key={i} className="text-xs font-medium text-zinc-300 bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">
-                    {s.value}
-                  </span>
-                ))}
-              </div>
+          {/* Clean Controls */}
+          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+            <button
+              type="button"
+              onClick={() => setActiveSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
+              aria-label="Previous"
+              className="h-6 w-6 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center cursor-pointer transition-all"
+            >
+              <ChevronLeft size={14} />
+            </button>
+
+            {/* Slide dots */}
+            <div className="flex items-center gap-1.5 px-1">
+              {HERO_SLIDES.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setActiveSlide(idx)}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all cursor-pointer",
+                    activeSlide === idx ? "w-5 bg-emerald-400" : "w-1.5 bg-white/30 hover:bg-white/60"
+                  )}
+                />
+              ))}
             </div>
 
-            {/* Price, Explore CTA & Carousel Controls */}
-            <div className="flex items-center justify-between md:justify-end gap-4 w-full md:w-auto border-t md:border-t-0 border-white/10 pt-3 md:pt-0">
-              {/* Indicative Value */}
-              <div className="text-left md:text-right">
-                <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Indicative Value</span>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-base sm:text-lg font-extrabold text-white">{currentSlide.spotlight.priceRwf}</span>
-                  <span className="text-[11px] text-zinc-400">({currentSlide.spotlight.priceUsd})</span>
-                </div>
-              </div>
-
-              {/* Explore Button */}
-              <Button
-                variant="primary"
-                onClick={() => onExplore(currentSlide.query)}
-                className={cn(
-                  "rounded-xl px-4 py-2.5 text-xs font-bold text-white transition-all shadow-lg flex items-center gap-1.5 cursor-pointer shrink-0",
-                  currentSlide.highlightTone === 'orange'
-                    ? "bg-[#f98604] hover:bg-[#db6803] shadow-[#f98604]/30"
-                    : "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/30"
-                )}
-              >
-                <span>Explore</span>
-                <ArrowRight size={14} />
-              </Button>
-
-              {/* Prev / Next Controls */}
-              <div className="flex items-center gap-2 pl-2 border-l border-white/15">
-                <button
-                  type="button"
-                  onClick={() => setActiveSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
-                  aria-label="Previous slide"
-                  className="h-9 w-9 rounded-full bg-white/10 border border-white/15 text-zinc-200 hover:text-white hover:bg-white/20 flex items-center justify-center transition-all cursor-pointer"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
-                  aria-label="Next slide"
-                  className="h-9 w-9 rounded-full bg-white/10 border border-white/15 text-zinc-200 hover:text-white hover:bg-white/20 flex items-center justify-center transition-all cursor-pointer"
-                >
-                  <ChevronRight size={16} />
-                </button>
-
-                {/* Counter */}
-                <span className="text-xs text-zinc-400 font-mono px-1">
-                  0{activeSlide + 1}/0{HERO_SLIDES.length}
-                </span>
-              </div>
-
-            </div>
-
+            <button
+              type="button"
+              onClick={() => setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
+              aria-label="Next"
+              className="h-6 w-6 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center cursor-pointer transition-all"
+            >
+              <ChevronRight size={14} />
+            </button>
           </div>
         </div>
 
         {/* Subtle scroll indicator */}
-        <div className="hidden sm:flex absolute bottom-2 left-1/2 -translate-x-1/2 flex-col items-center text-zinc-500 animate-bounce pointer-events-none">
-          <ChevronDown size={16} />
+        <div className="hidden sm:flex absolute bottom-1.5 left-1/2 -translate-x-1/2 flex-col items-center text-zinc-500 animate-bounce pointer-events-none">
+          <ChevronDown size={15} />
         </div>
       </section>
 
