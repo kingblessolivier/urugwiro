@@ -76,10 +76,12 @@ export const SellerDashboard = () => {
       {/* SIDEBAR */}
       <aside className="w-72 bg-[#0b0d12] border-r border-white/10 hidden lg:flex flex-col p-8 sticky top-0 h-full">
         <div className="flex items-center gap-3 mb-12 px-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-black font-black shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-            U
-          </div>
-          <span className="text-2xl font-bold tracking-tight text-white">Urugwiro</span>
+          <img
+            src="/urugwiro_logo_fav.png"
+            alt="Urugwiro"
+            className="h-9 w-9 rounded-xl object-contain drop-shadow-md"
+          />
+          <span className="text-2xl font-bold font-display tracking-tight text-white">Urugwiro</span>
         </div>
 
         <nav className="flex-1 space-y-2">

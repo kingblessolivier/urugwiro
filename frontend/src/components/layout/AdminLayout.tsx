@@ -134,9 +134,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
               isCollapsed && "justify-center w-full"
             )}
           >
-            <div className="h-11 w-11 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center shrink-0 shadow-sm">
-              <Shield size={20} className="text-emerald-400" />
-            </div>
+            <img
+              src="/urugwiro_logo_fav.png"
+              alt="Urugwiro"
+              className="h-10 w-10 rounded-xl object-contain shrink-0 drop-shadow-md"
+            />
 
             {!isCollapsed && (
               <div className="flex flex-col min-w-0">

@@ -132,10 +132,12 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
           onClick={() => onNavigate('home')}
           className="flex shrink-0 items-center gap-2.5 group cursor-pointer"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 group-hover:shadow-emerald-500/40 transition-shadow">
-            U
-          </span>
-          <span className="text-lg font-bold tracking-tight text-white">
+          <img
+            src="/urugwiro_logo_fav.png"
+            alt="Urugwiro Logo"
+            className="h-9 w-9 rounded-xl object-contain drop-shadow-md group-hover:scale-105 transition-transform"
+          />
+          <span className="text-xl font-black font-display tracking-tight text-white group-hover:text-emerald-400 transition-colors">
             Urugwiro
           </span>
         </button>

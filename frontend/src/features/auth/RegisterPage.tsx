@@ -88,8 +88,16 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                 {/* Left Side Explanation Panel (Visible on Desktop / Computer) */}
                 <div className="hidden lg:flex lg:w-[45%] flex-col justify-between p-10 lg:p-14 border-r border-white/10 bg-gradient-to-br from-emerald-950/25 via-[#080c14]/50 to-transparent">
                     <div>
-                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-8">
-                            <ShieldCheck size={14} /> Client Onboarding
+                        <div className="flex items-center gap-3 mb-6">
+                            <img src="/urugwiro_logo_fav.png" alt="Urugwiro" className="h-10 w-10 rounded-xl object-contain drop-shadow-md" />
+                            <div>
+                                <span className="font-extrabold text-base tracking-[0.2em] text-white font-display block">
+                                    URUGWIRO
+                                </span>
+                                <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-400 font-bold block">
+                                    Sovereign Ecosystem
+                                </span>
+                            </div>
                         </div>
 
                         <h2 className="font-display text-3xl xl:text-4xl font-bold tracking-tight text-white leading-tight mb-4">
@@ -132,9 +140,11 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                 <div className="flex-1 p-5 sm:p-10 lg:p-14 flex flex-col justify-center">
                     <div className="max-w-md w-full mx-auto">
                     <div className="mb-5">
-                        <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-base mb-3 shadow-lg shadow-emerald-500/10">
-                            U
-                        </div>
+                        <img
+                            src="/urugwiro_logo_fav.png"
+                            alt="Urugwiro"
+                            className="h-11 w-11 rounded-2xl object-contain mb-3 drop-shadow-md"
+                        />
                         <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white mb-1">
                             Create Account
                         </h1>

@@ -15,9 +15,9 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ onNavigate }) => {
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div>
-            <button type="button" onClick={() => onNavigate('home')} className="flex items-center gap-2.5 group">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-xs font-bold text-white">U</span>
-              <span className="text-lg font-bold tracking-tight text-white">Urugwiro</span>
+            <button type="button" onClick={() => onNavigate('home')} className="flex items-center gap-2.5 group cursor-pointer">
+              <img src="/urugwiro_logo_fav.png" alt="Urugwiro Logo" className="h-8 w-8 rounded-xl object-contain drop-shadow-md group-hover:scale-105 transition-transform" />
+              <span className="text-xl font-bold font-display tracking-tight text-white">Urugwiro</span>
             </button>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-zinc-500">
               Rwanda's premier marketplace for property, land, and vehicles.
