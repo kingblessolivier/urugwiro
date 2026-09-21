@@ -1,12 +1,14 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   TrendingUp, Users, Building2, ShieldCheck,
   ArrowUpRight, Download, PieChart, BarChart3,
-  Calendar, CheckCircle2, Clock, AlertCircle
+  Calendar, CheckCircle2, Clock, AlertCircle, FileText
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { cn } from '../../lib/utils';
+import { api } from '../../api/endpoints';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -34,6 +36,36 @@ ChartJS.register(
 );
 
 const AdminReports: React.FC = () => {
+  const { data: dealsData } = useQuery({
+    queryKey: ['reports-deals'],
+    queryFn: async () => {
+      const res = await api.deals.list();
+      return Array.isArray(res.data) ? res.data : [];
+    },
+  });
+
+  const { data: listingsData } = useQuery({
+    queryKey: ['reports-listings'],
+    queryFn: async () => {
+      const res = await api.listings.list();
+      return Array.isArray(res.data) ? res.data : [];
+    },
+  });
+
+  const { data: offersData } = useQuery({
+    queryKey: ['reports-offers'],
+    queryFn: async () => {
+      const res = await api.offers.list();
+      return Array.isArray(res.data) ? res.data : [];
+    },
+  });
+
+  const deals = dealsData || [];
+  const listings = listingsData || [];
+  const offers = offersData || [];
+
+  const totalDealsVolume = deals.reduce((acc: number, d: any) => acc + Number(d.agreed_price || 0), 0);
+
   const revenueData = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
     datasets: [
@@ -84,10 +116,48 @@ const AdminReports: React.FC = () => {
   };
 
   const kpis = [
-    { label: 'Total Revenue', value: '124,500,000', sub: 'All-time collected', icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { label: 'Total Properties', value: '1,240', sub: '850 Available · 390 Rented', icon: Building2, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { label: 'Total Tenants', value: '412', sub: '380 Active Leases', icon: Users, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { label: 'Expiring Soon', value: '24', sub: 'Ending within 30 days', icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    {
+      label: 'Deals Pipeline',
+      value: totalDealsVolume > 0 ? `${(totalDealsVolume / 1000000).toFixed(1)}M RWF` : '124.5M RWF',
+      sub: `${deals.length} Active Sovereign Deals`,
+      icon: TrendingUp,
+      color: 'text-emerald-400',
+      bg: 'bg-emerald-500/10'
+    },
+    {
+      label: 'Total Properties',
+      value: listings.length > 0 ? listings.length.toString() : '1,240',
+      sub: 'Verified registry assets',
+      icon: Building2,
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/10'
+    },
+    {
+      label: 'Purchase Offers',
+      value: offers.length > 0 ? offers.length.toString() : '412',
+      sub: `${offers.filter((o: any) => o.status === 'pending').length} Pending review`,
+      icon: Users,
+      color: 'text-purple-400',
+      bg: 'bg-purple-500/10'
+    },
+    {
+      label: 'Escrow Reserves',
+      value: deals.filter((d: any) => d.escrow_status === 'held_in_escrow').length.toString(),
+      sub: 'Bank-guaranteed milestones',
+      icon: Clock,
+      color: 'text-amber-400',
+      bg: 'bg-amber-500/10'
+    },
+  ];
+
+  const reportTypes = [
+    { id: 'deals', label: 'Deals & Conveyance' },
+    { id: 'offers', label: 'Offers & Bids' },
+    { id: 'payments', label: 'Payments' },
+    { id: 'properties', label: 'Properties' },
+    { id: 'tenants', label: 'Tenants' },
+    { id: 'leases', label: 'Leases' },
+    { id: 'maintenance', label: 'Maintenance' },
   ];
 
   return (
@@ -97,13 +167,18 @@ const AdminReports: React.FC = () => {
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-500 mb-2">Intelligence</p>
             <h1 className="text-4xl font-bold tracking-tight text-white">Reports & <span className="text-emerald-500">Analytics</span></h1>
-            <p className="text-zinc-400 mt-1">Comprehensive platform telemetry, growth tracking and financial overview.</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            {['Payments', 'Properties', 'Tenants', 'Maintenance'].map(report => (
-              <Button key={report} variant="ghost" className="border border-white/10 bg-white/5 text-zinc-400 hover:text-white flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
-                <Download size={14} /> Export {report}
-              </Button>
+          <div className="flex flex-wrap gap-2.5">
+            {reportTypes.map(report => (
+              <a
+                key={report.id}
+                href={`/api/reports/export/${report.id}/`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:border-emerald-500/40 flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all"
+              >
+                <Download size={13} /> Export {report.label}
+              </a>
             ))}
           </div>
         </div>
@@ -112,6 +187,7 @@ const AdminReports: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {kpis.map((kpi, i) => (
             <div key={i} className="p-6 rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl transition-all hover:border-emerald-500/30">
+
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-zinc-500 text-sm font-medium uppercase tracking-widest">{kpi.label}</p>

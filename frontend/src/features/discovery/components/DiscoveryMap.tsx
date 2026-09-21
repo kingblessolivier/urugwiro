@@ -61,12 +61,12 @@ const DiscoveryMap: React.FC<DiscoveryMapProps> = ({ listings }) => {
             const lat = parseFloat(listing.asset.latitude);
 
             if (!isNaN(lng) && !isNaN(lat)) {
-                new mapboxgl.Marker({ color: '#D4AF37' }) // Gold color
+                new mapboxgl.Marker({ color: '#10B981' }) // Emerald Luxury Edition
                     .setLngLat([lng, lat])
                     .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(`
-                        <div class="p-2 text-black">
-                            <h3 class="font-bold text-sm">${listing.title}</h3>
-                            <a href="/listings/${listing.id}" class="text-xs text-blue-600 hover:underline">View Details ↗</a>
+                        <div style="background: #080b11; color: #ffffff; padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); font-family: sans-serif;">
+                            <h3 style="font-weight: 700; font-size: 13px; margin: 0 0 6px 0; color: #ffffff;">${listing.title}</h3>
+                            <span style="display: inline-block; font-size: 11px; color: #10B981; font-weight: 600; text-decoration: none;">Selected Asset Pin</span>
                         </div>
                     `))
                     .addTo(map);

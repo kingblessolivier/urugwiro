@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
-import { api } from '../../api/endpoints';
+import { Lock, User, Eye, EyeOff, ArrowRight, AlertCircle, ShieldCheck, Sparkles, Building2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import type { AppView } from '../../types/navigation';
 
-const LoginPage: React.FC = () => {
-    const [formData, setFormData] = useState({ username: '', password: '' });
+interface LoginPageProps {
+    onNavigate?: (view: AppView) => void;
+}
+
+const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
+    const { login } = useAuth();
+    const [identifier, setIdentifier] = useState('');
+    const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -11,152 +20,239 @@ const LoginPage: React.FC = () => {
         e.preventDefault();
         setError('');
         setLoading(true);
+
         try {
-            const response = await api.auth.login(formData);
-            const data = response.data;
+            const user = await login({
+                username: identifier,
+                email: identifier,
+                password,
+            });
 
-            localStorage.setItem('access_token', data.access);
-            localStorage.setItem('refresh_token', data.refresh);
-            localStorage.setItem('user_role', data.user.role);
-
-            window.location.href = '/';
+            if (onNavigate) {
+                if (user.role === 'Admin') {
+                    onNavigate('admin');
+                } else if (user.role === 'Seller') {
+                    onNavigate('seller-dashboard');
+                } else if (user.role === 'Tenant') {
+                    onNavigate('tenant-dashboard');
+                } else {
+                    onNavigate('home');
+                }
+            } else {
+                window.location.href = '/';
+            }
         } catch (err: any) {
-            setError(err.response?.data?.error || err.message || 'Login failed');
+            console.error('Login error:', err);
+            setError(err.response?.data?.error || err.message || 'Invalid username/email or password');
         } finally {
             setLoading(false);
         }
     };
 
+    const navigateTo = (view: AppView) => {
+        if (onNavigate) {
+            onNavigate(view);
+        } else {
+            window.location.href = `/${view === 'home' ? '' : view}`;
+        }
+    };
+
     return (
-        <div className="flex min-h-screen bg-black overflow-hidden">
-            {/* Left Brand Panel */}
-            <div className="hidden lg:flex flex-1 relative bg-[#091a0f] items-center justify-center p-12 overflow-hidden">
-                <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-[#2D5A27] to-transparent" />
-
-                {/* Ambient Orbs */}
-                <div className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-[#2EA745]/20 blur-[80px] animate-pulse" />
-                <div className="absolute -bottom-40 -right-40 w-[350px] h-[350px] rounded-full bg-[#81C784]/10 blur-[80px] animate-pulse" />
-
-                <div className="relative z-10 text-center max-w-lg text-white space-y-8">
-                    <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center mx-auto mb-8 shadow-lg shadow-green-900/20">
-                        <span className="text-4xl text-[#a5d6a7]">🏢</span>
-                    </div>
-
-                    <h2 className="text-4xl font-bold tracking-tight">Welcome Back!</h2>
-                    <p className="text-white/60 text-lg leading-relaxed">
-                        Access your Urugwiro dashboard to manage properties, track leases, and stay connected with your portfolio.
-                    </p>
-
-                    <div className="flex gap-4 justify-center flex-wrap">
-                        {[
-                            { v: '1,500+', l: 'Properties' },
-                            { v: '500+', l: 'Happy Clients' },
-                            { v: '4.8★', l: 'Rating' },
-                        ].map((stat, i) => (
-                            <div key={i} className="bg-white/10 border border-white/20 backdrop-blur-md rounded-2xl px-6 py-3 text-center transition-transform hover:-translate-y-1">
-                                <span className="block text-xl font-bold">{stat.v}</span>
-                                <span className="block text-[10px] uppercase tracking-wider text-white/50">{stat.l}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* illustration Placeholder (Original SVG simplified) */}
-                    <div className="pt-8 opacity-80">
-                        <svg viewBox="0 0 380 200" className="w-full max-w-md mx-auto drop-shadow-2xl" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="380" height="200" rx="16" fill="rgba(255,255,255,.04)"/>
-                            <circle cx="330" cy="38" r="22" fill="rgba(255,220,100,.18)"/>
-                            <circle cx="342" cy="32" r="18" fill="#091a0f" opacity=".85"/>
-                            <rect x="0" y="155" width="380" height="45" rx="0" fill="rgba(46,125,50,.25)"/>
-                            <rect x="0" y="165" width="380" height="35" fill="rgba(27,94,32,.35)"/>
-                            <rect x="80" y="80" width="150" height="90" rx="5" fill="rgba(255,255,255,.08)" stroke="rgba(165,214,167,.3)" strokeWidth="1.5"/>
-                            <polygon points="65,83 155,30 245,83" fill="rgba(165,214,167,.2)"/>
-                            <rect x="137" y="133" width="32" height="37" rx="4" fill="rgba(165,214,167,.25)"/>
-                        </svg>
-                    </div>
-                </div>
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:p-6 lg:p-10 bg-[#05070b] text-white selection:bg-emerald-500/30 relative overflow-hidden w-full max-w-full">
+            {/* Ambient Background Glows */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute top-1/2 left-1/4 -translate-y-1/2 h-[350px] w-[350px] sm:h-[500px] sm:w-[500px] rounded-full bg-emerald-500/[0.06] blur-[140px]" />
+                <div className="absolute bottom-10 right-1/4 h-[280px] w-[280px] sm:h-[400px] sm:w-[400px] rounded-full bg-blue-500/[0.04] blur-[140px]" />
             </div>
 
-            {/* Right Form Panel */}
-            <div className="flex-1 bg-white flex items-center justify-center p-6 md:p-12 relative overflow-hidden">
-                <div className="absolute -top-20 -right-20 w-64 h-64 bg-green-100 rounded-full blur-3xl opacity-50" />
-                <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-green-100 rounded-full blur-3xl opacity-50" />
+            {/* Split Luxury Container (80% Width on Desktop) */}
+            <div className="w-full lg:w-[80%] max-w-6xl relative z-10 rounded-3xl border border-white/10 bg-[#080c14]/90 shadow-2xl backdrop-blur-2xl overflow-hidden flex flex-col lg:flex-row">
+                {/* Left Side Explanation Panel (Visible on Desktop / Computer) */}
+                <div className="hidden lg:flex lg:w-[45%] flex-col justify-between p-10 lg:p-14 border-r border-white/10 bg-gradient-to-br from-emerald-950/25 via-[#080c14]/50 to-transparent">
+                    <div>
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-8">
+                            <ShieldCheck size={14} /> Sovereign Real Estate
+                        </div>
 
-                <div className="w-full max-w-md relative z-10">
-                    {/* Mobile Logo */}
-                    <div className="lg:hidden flex items-center gap-3 mb-8">
-                        <span className="text-3xl">🏢</span>
-                        <span className="text-2xl font-bold text-zinc-900">Urugwiro</span>
+                        <h2 className="font-display text-3xl xl:text-4xl font-bold tracking-tight text-white leading-tight mb-4">
+                            Rwanda’s Premier Property Network
+                        </h2>
+
+                        <p className="text-zinc-400 text-sm leading-relaxed mb-8">
+                            Access verified residential estates, sovereign land parcels, and commercial investments with end-to-end transparency.
+                        </p>
+
+                        {/* Concise Highlights */}
+                        <div className="space-y-4">
+                            <div className="flex items-start gap-3.5 p-3 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+                                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 mt-0.5">
+                                    <ShieldCheck size={16} />
+                                </div>
+                                <div>
+                                    <div className="text-xs font-bold text-white">RLMUA Cadastre Verified</div>
+                                    <div className="text-xs text-zinc-400 mt-0.5">100% verified titles and official land boundary data.</div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-start gap-3.5 p-3 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+                                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 mt-0.5">
+                                    <Lock size={16} />
+                                </div>
+                                <div>
+                                    <div className="text-xs font-bold text-white">Bank-Grade Escrow</div>
+                                    <div className="text-xs text-zinc-400 mt-0.5">10% earnest deposits protected in regulated custody.</div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-start gap-3.5 p-3 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+                                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 mt-0.5">
+                                    <Sparkles size={16} />
+                                </div>
+                                <div>
+                                    <div className="text-xs font-bold text-white">3D Spatial Digital Twins</div>
+                                    <div className="text-xs text-zinc-400 mt-0.5">Interactive virtual showings and LiDAR site scans.</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <h1 className="text-4xl font-bold text-zinc-900 mb-2 tracking-tight">Sign In</h1>
-                    <p className="text-zinc-500 mb-8">Welcome back! Enter your credentials to continue.</p>
+                    {/* Bottom Status */}
+                    <div className="pt-8 border-t border-white/[0.08] flex items-center justify-between text-xs text-zinc-500">
+                        <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>Kigali Central Node: Online</span>
+                        </div>
+                        <span>UTC+2 Kigali</span>
+                    </div>
+                </div>
+
+                {/* Right Side Form Panel */}
+                <div className="flex-1 p-5 sm:p-10 lg:p-14 flex flex-col justify-center">
+                    <div className="max-w-md w-full mx-auto">
+                    <div className="mb-6">
+                        <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-base mb-3 shadow-lg shadow-emerald-500/10">
+                            U
+                        </div>
+                        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white mb-1">
+                            Sign In
+                        </h1>
+                        <p className="text-zinc-400 text-xs sm:text-sm">
+                            Enter your credentials to access your account.
+                        </p>
+                    </div>
 
                     {error && (
-                        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl flex items-center gap-3">
-                            <span>⚠️</span> {error}
+                        <div className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs sm:text-sm flex items-start gap-2.5 animate-in fade-in duration-200">
+                            <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
+                            <span className="flex-1 leading-snug">{error}</span>
                         </div>
                     )}
 
-                    <form onSubmit={handleLogin} className="space-y-5">
-                        <div className="relative group">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-green-600 transition-colors">👤</span>
-                            <input
-                                type="text"
-                                className="w-full pl-12 pr-4 py-4 bg-zinc-50 border border-zinc-200 rounded-2xl text-zinc-900 focus:ring-4 focus:ring-green-100 focus:border-green-600 outline-none transition-all"
-                                placeholder="Username"
-                                value={formData.username}
-                                onChange={(e) => setFormData({...formData, username: e.target.value})}
-                                required
-                            />
-                        </div>
-
-                        <div className="relative group">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-green-600 transition-colors">🔒</span>
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                className="w-full pl-12 pr-12 py-4 bg-zinc-50 border border-zinc-200 rounded-2xl text-zinc-900 focus:ring-4 focus:ring-green-100 focus:border-green-600 outline-none transition-all"
-                                placeholder="Password"
-                                value={formData.password}
-                                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                                required
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
-                            >
-                                {showPassword ? '👁️‍🗨️' : '👁️'}
-                            </button>
-                        </div>
-
-                        <div className="flex justify-between items-center text-sm">
-                            <label className="flex items-center gap-2 text-zinc-500 cursor-pointer">
-                                <input type="checkbox" className="rounded border-zinc-300 text-green-600 focus:ring-green-500" />
-                                Remember me
+                    <form onSubmit={handleLogin} className="space-y-4">
+                        {/* Username or Email */}
+                        <div>
+                            <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5">
+                                Username or Email
                             </label>
-                            <a href="#" className="text-green-600 font-semibold hover:underline">Forgot Password?</a>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
+                                    <User size={15} />
+                                </div>
+                                <input
+                                    type="text"
+                                    required
+                                    value={identifier}
+                                    onChange={(e) => setIdentifier(e.target.value)}
+                                    placeholder="Username or email"
+                                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] pl-10 pr-4 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-600 outline-none focus:border-emerald-500/50 focus:bg-white/[0.06] transition-all"
+                                />
+                            </div>
                         </div>
 
+                        {/* Password */}
+                        <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                                <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                                    Password
+                                </label>
+                                <a
+                                    href="#"
+                                    onClick={(e) => { e.preventDefault(); alert('Please contact support@urugwiro.rw to reset credentials.'); }}
+                                    className="text-[11px] font-medium text-zinc-500 hover:text-emerald-400 transition-colors"
+                                >
+                                    Forgot?
+                                </a>
+                            </div>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
+                                    <Lock size={15} />
+                                </div>
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Enter password"
+                                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] pl-10 pr-10 py-2.5 text-base sm:text-sm text-white placeholder:text-zinc-600 outline-none focus:border-emerald-500/50 focus:bg-white/[0.06] transition-all"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                >
+                                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Remember Me */}
+                        <div className="flex items-center pt-1">
+                            <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
+                                    className="h-3.5 w-3.5 rounded border-white/20 bg-white/[0.05] text-emerald-500 focus:ring-emerald-500/20 focus:ring-offset-0 transition"
+                                />
+                                <span>Keep me signed in</span>
+                            </label>
+                        </div>
+
+                        {/* Submit Button */}
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-4 bg-gradient-to-br from-green-700 to-green-600 text-white font-bold rounded-full shadow-lg shadow-green-200 hover:shadow-green-300 hover:-translate-y-0.5 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                            className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-2"
                         >
-                            {loading ? 'Authenticating...' : <><span className="text-xl">➔</span> Sign In</>}
+                            {loading ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                                    <span>Signing In...</span>
+                                </div>
+                            ) : (
+                                <>
+                                    <span>Sign In to Dashboard</span>
+                                    <ArrowRight size={15} />
+                                </>
+                            )}
                         </button>
                     </form>
 
-                    <div className="flex items-center gap-4 my-8 text-zinc-400 text-sm">
-                        <div className="h-px bg-zinc-200 flex-1" />
-                        <span>or</span>
-                        <div className="h-px bg-zinc-200 flex-1" />
+                    {/* Switch to Register */}
+                    <div className="mt-6 pt-5 border-t border-white/[0.08] text-center text-xs text-zinc-400">
+                        Don't have an account?{' '}
+                        <button
+                            type="button"
+                            onClick={() => navigateTo('register')}
+                            className="font-bold text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
+                        >
+                            Create account
+                        </button>
                     </div>
-
-                    <p className="text-center text-zinc-500 text-sm">
-                        Don't have an account? <a href="/register" className="text-green-600 font-bold hover:underline">Create one free</a>
-                    </p>
                 </div>
             </div>
+        </div>
         </div>
     );
 };

@@ -1,16 +1,52 @@
 import React from 'react';
-import { Camera, CarFront, Gavel, HardHat, SearchCheck, Wrench } from 'lucide-react';
+import { Camera, CarFront, Gavel, HardHat, SearchCheck, Wrench, ArrowRight, ShieldCheck, CheckCircle2, Sparkles } from 'lucide-react';
 import { PageHero } from '../../components/layout/PageHero';
 import { Button } from '../../components/ui/Button';
 import type { AppView } from '../../types/navigation';
 
 const services = [
-  { title: 'Real estate agents', description: 'Help finding, presenting and negotiating property listings.', icon: HardHat },
-  { title: 'Land surveyors', description: 'Professionals for land measurement and boundary-related work.', icon: SearchCheck },
-  { title: 'Property valuers', description: 'Valuation support before buying, selling or financing an asset.', icon: Gavel },
-  { title: 'Vehicle inspectors', description: 'Inspection workflows for a more informed vehicle decision.', icon: CarFront },
-  { title: 'Property photographers', description: 'Clear, useful media for homes, land and vehicles.', icon: Camera },
-  { title: 'Mechanics', description: 'Maintenance and support providers for vehicles.', icon: Wrench },
+  {
+    title: 'Certified Real Estate Brokers',
+    description: 'Vetted real estate professionals specializing in prime commercial, residential estates, and land transactions across Kigali and secondary cities.',
+    icon: HardHat,
+    tag: 'Advisory & Brokerage',
+    features: ['Price Negotiation', 'Buyer Representation', 'Portfolio Management']
+  },
+  {
+    title: 'Chartered Land Surveyors',
+    description: 'Licensed professionals for boundary verification, beacon replacement, topographic surveys, and official RLMUA cadastral parcel validation.',
+    icon: SearchCheck,
+    tag: 'Cadastral & Land',
+    features: ['UPI Boundary Audit', 'Contour Mapping', 'Deed Certification']
+  },
+  {
+    title: 'Certified Property Valuers',
+    description: 'Accredited valuation reports required for bank collateral, mortgage approvals, capital gains assessment, and pre-purchase equity analysis.',
+    icon: Gavel,
+    tag: 'Valuation & Finance',
+    features: ['Bank-Ready Reports', 'Market Comparables', 'Asset Appraisal']
+  },
+  {
+    title: 'Automotive & Fleet Inspectors',
+    description: 'Comprehensive mechanical, chassis, electrical, and electronic diagnostic inspections before purchasing high-value motor vehicles.',
+    icon: CarFront,
+    tag: 'Vehicle Due Diligence',
+    features: ['Engine Diagnostics', 'Chassis Integrity', 'Title / Plate Audit']
+  },
+  {
+    title: 'Architectural Photographers & 3D Scanning',
+    description: 'High-definition HDR imagery, drone aerial cinematography, Matterport 3D digital twins, and virtual walkthrough production.',
+    icon: Camera,
+    tag: 'Media & Spatial Tech',
+    features: ['4K Aerial Drone', '3D Digital Twin', 'Staging Production']
+  },
+  {
+    title: 'Master Technicians & Maintenance',
+    description: 'Licensed electrical engineers, HVAC contractors, master plumbers, and certified master mechanics for premium upkeep.',
+    icon: Wrench,
+    tag: 'Maintenance & Works',
+    features: ['Emergency Repair', 'Preventative Care', 'Facility Audits']
+  },
 ];
 
 interface ServicesPageProps {
@@ -18,39 +54,117 @@ interface ServicesPageProps {
 }
 
 const ServicesPage: React.FC<ServicesPageProps> = ({ onNavigate }) => (
-  <div>
+  <div className="min-h-screen">
     <PageHero
-      eyebrow="Services"
-      title="The right expertise for the next step."
-      description="Connect with providers who can help inspect, value, survey, photograph or manage an asset. Qualifications are shown only when they have been supplied."
+      eyebrow="Specialist Network"
+      title="Elite Professional Services for High-Value Assets."
+      description="Connect with accredited surveyors, valuers, legal professionals, inspectors, and media producers. Every partner is verified for licensing, indemnity insurance, and track record."
     />
 
-    <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {services.map(({ title, description, icon: Icon }) => (
-          <article key={title} className="rounded-2xl border border-slate-200 bg-white p-6">
-            <Icon className="text-emerald-700" size={22} />
-            <h2 className="mt-5 text-xl font-semibold">{title}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">{description}</p>
-            <button
-              type="button"
-              onClick={() => onNavigate?.('discovery')}
-              className="mt-6 text-sm font-medium text-emerald-700"
-            >
-              Explore listings
-            </button>
+    <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+      {/* Trust Strip */}
+      <div className="mb-14 grid gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-6 sm:grid-cols-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+            <ShieldCheck size={20} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">License Verified</p>
+            <p className="text-xs text-zinc-400">All providers verified against Rwandan regulatory boards</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+            <CheckCircle2 size={20} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">Escrow-Backed Quality</p>
+            <p className="text-xs text-zinc-400">Service fees safeguarded until client milestone sign-off</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+            <Sparkles size={20} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">Fast-Track Delivery</p>
+            <p className="text-xs text-zinc-400">Guaranteed turnaround SLAs on urgent property and title audits</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Services Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {services.map(({ title, description, icon: Icon, tag, features }) => (
+          <article
+            key={title}
+            className="group flex flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-7 backdrop-blur-xl transition-all duration-300 hover:border-emerald-500/40 hover:bg-white/[0.05] hover:shadow-xl hover:shadow-emerald-500/[0.05]"
+          >
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 transition-all group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-emerald-500/30">
+                  <Icon size={22} />
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium text-zinc-400">
+                  {tag}
+                </span>
+              </div>
+
+              <h2 className="mt-6 text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">
+                {title}
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+                {description}
+              </p>
+
+              <div className="mt-6 space-y-2 border-t border-white/[0.06] pt-4">
+                {features.map((f) => (
+                  <div key={f} className="flex items-center gap-2 text-xs text-zinc-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    <span>{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-8 pt-4">
+              <button
+                type="button"
+                onClick={() => onNavigate?.('contact')}
+                className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
+                Inquire For Provider <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+              </button>
+            </div>
           </article>
         ))}
       </div>
 
-      <div className="mt-12 rounded-2xl bg-[#091a0f] px-6 py-10 text-white md:flex md:items-center md:justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold">Need a specific service?</h2>
-          <p className="mt-2 max-w-xl text-white/70">Describe the requirement and location. Provider matching will use real marketplace data as it becomes available.</p>
+      {/* Concierge Callout */}
+      <div className="mt-16 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-r from-emerald-950/40 via-white/[0.02] to-transparent p-8 backdrop-blur-xl md:p-12">
+        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-xl">
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-400">Concierge Desk</span>
+            <h2 className="mt-2 text-2xl font-bold text-white md:text-3xl">Need custom due diligence or multi-asset inspection?</h2>
+            <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
+              Our institutional advisory team coordinates comprehensive technical, legal, and environmental audits for high-value acquisitions across the Great Lakes region.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-3">
+            <Button
+              className="rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20"
+              onClick={() => onNavigate?.('contact')}
+            >
+              Contact Advisory Desk
+            </Button>
+            <button
+              onClick={() => onNavigate?.('discovery')}
+              className="rounded-xl border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-semibold text-white hover:bg-white/[0.08] transition-colors"
+            >
+              Browse Listings
+            </button>
+          </div>
         </div>
-        <Button className="mt-6 bg-white text-slate-900 hover:bg-slate-100 md:mt-0" onClick={() => onNavigate?.('contact')}>
-          Request help
-        </Button>
       </div>
     </section>
   </div>

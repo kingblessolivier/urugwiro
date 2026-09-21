@@ -1,113 +1,337 @@
 import React, { useState } from 'react';
+import { Lock, User, Mail, Eye, EyeOff, ArrowRight, AlertCircle, Building2, KeyRound, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import type { AppView } from '../../types/navigation';
 
-const RegisterPage: React.FC = () => {
-    const [formData, setFormData] = useState({
-        username: '',
-        email: '',
-        password: '',
-        role: 'Buyer'
-    });
+interface RegisterPageProps {
+    onNavigate?: (view: AppView) => void;
+}
+
+const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
+    const { register } = useAuth();
+    const [selectedRole, setSelectedRole] = useState<'Buyer' | 'Tenant'>('Buyer');
+    const [fullName, setFullName] = useState('');
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [termsAccepted, setTermsAccepted] = useState(true);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        setLoading(true);
-        try {
-            const response = await fetch('/api/auth/register/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Registration failed');
 
-            window.location.href = '/login';
+        if (password !== confirmPassword) {
+            setError('Passwords do not match');
+            return;
+        }
+
+        if (password.length < 6) {
+            setError('Password must be at least 6 characters');
+            return;
+        }
+
+        if (!termsAccepted) {
+            setError('Please accept terms of service');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const user = await register({
+                username: username.trim(),
+                email: email.trim(),
+                password,
+                role: selectedRole,
+                full_name: fullName.trim(),
+            });
+
+            if (onNavigate) {
+                if (user.role === 'Tenant') {
+                    onNavigate('tenant-dashboard');
+                } else {
+                    onNavigate('home');
+                }
+            } else {
+                window.location.href = '/';
+            }
         } catch (err: any) {
-            setError(err.message);
+            console.error('Registration error:', err);
+            setError(err.response?.data?.error || err.message || 'Registration failed');
         } finally {
             setLoading(false);
         }
     };
 
+    const navigateTo = (view: AppView) => {
+        if (onNavigate) {
+            onNavigate(view);
+        } else {
+            window.location.href = `/${view === 'home' ? '' : view}`;
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-white mb-2">Join Urugwiro</h1>
-                    <p className="text-zinc-400">Create your account to start discovering</p>
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:p-6 lg:p-10 bg-[#05070b] text-white selection:bg-emerald-500/30 relative overflow-hidden w-full max-w-full">
+            {/* Ambient Background Glows */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute top-1/2 right-1/4 -translate-y-1/2 h-[350px] w-[350px] sm:h-[500px] sm:w-[500px] rounded-full bg-emerald-500/[0.06] blur-[140px]" />
+                <div className="absolute bottom-10 left-1/4 h-[280px] w-[280px] sm:h-[400px] sm:w-[400px] rounded-full bg-blue-500/[0.04] blur-[140px]" />
+            </div>
+
+            {/* Split Luxury Container (80% Width on Desktop) */}
+            <div className="w-full lg:w-[80%] max-w-6xl relative z-10 rounded-3xl border border-white/10 bg-[#080c14]/90 shadow-2xl backdrop-blur-2xl overflow-hidden flex flex-col lg:flex-row">
+                {/* Left Side Explanation Panel (Visible on Desktop / Computer) */}
+                <div className="hidden lg:flex lg:w-[45%] flex-col justify-between p-10 lg:p-14 border-r border-white/10 bg-gradient-to-br from-emerald-950/25 via-[#080c14]/50 to-transparent">
+                    <div>
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-8">
+                            <ShieldCheck size={14} /> Client Onboarding
+                        </div>
+
+                        <h2 className="font-display text-3xl xl:text-4xl font-bold tracking-tight text-white leading-tight mb-4">
+                            Join as a Buyer or Resident
+                        </h2>
+
+                        <p className="text-zinc-400 text-sm leading-relaxed mb-8">
+                            Create your personalized account to discover sovereign listings, schedule visits, and complete secure transactions.
+                        </p>
+
+                        {/* Account Types Breakdown */}
+                        <div className="space-y-4">
+                            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                                <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 mb-1">
+                                    <Building2 size={16} /> Private Client / Buyer
+                                </div>
+                                <div className="text-xs text-zinc-400 leading-relaxed">
+                                    Purchase land parcels, villas, and commercial assets with bank-grade escrow protection.
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                                <div className="flex items-center gap-2 text-xs font-bold text-sky-400 mb-1">
+                                    <KeyRound size={16} /> Resident / Tenant
+                                </div>
+                                <div className="text-xs text-zinc-400 leading-relaxed">
+                                    Lease verified residential residences, track tenancy agreements, and manage requests.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Elevated Roles Note */}
+                    <div className="pt-8 border-t border-white/[0.08] text-xs text-zinc-500 leading-relaxed">
+                        <span className="text-zinc-400 font-medium">Role Policy:</span> Admin, Seller, and Broker permissions are assigned exclusively by Platform Administration.
+                    </div>
                 </div>
 
-                {error && (
-                    <div className="mb-6 p-3 bg-red-500/10 border border-red-500/50 text-red-400 text-sm rounded-lg text-center">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleRegister} className="space-y-6">
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-zinc-400">Username</label>
-                        <input
-                            type="text"
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:ring-2 focus:ring-gold-500 outline-none transition-all"
-                            value={formData.username}
-                            onChange={(e) => setFormData({...formData, username: e.target.value})}
-                            required
-                        />
+                {/* Right Side Form Panel */}
+                <div className="flex-1 p-5 sm:p-10 lg:p-14 flex flex-col justify-center">
+                    <div className="max-w-md w-full mx-auto">
+                    <div className="mb-5">
+                        <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-base mb-3 shadow-lg shadow-emerald-500/10">
+                            U
+                        </div>
+                        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white mb-1">
+                            Create Account
+                        </h1>
+                        <p className="text-zinc-400 text-xs sm:text-sm">
+                            Select your account type and fill in your details.
+                        </p>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-zinc-400">Email Address</label>
-                        <input
-                            type="email"
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:ring-2 focus:ring-gold-500 outline-none transition-all"
-                            value={formData.email}
-                            onChange={(e) => setFormData({...formData, email: e.target.value})}
-                            required
-                        />
-                    </div>
+                    {error && (
+                        <div className="mb-4 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs sm:text-sm flex items-start gap-2.5 animate-in fade-in duration-200">
+                            <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
+                            <span className="flex-1 leading-snug">{error}</span>
+                        </div>
+                    )}
 
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-zinc-400">Password</label>
-                        <input
-                            type="password"
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:ring-2 focus:ring-gold-500 outline-none transition-all"
-                            value={formData.password}
-                            onChange={(e) => setFormData({...formData, password: e.target.value})}
-                            required
-                        />
-                    </div>
+                    <form onSubmit={handleRegister} className="space-y-3.5">
+                        {/* Role Segmented Picker */}
+                        <div>
+                            <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5">
+                                Account Type
+                            </label>
+                            <div className="grid grid-cols-2 gap-2 p-1 rounded-xl border border-white/10 bg-white/[0.03]">
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedRole('Buyer')}
+                                    className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                        selectedRole === 'Buyer'
+                                            ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
+                                             : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                                    }`}
+                                >
+                                    <Building2 size={13} />
+                                    <span>Buyer</span>
+                                </button>
 
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-zinc-400">I want to be a...</label>
-                        <select
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:ring-2 focus:ring-gold-500 outline-none transition-all"
-                            value={formData.role}
-                            onChange={(e) => setFormData({...formData, role: e.target.value})}
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedRole('Tenant')}
+                                    className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                        selectedRole === 'Tenant'
+                                            ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
+                                            : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                                    }`}
+                                >
+                                    <KeyRound size={13} />
+                                    <span>Tenant</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Full Name & Username */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                                    Full Name
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
+                                        <User size={14} />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={fullName}
+                                        onChange={(e) => setFullName(e.target.value)}
+                                        placeholder="Your Name"
+                                        className="w-full rounded-xl border border-white/10 bg-white/[0.04] pl-9 pr-3 py-2 text-base sm:text-sm text-white placeholder:text-zinc-600 outline-none focus:border-emerald-500/50 focus:bg-white/[0.06] transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                                    Username
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                                    placeholder="Username"
+                                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-base sm:text-sm text-white placeholder:text-zinc-600 outline-none focus:border-emerald-500/50 focus:bg-white/[0.06] transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Email */}
+                        <div>
+                            <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                                Email Address
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
+                                    <Mail size={14} />
+                                </div>
+                                <input
+                                    type="email"
+                                    required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="name@domain.com"
+                                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] pl-9 pr-3 py-2 text-base sm:text-sm text-white placeholder:text-zinc-600 outline-none focus:border-emerald-500/50 focus:bg-white/[0.06] transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Password & Confirm */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                                    Password
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
+                                        <Lock size={14} />
+                                    </div>
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        required
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="Min 6 chars"
+                                        className="w-full rounded-xl border border-white/10 bg-white/[0.04] pl-9 pr-9 py-2 text-base sm:text-sm text-white placeholder:text-zinc-600 outline-none focus:border-emerald-500/50 focus:bg-white/[0.06] transition-all"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-500 hover:text-white transition-colors"
+                                    >
+                                        {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                                    Confirm
+                                </label>
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    required
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="Confirm"
+                                    className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-base sm:text-sm text-white placeholder:text-zinc-600 outline-none focus:border-emerald-500/50 focus:bg-white/[0.06] transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Terms */}
+                        <div className="flex items-center gap-2 pt-0.5">
+                            <input
+                                type="checkbox"
+                                id="reg-terms"
+                                checked={termsAccepted}
+                                onChange={(e) => setTermsAccepted(e.target.checked)}
+                                className="h-3.5 w-3.5 rounded border-white/20 bg-white/[0.05] text-emerald-500 focus:ring-emerald-500/20 focus:ring-offset-0 transition"
+                            />
+                            <label htmlFor="reg-terms" className="text-[11px] text-zinc-400 cursor-pointer select-none">
+                                I agree to the Terms of Service and Privacy Policy
+                            </label>
+                        </div>
+
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer mt-1"
                         >
-                            <option value="Buyer">Buyer</option>
-                            <option value="Seller">Seller</option>
-                            <option value="Agent">Agent</option>
-                            <option value="RentalManager">Rental Manager</option>
-                        </select>
+                            {loading ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                                    <span>Creating Account...</span>
+                                </div>
+                            ) : (
+                                <>
+                                    <span>Create {selectedRole} Account</span>
+                                    <ArrowRight size={15} />
+                                </>
+                            )}
+                        </button>
+                    </form>
+
+                    {/* Switch to Login */}
+                    <div className="mt-5 pt-4 border-t border-white/[0.08] text-center text-xs text-zinc-400">
+                        Already have an account?{' '}
+                        <button
+                            type="button"
+                            onClick={() => navigateTo('login')}
+                            className="font-bold text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
+                        >
+                            Sign In
+                        </button>
                     </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full py-3 bg-zinc-100 text-black font-bold rounded-xl hover:bg-white transition-all disabled:opacity-50"
-                    >
-                        {loading ? 'Creating Account...' : 'Register Now'}
-                    </button>
-                </form>
-
-                <div className="mt-8 text-center">
-                    <p className="text-zinc-500 text-sm">
-                        Already have an account? <a href="/login" className="text-white font-semibold hover:underline">Sign In</a>
-                    </p>
                 </div>
             </div>
+        </div>
         </div>
     );
 };

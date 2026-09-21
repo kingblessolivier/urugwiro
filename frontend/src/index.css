@@ -1,17 +1,15 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
-  /* White Edition Core Palette */
-  --color-bg-deep: #ffffff;
-  --color-bg-surface: #f9fafb;
-  --color-bg-elevated: #f3f4f6;
+  /* Obsidian Sovereign Core Palette */
+  --color-bg-deep: #05070b;
+  --color-bg-surface: #080c14;
+  --color-bg-elevated: #0f1422;
   --color-brand-emerald: #10b981;
   --color-brand-emerald-glow: rgba(16, 185, 129, 0.2);
-  --color-text-main: #111827;
-  --color-text-muted: #6b7280;
-  --color-text-dim: #9ca3af;
+  --color-text-main: #ffffff;
+  --color-text-muted: #9ca3af;
+  --color-text-dim: #6b7280;
 
   /* Luxury Transitions */
   --transition-luxury: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
@@ -19,65 +17,232 @@
   --transition-ultra-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Extra Clean Design Tokens */
-  --border-clean: rgba(0, 0, 0, 0.05);
-  --border-clean-hover: rgba(0, 0, 0, 0.1);
-  --glass-bg-ultra: rgba(255, 255, 255, 0.7);
+  --border-clean: rgba(255, 255, 255, 0.08);
+  --border-clean-hover: rgba(255, 255, 255, 0.16);
+  --glass-bg-ultra: rgba(255, 255, 255, 0.03);
   --glass-blur-ultra: blur(30px);
   --spacing-luxury: 2rem;
   --radius-clean: 1.25rem;
 
   /* Physicality & Depth - Soft Light System */
-  --shadow-depth-1: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-depth-2: 0 4px 12px -2px rgba(0,0,0,0.05);
-  --shadow-depth-3: 0 20px 40px -12px rgba(0,0,0,0.1);
+  --shadow-depth-1: 0 1px 2px rgba(0,0,0,0.5);
+  --shadow-depth-2: 0 4px 12px -2px rgba(0,0,0,0.5);
+  --shadow-depth-3: 0 20px 40px -12px rgba(0,0,0,0.7);
   --shadow-emerald-soft: 0 0 20px -5px rgba(16, 185, 129, 0.2);
 
-  /* Glass-morphism refinements */
-  --glass-border: rgba(0, 0, 0, 0.05);
-  --glass-highlight: rgba(255, 255, 255, 0.5);
+  /* Luxury Obsidian & Gold System - High Contrast Edition */
+  --color-obsidian-deep: #05070b;
+  --color-obsidian-surface: #080c14;
+  --color-obsidian-card: #0c121d;
+  --color-obsidian-card-hover: #121b2a;
+  --color-obsidian-border: rgba(255, 255, 255, 0.1);
+  --color-obsidian-border-hover: rgba(255, 255, 255, 0.2);
+  --color-gold-champagne: #e2ca9c;
+  --color-gold-burnished: #f0dbb5;
+  --color-gold-glow: rgba(226, 202, 156, 0.25);
+  --color-sapphire-escrow: #3b82f6;
 }
 
-body {
-  background-color: var(--color-bg-deep);
-  color: var(--color-text-main);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+html, body {
+  background-color: #05070b !important;
+  color: #ffffff !important;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden !important;
+  max-width: 100vw;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
+
+h1, h2, h3, .font-display {
+  font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+code, kbd, samp, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
 
 @layer components {
   .luxury-card {
-    @apply rounded-[2rem] border border-black/5 bg-white shadow-sm transition-all duration-500;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    border-radius: 1.5rem;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
     transition: var(--transition-luxury);
   }
 
   .luxury-card-hover {
-    @apply hover:border-emerald-500/30 hover:shadow-md;
     transition: var(--transition-spring);
+  }
+  .luxury-card-hover:hover {
+    border-color: rgba(16, 185, 129, 0.3);
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
   }
 
   .clean-container {
-    @apply border-[var(--border-clean)] bg-[var(--glass-bg-ultra)] backdrop-blur-[var(--glass-blur-ultra)] rounded-[var(--radius-clean)] transition-all duration-300;
+    border: 1px solid var(--border-clean);
+    background-color: var(--glass-bg-ultra);
+    backdrop-filter: var(--glass-blur-ultra);
+    border-radius: var(--radius-clean);
     transition: var(--transition-ultra-smooth);
   }
 
-  .clean-container-hover {
-    @apply hover:border-[var(--border-clean-hover)] hover:bg-white/80;
+  .clean-container-hover:hover {
+    border-color: var(--border-clean-hover);
+    background-color: rgba(255, 255, 255, 0.8);
   }
 
   .luxury-button-primary {
-    @apply rounded-2xl bg-emerald-600 px-6 py-3 text-white font-bold transition-all active:scale-95 hover:bg-emerald-500 shadow-[0_4px_12px_rgba(16,185,129,0.3)];
+    border-radius: 1rem;
+    background-color: #059669;
+    padding: 0.75rem 1.5rem;
+    color: #ffffff;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+  .luxury-button-primary:hover {
+    background-color: #10b981;
+  }
+  .luxury-button-primary:active {
+    transform: scale(0.95);
   }
 
   .luxury-button-ghost {
-    @apply rounded-2xl border border-black/10 bg-black/5 px-6 py-3 text-zinc-600 transition-all hover:bg-black/10 hover:text-black;
+    border-radius: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 0.75rem 1.5rem;
+    color: #4b5563;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+  .luxury-button-ghost:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    color: #000000;
   }
 
   .glass-panel {
-    @apply bg-white/70 backdrop-blur-2xl border border-black/5;
+    background-color: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
   }
 
   .emerald-glow {
     box-shadow: 0 0 20px var(--color-brand-emerald-glow);
   }
+
+  .gold-glow {
+    box-shadow: 0 0 25px var(--color-gold-glow);
+  }
+
+  .obsidian-card {
+    background-color: var(--color-obsidian-card);
+    border: 1px solid var(--color-obsidian-border);
+    border-radius: 1.5rem;
+    box-shadow: 0 12px 36px -10px rgba(0, 0, 0, 0.65);
+    transition: var(--transition-luxury);
+  }
+  .obsidian-card:hover {
+    border-color: var(--color-obsidian-border-hover);
+    box-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.8), 0 0 20px rgba(226, 202, 156, 0.12);
+  }
+
+  .obsidian-panel {
+    background-color: var(--color-obsidian-surface);
+    border: 1px solid var(--color-obsidian-border);
+    backdrop-filter: blur(24px);
+  }
+
+  .gold-pill {
+    background: linear-gradient(135deg, rgba(226, 202, 156, 0.2) 0%, rgba(240, 219, 181, 0.08) 100%);
+    border: 1px solid rgba(226, 202, 156, 0.45);
+    color: #f3e5ca;
+  }
+
+  /* Global Sleek Dark Scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
+    transition: background 0.3s ease;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(16, 185, 129, 0.5);
+  }
+
+  /* ─── SAMSUNG ONE UI / FLAGSHIP ANDROID FLUID MOTION ─── */
+  .oneui-press {
+    transition: transform 0.16s cubic-bezier(0.2, 0, 0, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    will-change: transform;
+    user-select: none;
+  }
+  .oneui-press:active {
+    transform: scale(0.965);
+  }
+
+  .oneui-card {
+    transition: transform 0.32s cubic-bezier(0.05, 0.7, 0.1, 1.0), border-color 0.25s ease, box-shadow 0.3s cubic-bezier(0.05, 0.7, 0.1, 1.0);
+    will-change: transform, box-shadow;
+  }
+  .oneui-card:hover {
+    transform: translateY(-2px);
+  }
+  .oneui-card:active {
+    transform: scale(0.985);
+  }
+
+  .oneui-enter {
+    animation: oneuiEntrance 0.35s cubic-bezier(0.05, 0.7, 0.1, 1.0) both;
+  }
+
+  .oneui-progress {
+    transition: width 0.45s cubic-bezier(0.05, 0.7, 0.1, 1.0);
+  }
+
+  .oneui-pulse-encouraging {
+    animation: encouragingPulse 2.5s infinite ease-in-out;
+  }
 }
+
+@keyframes oneuiEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes encouragingPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.2);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 16px 4px rgba(16, 185, 129, 0.35);
+  }
+}
+

@@ -10,71 +10,109 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ onNavigate }) => {
   const [subscribed, setSubscribed] = useState(false);
 
   return (
-    <footer className="mt-auto bg-[#091a0f] text-white">
-      <div className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+    <footer className="mt-auto border-t border-white/[0.06] bg-[#030508]">
+      <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+        <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
+          {/* Brand */}
           <div>
-            <button type="button" onClick={() => onNavigate('home')} className="text-lg font-semibold">
-              Urugwiro
+            <button type="button" onClick={() => onNavigate('home')} className="flex items-center gap-2.5 group">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-xs font-bold text-white">U</span>
+              <span className="text-lg font-bold tracking-tight text-white">Urugwiro</span>
             </button>
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/60">
-              A marketplace for property, land, vehicles and related services in Rwanda — built to help people understand what they are considering.
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-zinc-500">
+              Rwanda's premier marketplace for property, land, and vehicles.
+              Built on trust, verification, and transparent transactions.
             </p>
+            <div className="mt-6 flex items-center gap-3">
+              {['Twitter', 'LinkedIn', 'Instagram'].map((name) => (
+                <button
+                  key={name}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-zinc-500 hover:text-white hover:border-white/20 transition-all text-xs font-bold"
+                >
+                  {name[0]}
+                </button>
+              ))}
+            </div>
           </div>
 
+          {/* Marketplace Links */}
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-white/40">Marketplace</h2>
-            <ul className="mt-4 space-y-2 text-sm text-white/70">
-              <li><button type="button" onClick={() => onNavigate('discovery')}>Explore listings</button></li>
-              <li><button type="button" onClick={() => onNavigate('services')}>Services</button></li>
-              <li><button type="button" onClick={() => onNavigate('seller-wizard')}>List on Urugwiro</button></li>
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">Marketplace</h2>
+            <ul className="mt-5 space-y-3">
+              {[
+                { label: 'Explore Properties', view: 'discovery' as AppView },
+                { label: 'Professional Services', view: 'services' as AppView },
+                { label: 'Sell With Us (Proposals)', view: 'submit-proposal' as AppView },
+                { label: 'Land Information', view: 'land-information' as AppView },
+              ].map((item) => (
+                <li key={item.label}>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate(item.view)}
+                    className="text-sm text-zinc-500 hover:text-emerald-400 transition-colors"
+                  >
+                    {item.label}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
 
+          {/* Company Links */}
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-white/40">Company</h2>
-            <ul className="mt-4 space-y-2 text-sm text-white/70">
-              <li><button type="button" onClick={() => onNavigate('about')}>About</button></li>
-              <li><button type="button" onClick={() => onNavigate('updates')}>Updates</button></li>
-              <li><button type="button" onClick={() => onNavigate('land-information')}>Land information</button></li>
-              <li><button type="button" onClick={() => onNavigate('contact')}>Contact</button></li>
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">Company</h2>
+            <ul className="mt-5 space-y-3">
+              {[
+                { label: 'About Urugwiro', view: 'about' as AppView },
+                { label: 'Updates & News', view: 'updates' as AppView },
+                { label: 'Contact Us', view: 'contact' as AppView },
+              ].map((item) => (
+                <li key={item.label}>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate(item.view)}
+                    className="text-sm text-zinc-500 hover:text-emerald-400 transition-colors"
+                  >
+                    {item.label}
+                  </button>
+                </li>
+              ))}
+              <li><span className="text-sm text-zinc-600">Privacy Policy</span></li>
+              <li><span className="text-sm text-zinc-600">Terms of Service</span></li>
             </ul>
           </div>
 
+          {/* Newsletter & Contact */}
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-white/40">Contact</h2>
-            <ul className="mt-4 space-y-2 text-sm text-white/70">
-              <li><a href="mailto:support@urugwiro.com">support@urugwiro.com</a></li>
-              <li><a href="tel:+250788123456">+250 788 123 456</a></li>
-              <li>KG 123 St, Kigali Heights<br />Kigali, Rwanda</li>
-              <li>Mon–Fri 9:00–18:00 · Sat 10:00–14:00</li>
-            </ul>
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">Stay Updated</h2>
+            <p className="mt-5 text-sm text-zinc-500">Get market insights and new listings delivered to your inbox.</p>
             <form
-              className="mt-4 flex overflow-hidden rounded-full border border-white/15"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (email.trim()) setSubscribed(true);
-              }}
+              className="mt-4 flex overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] focus-within:border-emerald-500/40 transition-colors"
+              onSubmit={(e) => { e.preventDefault(); if (email.trim()) setSubscribed(true); }}
             >
               <input
                 type="email"
                 required
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="Your email"
-                className="min-w-0 flex-1 bg-transparent px-4 py-2 text-sm text-white outline-none placeholder:text-white/35"
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@email.com"
+                className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-sm text-white outline-none placeholder:text-zinc-600"
               />
-              <button type="submit" className="bg-emerald-700 px-4 text-sm font-semibold">
-                {subscribed ? 'Saved' : 'Subscribe'}
+              <button type="submit" className="bg-emerald-500 px-4 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors">
+                {subscribed ? '✓' : 'Join'}
               </button>
             </form>
-            <p className="mt-2 text-xs text-white/35">Newsletter signup is stored locally until a backend endpoint is connected.</p>
+            <div className="mt-6 space-y-2 text-sm text-zinc-500">
+              <p>support@urugwiro.com</p>
+              <p>+250 788 123 456</p>
+              <p>Kigali Heights, Kigali, Rwanda</p>
+            </div>
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/40 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-14 flex flex-col gap-3 border-t border-white/[0.06] pt-7 text-xs text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 Urugwiro Ltd. All rights reserved.</p>
-          <p>Privacy · Terms · Cookie policy</p>
+          <p>Privacy · Terms · Cookie Policy</p>
         </div>
       </div>
     </footer>

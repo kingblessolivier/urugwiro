@@ -27,7 +27,7 @@ from .serializers import *
 
 
 def is_admin(user):
-    return user.is_authenticated and user.role == 'Admin'
+    return user.is_authenticated and (getattr(user, 'role', None) == 'Admin' or user.is_staff or user.is_superuser)
 
 
 @csrf_exempt
@@ -4763,16 +4763,56 @@ def admin_reports(request):
     return render(request, 'admin/reports/reports.html', context)
 
 
-@login_required(login_url='user_login')
-@user_passes_test(is_admin, login_url='../')
 def admin_reports_export(request, report_type):
     """Export report data as CSV."""
+    if not (request.user.is_authenticated and (getattr(request.user, 'role', None) == 'Admin' or request.user.is_staff or request.user.is_superuser)):
+        if request.path.startswith('/api/'):
+            return HttpResponse("Unauthorized. Admin access required.", status=403)
+        from django.shortcuts import redirect
+        return redirect('user_login')
+
     import csv
+    from .models import TransactionDeal, Offer, Property, Payment, Tenant, Lease, MaintenanceRequest
+
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="{report_type}_report.csv"'
     writer = csv.writer(response)
 
-    if report_type == 'payments':
+    if report_type == 'deals':
+        writer.writerow(['Deal ID', 'Listing Title', 'Deal Type', 'Buyer/Tenant', 'Seller/Landlord', 'Agreed Price', 'Currency', 'Escrow Status', 'Current Stage', 'Irembo Bill ID', 'UPI', 'Created At'])
+        for d in TransactionDeal.objects.select_related('listing', 'buyer_or_tenant', 'seller_or_landlord').all():
+            writer.writerow([
+                str(d.id),
+                d.listing.title if d.listing else '',
+                d.deal_type,
+                d.buyer_or_tenant.username if d.buyer_or_tenant else '',
+                d.seller_or_landlord.name if d.seller_or_landlord else '',
+                d.agreed_price,
+                d.currency,
+                d.escrow_status,
+                d.current_stage,
+                d.irembo_bill_id,
+                d.land_upi,
+                d.created_at.strftime('%Y-%m-%d %H:%M') if d.created_at else ''
+            ])
+
+    elif report_type == 'offers':
+        writer.writerow(['Offer ID', 'Listing Title', 'Buyer', 'Amount', 'Escrow %', 'Financing Type', 'Closing Date', 'Status', 'Counter Amount', 'Date'])
+        for o in Offer.objects.select_related('listing', 'buyer').all():
+            writer.writerow([
+                o.id,
+                o.listing.title if o.listing else '',
+                o.buyer.username if o.buyer else '',
+                o.amount,
+                o.escrow_proposed_percent,
+                o.financing_type,
+                o.proposed_closing_date.strftime('%Y-%m-%d') if o.proposed_closing_date else '',
+                o.status,
+                o.counter_amount or '',
+                o.created_at.strftime('%Y-%m-%d') if o.created_at else ''
+            ])
+
+    elif report_type == 'payments':
         writer.writerow(['Date', 'Property', 'Tenant', 'Amount (Frw)'])
         for p in Payment.objects.select_related('property', 'tenant').order_by('-date_paid'):
             writer.writerow([
@@ -4816,6 +4856,7 @@ def admin_reports_export(request, report_type):
         writer.writerow(['No data for this report type.'])
 
     return response
+
 
 
 # ── FB-style Chat API ──────────────────────────────────────────────────────────

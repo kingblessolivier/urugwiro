@@ -7,10 +7,22 @@ export default {
   theme: {
     extend: {
       colors: {
+        admin: {
+          canvas: "#0a0e17",
+          surface: "#101623",
+          card: "#151d2e",
+          cardHover: "#1c273d",
+          cardSub: "#1a2336",
+          border: "rgba(255, 255, 255, 0.14)",
+          borderLight: "rgba(255, 255, 255, 0.22)",
+          gold: "#e2ca9c",
+          goldHover: "#ebd8b5",
+          goldMuted: "rgba(226, 202, 156, 0.15)",
+        },
         brand: {
-          deep: "#05070b",
-          surface: "#0b0d12",
-          elevated: "#12141c",
+          deep: "#0a0e17",
+          surface: "#101623",
+          elevated: "#151d2e",
           emerald: {
             DEFAULT: "#10b981",
             glow: "rgba(16, 185, 129, 0.4)",

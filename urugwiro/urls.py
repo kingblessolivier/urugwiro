@@ -4,19 +4,30 @@ from .api_views import (
     ListingListView, ListingDetailView, toggle_like,
     submit_verification_docs, admin_review_document, listing_audit_log,
     get_land_articles, get_article_categories, get_article_detail,
-    manage_system_settings, api_login, api_register, api_logout,
+    manage_system_settings, api_login, api_register, api_me, api_logout,
     valuation_estimate, lifestyle_intent_search, visual_search,
     api_about, api_contact_submit, api_public_updates,
-    list_verification_requests, get_verification_request_detail
+    list_verification_requests, get_verification_request_detail,
+    seller_create_listing, generate_ai_narrative,
+    test_nvidia_connection, ai_analyze_offer, ai_verify_milestone_document,
+    list_create_offers, update_offer_status,
+    list_create_site_visits, update_site_visit_status,
+    list_create_deals, get_deal_detail, advance_deal_stage, upload_deal_document,
+    api_proposals_view, api_proposal_detail_view, api_convert_proposal_to_listing
 )
 from django.contrib.auth import views as auth_views
+
 urlpatterns = [
     # API Endpoints
     path('api/listings/', ListingListView.as_view(), name='api_listings'),
-    path('api/listings/<slug:slug>/', ListingDetailView.as_view(), name='api_listing_detail'),
+    path('api/listings/intent/', lifestyle_intent_search, name='api_listings_intent'),
+    path('api/listings/visual-search/', visual_search, name='api_listings_visual_search'),
     path('api/listings/<int:pk>/', ListingDetailView.as_view(), name='api_listing_detail_pk'),
+    path('api/listings/<slug:slug>/', ListingDetailView.as_view(), name='api_listing_detail'),
     path('api/listings/<int:pk>/like/', toggle_like, name='api_listing_like'),
     path('api/listings/<int:pk>/verify/', submit_verification_docs, name='api_listing_verify'),
+    path('api/seller/listings/create/', seller_create_listing, name='api_seller_create_listing'),
+    path('api/seller/ai/generate-narrative/', generate_ai_narrative, name='api_generate_narrative'),
     path('api/verification/', list_verification_requests, name='api_verification_list'),
     path('api/verification/<int:pk>/', get_verification_request_detail, name='api_verification_detail'),
     path('api/verification/review/<int:doc_id>/', admin_review_document, name='api_verify_review'),
@@ -27,13 +38,35 @@ urlpatterns = [
     path('api/system/settings/', manage_system_settings, name='api_system_settings'),
     path('api/auth/login/', api_login, name='api_login'),
     path('api/auth/register/', api_register, name='api_register'),
+    path('api/auth/me/', api_me, name='api_me'),
     path('api/auth/logout/', api_logout, name='api_logout'),
     path('api/valuation/estimate/', valuation_estimate, name='api_valuation_estimate'),
-    path('api/listings/intent/', lifestyle_intent_search, name='api_listings_intent'),
-    path('api/listings/visual-search/', visual_search, name='api_listings_visual_search'),
     path('api/public/about/', api_about, name='api_public_about'),
-    path('api/public/contact/', api_contact_submit, name='api_public_contact'),
     path('api/public/updates/', api_public_updates, name='api_public_updates'),
+
+    # Offers & Negotiations
+    path('api/offers/', list_create_offers, name='api_offers'),
+    path('api/offers/<int:pk>/status/', update_offer_status, name='api_offer_status'),
+
+    # Site Visits & Showings
+    path('api/visits/', list_create_site_visits, name='api_site_visits'),
+    path('api/visits/<int:pk>/status/', update_site_visit_status, name='api_site_visit_status'),
+
+    # Asset Proposals & Verification Intake
+    path('api/proposals/', api_proposals_view, name='api_proposals'),
+    path('api/proposals/<int:pk>/', api_proposal_detail_view, name='api_proposal_detail'),
+    path('api/proposals/<int:pk>/convert/', api_convert_proposal_to_listing, name='api_convert_proposal'),
+
+    # Deals & Stage Conveyance Pipeline
+    path('api/deals/', list_create_deals, name='api_deals'),
+    path('api/deals/<uuid:pk>/', get_deal_detail, name='api_deal_detail'),
+    path('api/deals/<uuid:pk>/advance-stage/', advance_deal_stage, name='api_deal_advance_stage'),
+    path('api/deals/<uuid:pk>/upload-document/', upload_deal_document, name='api_deal_upload_doc'),
+
+    # NVIDIA AI Automations
+    path('api/ai/test-connection/', test_nvidia_connection, name='api_ai_test_nvidia'),
+    path('api/ai/analyze-offer/', ai_analyze_offer, name='api_ai_analyze_offer'),
+    path('api/ai/verify-milestone/', ai_verify_milestone_document, name='api_ai_verify_milestone'),
 
     path('api/properties', views.properties, name='properties'),
     path('api/properties/<pk>', views.property_details, name='property_details'),
@@ -60,6 +93,9 @@ urlpatterns = [
     path('api/chat/history/<int:contact_id>/', views.chat_history_api, name='chat_history_api'),
     path('api/chat/send/',                  views.chat_send_api,      name='chat_send_api'),
     path('api/chat/new-users/',             views.chat_new_users_api, name='chat_new_users_api'),
+
+    # Sovereign Reports Export
+    path('api/reports/export/<str:report_type>/', views.admin_reports_export, name='api_reports_export'),
 ]
 
 

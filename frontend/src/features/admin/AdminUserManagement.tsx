@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   User, UserCheck, UserMinus, ShieldCheck,
   Search, Filter, Edit3, Trash2,
@@ -70,7 +70,6 @@ const AdminUserManagement: React.FC = () => {
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-500 mb-2">Trust & Safety</p>
             <h1 className="text-4xl font-bold tracking-tight text-white">User <span className="text-emerald-500">Registry</span></h1>
-            <p className="text-zinc-400 mt-1">Manage platform roles, access levels and account certifications.</p>
           </div>
           <Button variant="primary" className="bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all hover:scale-105 shadow-lg shadow-emerald-500/20">
             <UserPlus size={20} /> Add New User
@@ -352,3 +351,4 @@ const AdminUserManagement: React.FC = () => {
 };
 
 export default AdminUserManagement;
+

@@ -18,6 +18,8 @@ user_roles = (
     ('Agent', 'Agent'),
     ('Admin', 'Admin'),
     ('RentalManager', 'Rental Manager'),
+    ('Tenant', 'Tenant'),
+    ('Owner', 'Owner'),
 )
 
 listing_status = (
@@ -71,13 +73,46 @@ class Asset(models.Model):
         return f"{self.get_asset_type_display()} - {self.name}"
 
 class ResidentialSpec(models.Model):
+    SUB_TYPES = (
+        ('Villa', 'Villa'),
+        ('Apartment', 'Apartment'),
+        ('SingleFamily', 'Single Family House'),
+        ('Townhouse', 'Townhouse'),
+        ('ModestHouse', 'Modest / Small House'),
+        ('Duplex', 'Duplex'),
+        ('Studio', 'Studio'),
+    )
     asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name='residential_spec')
+    sub_type = models.CharField(max_length=50, choices=SUB_TYPES, default='SingleFamily')
     bedrooms = models.IntegerField(null=True, blank=True)
     bathrooms = models.IntegerField(null=True, blank=True)
+    built_up_area_sqm = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    compound_size_sqm = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     kitchen_type = models.CharField(max_length=50, choices=[('Open', 'Open'), ('Closed', 'Closed'), ('American', 'American')], null=True, blank=True)
     balcony = models.BooleanField(default=False)
     is_furnished = models.BooleanField(default=False)
     year_built = models.IntegerField(null=True, blank=True)
+
+    # Luxury & Compound Specs
+    has_swimming_pool = models.BooleanField(default=False)
+    has_staff_quarters = models.BooleanField(default=False)
+    has_garden = models.BooleanField(default=False)
+    has_water_tank = models.BooleanField(default=False)
+    has_solar_water_heater = models.BooleanField(default=False)
+    has_backup_generator = models.BooleanField(default=False)
+    security_type = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. Gated, Electric Fence, Perimeter Wall")
+
+    # Modest House & Utility Specs
+    electricity_meter = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. Cash Power Dedicated, Shared")
+    road_access_type = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. Tarmac, Cobblestone, Murram, Pedestrian")
+
+    # Apartment Specifics
+    floor_number = models.IntegerField(null=True, blank=True)
+    has_elevator = models.BooleanField(default=False)
+    monthly_service_charge = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.sub_type} Spec ({self.bedrooms} Beds, {self.bathrooms} Baths)"
 
 class CommercialSpec(models.Model):
     asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name='commercial_spec')
@@ -86,32 +121,78 @@ class CommercialSpec(models.Model):
     loading_bays = models.IntegerField(default=0)
     parking_spaces = models.IntegerField(default=0)
     foot_traffic_score = models.IntegerField(default=0, help_text="1-10")
+    total_floors = models.IntegerField(null=True, blank=True)
+    has_backup_generator = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Commercial ({self.zoning_type})"
 
 class LandSpec(models.Model):
+    TERRAIN_CHOICES = [('Flat', 'Flat'), ('Gentle Slope', 'Gentle Slope'), ('Sloped', 'Sloped'), ('Hilly', 'Hilly'), ('Rocky', 'Rocky'), ('Valley', 'Valley')]
     asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name='land_spec')
-    terrain = models.CharField(max_length=50, choices=[('Flat', 'Flat'), ('Sloped', 'Sloped'), ('Hilly', 'Hilly'), ('Rocky', 'Rocky')], null=True, blank=True)
+    upi_number = models.CharField(max_length=100, blank=True, null=True, help_text="Unique Parcel Identifier (UPI) e.g. 1/03/05/02/1234")
+    zoning_code = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. R1, R2, R3, C1, Commercial, Industrial, Agricultural")
+    terrain = models.CharField(max_length=50, choices=TERRAIN_CHOICES, null=True, blank=True)
     road_access = models.BooleanField(default=False)
+    road_type = models.CharField(max_length=50, blank=True, null=True, help_text="Asphalt/Tarmac, Cobblestone, Murram/Dirt, Footpath")
     soil_type = models.CharField(max_length=100, blank=True, null=True)
     topography = models.TextField(blank=True, null=True)
-    title_deed_number = models.CharField(max_length=100, blank=True, null=True, help_text="UPT Number")
+    title_deed_number = models.CharField(max_length=100, blank=True, null=True, help_text="UPI / Title Deed Number")
+
+    # Utilities & Infrastructure Proximity
+    water_onsite = models.BooleanField(default=False)
+    water_line_distance_meters = models.IntegerField(null=True, blank=True)
+    electricity_onsite = models.BooleanField(default=False)
+    power_pole_distance_meters = models.IntegerField(null=True, blank=True)
+    drainage_system = models.CharField(max_length=50, blank=True, null=True, help_text="Covered, Open, Natural")
+    is_in_wetland_buffer_zone = models.BooleanField(default=False)
+    cadastral_sketch = models.ImageField(upload_to='cadastral_sketches/', blank=True, null=True)
+
+    def __str__(self):
+        return f"Land Spec (UPI: {self.upi_number or self.title_deed_number or 'N/A'})"
 
 class HotelSpec(models.Model):
     asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name='hotel_spec')
     star_rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)], null=True, blank=True)
     total_rooms = models.IntegerField(null=True, blank=True)
+    conference_halls = models.IntegerField(default=0)
+    has_restaurant_bar = models.BooleanField(default=False)
+    has_commercial_license = models.BooleanField(default=True)
     amenities = models.JSONField(default=dict, blank=True, help_text="e.g. {'pool': true, 'gym': true}")
     occupancy_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     management_type = models.CharField(max_length=50, choices=[('Owner-Managed', 'Owner-Managed'), ('Franchise', 'Franchise'), ('Corporate', 'Corporate')], null=True, blank=True)
 
+    def __str__(self):
+        return f"Hotel Spec ({self.total_rooms} Rooms, {self.star_rating or '-'} Stars)"
+
 class VehicleSpec(models.Model):
+    VEHICLE_TYPES = (
+        ('Car', 'Car'),
+        ('Motorcycle', 'Motorcycle'),
+    )
     asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name='vehicle_spec')
+    vehicle_type = models.CharField(max_length=20, choices=VEHICLE_TYPES, default='Car')
     make = models.CharField(max_length=100)
     model = models.CharField(max_length=100)
     year = models.IntegerField()
-    mileage = models.IntegerField()
-    fuel_type = models.CharField(max_length=50)
-    transmission = models.CharField(max_length=50)
-    engine_capacity = models.CharField(max_length=50, blank=True, null=True)
+    mileage = models.IntegerField(default=0)
+    fuel_type = models.CharField(max_length=50, default='Petrol')
+    transmission = models.CharField(max_length=50, default='Automatic')
+    engine_capacity = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. 2000cc or 150cc")
+    condition = models.CharField(max_length=50, blank=True, null=True, help_text="Brand New, Used Foreign, Used Local")
+    body_type = models.CharField(max_length=50, blank=True, null=True, help_text="SUV, Sedan, Pickup, Minibus, Sportbike, Cruiser")
+    seating_capacity = models.IntegerField(null=True, blank=True)
+    plate_type = models.CharField(max_length=50, blank=True, null=True, help_text="Private (RAx), Commercial Yellow Plate, Temporary")
+    controle_technique_expiry = models.DateField(null=True, blank=True)
+    insurance_expiry = models.DateField(null=True, blank=True)
+
+    # Rental / Usage flags
+    includes_driver = models.BooleanField(default=False)
+    includes_helmet = models.BooleanField(default=False, help_text="For motorbikes")
+    has_delivery_rack = models.BooleanField(default=False, help_text="For delivery motorbikes")
+
+    def __str__(self):
+        return f"{self.vehicle_type}: {self.year} {self.make} {self.model}"
 
 # ─── User & Profile Architecture ───
 
@@ -140,12 +221,34 @@ class ListingOwner(models.Model):
 
 class Listing(models.Model):
     """The Base Model for every asset on the platform."""
+    PURPOSE_CHOICES = (
+        ('sale', 'For Sale'),
+        ('rent', 'For Rent'),
+    )
+    CATEGORY_CHOICES = (
+        ('house', 'House / Apartment'),
+        ('land', 'Land'),
+        ('car', 'Car'),
+        ('motorbike', 'Motorbike'),
+        ('hotel', 'Hotel / Commercial'),
+        ('service', 'Service'),
+    )
+    RENTAL_FREQUENCY_CHOICES = (
+        ('per_day', 'Per Day'),
+        ('per_month', 'Per Month'),
+        ('per_year', 'Per Year'),
+    )
+
     asset = models.ForeignKey(Asset, on_delete=models.CASCADE, related_name='listings', null=True, blank=True)
     title = models.CharField(max_length=200)
     description = models.TextField()
     listing_type = models.CharField(max_length=20, choices=listing_type)
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES, default='sale', db_index=True)
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default='house', db_index=True)
     price = models.DecimalField(max_digits=15, decimal_places=2)
     currency = models.CharField(max_length=10, default='RWF')
+    rental_frequency = models.CharField(max_length=20, choices=RENTAL_FREQUENCY_CHOICES, blank=True, null=True)
+    security_deposit = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
 
     # Location Intelligence - Now delegated to Asset
     address = models.CharField(max_length=300)
@@ -166,15 +269,26 @@ class Listing(models.Model):
         ordering = ['-date_listed']
 
     def __str__(self):
-        return f"[{self.get_listing_type_display()}] {self.title}"
+        return f"[{self.get_purpose_display()} - {self.get_category_display()}] {self.title}"
 
 class ListingMedia(models.Model):
-    """Unified media system for all asset types."""
+    """Unified media system for all asset types, supporting 3D digital twins and 360 tours."""
+    MEDIA_TYPES = [
+        ('image', 'Image'),
+        ('video', 'Video'),
+        ('360', '360 Tour'),
+        ('model_3d', '3D Digital Twin (.glb)'),
+        ('cadastral_sketch', 'UPI Cadastral Sketch'),
+    ]
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='media')
-    file = models.ImageField(upload_to='listing_media/')
-    media_type = models.CharField(max_length=20, choices=[('image', 'Image'), ('video', 'Video'), ('360', '360 Tour')], default='image')
-    category = models.CharField(max_length=50, blank=True, help_text="e.g. Interior, Exterior, Drone")
+    file = models.FileField(upload_to='listing_media/')
+    media_type = models.CharField(max_length=30, choices=MEDIA_TYPES, default='image')
+    category = models.CharField(max_length=50, blank=True, help_text="e.g. Interior, Exterior, Drone, FloorPlan")
     caption = models.CharField(max_length=200, blank=True)
+    room_name = models.CharField(max_length=100, blank=True, help_text="e.g. Living Room, Master Bedroom, Compound")
+    initial_yaw = models.FloatField(default=0.0, blank=True, null=True)
+    initial_pitch = models.FloatField(default=0.0, blank=True, null=True)
+    hotspots = models.JSONField(default=list, blank=True, help_text="Navigation pins linking to other rooms")
     order = models.PositiveSmallIntegerField(default=0)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -419,16 +533,133 @@ class Agent(models.Model):
     date_joined = models.DateTimeField(auto_now_add=True)
 
 class Offer(models.Model):
+    FINANCING_CHOICES = (
+        ('cash', 'Cash / Direct Escrow'),
+        ('bank_mortgage', 'Bank Mortgage / Financing'),
+        ('installment', 'Staged Installments'),
+    )
+
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='offers', null=True, blank=True)
     buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='offers_made')
     agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, null=True, blank=True, related_name='offers_handled')
     amount = models.DecimalField(max_digits=15, decimal_places=2)
     counter_amount = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    escrow_proposed_percent = models.DecimalField(max_digits=5, decimal_places=2, default=10.0, blank=True)
+    financing_type = models.CharField(max_length=50, choices=FINANCING_CHOICES, default='cash')
+    proposed_closing_date = models.DateField(null=True, blank=True)
     message = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('accepted', 'Accepted'), ('rejected', 'Rejected'), ('countered', 'Countered'), ('expired', 'Expired')], default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     expires_at = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Offer {self.id}: {self.amount} for {self.listing.title if self.listing else 'Asset'} ({self.status})"
+
+
+class TransactionDeal(models.Model):
+    """End-to-End Deal Conveyance Pipeline for Sales and Rentals."""
+    DEAL_TYPES = (
+        ('sale', 'Property Sale Conveyance'),
+        ('rental', 'Rental Lease Agreement'),
+    )
+
+    SALE_STAGES = (
+        ('offer_accepted', 'Offer Agreed & Terms Locked'),
+        ('escrow_funded', 'Earnest Escrow Deposited (5-10%)'),
+        ('due_diligence', 'RLMUA Title Search & Caveat Check'),
+        ('irembo_filing', 'Irembo Notary Filing Submitted'),
+        ('notary_signing', 'Notary Deed Conveyance Signed'),
+        ('settled_closed', 'Settlement Completed & Title Conveyed'),
+        ('cancelled', 'Deal Cancelled'),
+    )
+
+    RENTAL_STAGES = (
+        ('viewing_approved', 'Viewing & Tenant Profile Approved'),
+        ('terms_agreed', 'Rent & Lease Duration Agreed'),
+        ('deposit_funded', 'Security Deposit Committed in Escrow'),
+        ('contract_signed', 'Lease Agreement Executed'),
+        ('keys_handed', 'État des Lieux & Keys Handed Over'),
+        ('active_lease', 'Active Tenancy Under Management'),
+        ('terminated', 'Lease Terminated'),
+    )
+
+    ESCROW_STATUS_CHOICES = (
+        ('pending_deposit', 'Awaiting Escrow Deposit'),
+        ('held_in_escrow', 'Held in Bank Escrow'),
+        ('released_to_seller', 'Disbursed to Seller'),
+        ('refunded', 'Refunded to Buyer'),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='deals')
+    offer = models.OneToOneField('Offer', on_delete=models.SET_NULL, null=True, blank=True, related_name='deal')
+    deal_type = models.CharField(max_length=20, choices=DEAL_TYPES, default='sale')
+
+    buyer_or_tenant = models.ForeignKey(User, on_delete=models.CASCADE, related_name='deals_as_buyer')
+    seller_or_landlord = models.ForeignKey(ListingOwner, on_delete=models.CASCADE, related_name='deals_as_seller')
+    assigned_agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, null=True, blank=True, related_name='deals_managed')
+
+    agreed_price = models.DecimalField(max_digits=15, decimal_places=2)
+    currency = models.CharField(max_length=10, default='RWF')
+    escrow_deposit_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    escrow_status = models.CharField(max_length=30, choices=ESCROW_STATUS_CHOICES, default='pending_deposit')
+
+    current_stage = models.CharField(max_length=40, default='offer_accepted')
+    progress_percentage = models.IntegerField(default=15)
+
+    # Sovereign Legal Rwandan Registry Details
+    irembo_bill_id = models.CharField(max_length=100, blank=True, help_text="Irembo Gov Notary Application ID")
+    land_upi = models.CharField(max_length=50, blank=True, help_text="Rwandan Parcel UPI Number")
+    notary_office = models.CharField(max_length=150, blank=True, help_text="e.g. Gasabo District Notary Office")
+    target_closing_date = models.DateField(null=True, blank=True)
+
+    notes = models.TextField(blank=True)
+    timeline = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Deal {self.id} [{self.deal_type.upper()}] - {self.listing.title} ({self.current_stage})"
+
+
+class DealDocument(models.Model):
+    """Paperwork, Contracts, Deeds, and Receipts for a Transaction Deal."""
+    DOCUMENT_TYPES = (
+        ('title_deed', 'Official Title Deed / UPI Certificate'),
+        ('sales_contract', 'Bilateral Sales Agreement'),
+        ('lease_contract', 'Residential / Commercial Lease Agreement'),
+        ('escrow_receipt', 'Bank Escrow Deposit Confirmation'),
+        ('irembo_receipt', 'Irembo Notary Application Bill / Receipt'),
+        ('inspection_report', 'État des Lieux / Technical Inspection'),
+        ('tax_clearance', 'RRA Property Tax Clearance Certificate'),
+        ('id_proof', 'National ID / Passport Verification'),
+        ('vehicle_carte_jaune', 'Vehicle Logbook (Carte Jaune)'),
+        ('controle_technique', 'Police Vehicle Inspection Certificate'),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    deal = models.ForeignKey(TransactionDeal, on_delete=models.CASCADE, related_name='documents')
+    document_type = models.CharField(max_length=40, choices=DOCUMENT_TYPES)
+    title = models.CharField(max_length=200)
+    file = models.FileField(upload_to='deal_paperwork/%Y/%m/')
+
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    is_verified = models.BooleanField(default=False)
+    verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_deal_docs')
+    ai_extracted_data = models.JSONField(default=dict, blank=True)
+    ai_validation_notes = models.TextField(blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['uploaded_at']
+
+    def __str__(self):
+        return f"Document: {self.title} ({self.get_document_type_display()}) for Deal {self.deal.id}"
+
 
 class AgentAssignment(models.Model):
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name='assignments')
@@ -455,6 +686,92 @@ class PropertyInquiry(models.Model):
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+class ListingProposal(models.Model):
+    """Intake for public property owners submitting assets for inspection & onboarding."""
+    RELATIONSHIP_CHOICES = (
+        ('direct_owner', 'Direct Property Owner'),
+        ('representative', 'Authorized Representative (POA)'),
+        ('broker', 'Licensed Broker / Agency'),
+        ('developer', 'Real Estate Developer'),
+    )
+    ASSET_TYPE_CHOICES = (
+        ('house', 'Residential Villa / House'),
+        ('land', 'Land Parcel'),
+        ('apartment', 'Apartment / Condominium'),
+        ('commercial', 'Commercial / Office Building'),
+        ('vehicle', 'Mobility / Vehicle'),
+    )
+    PURPOSE_CHOICES = (
+        ('sale', 'For Sale'),
+        ('rent', 'For Rent / Lease'),
+    )
+    STATUS_CHOICES = (
+        ('pending', 'Pending Cadastral Review'),
+        ('visit_scheduled', 'Physical Visit Scheduled'),
+        ('inspected', 'Inspected & Surveyed'),
+        ('approved', 'Approved & Converted to Listing'),
+        ('rejected', 'Rejected / Ineligible'),
+    )
+    TIME_SLOT_CHOICES = (
+        ('morning', 'Morning (09:00 - 12:00)'),
+        ('afternoon', 'Afternoon (14:00 - 17:00)'),
+        ('anytime', 'Anytime during working hours'),
+    )
+
+    proposal_code = models.CharField(max_length=30, unique=True, blank=True)
+    full_name = models.CharField(max_length=150)
+    phone_number = models.CharField(max_length=30)
+    email = models.EmailField(max_length=150)
+    id_number = models.CharField(max_length=50, blank=True, help_text="National ID or Passport Number")
+    owner_relationship = models.CharField(max_length=30, choices=RELATIONSHIP_CHOICES, default='direct_owner')
+
+    title = models.CharField(max_length=200, help_text="e.g. Modern 4BR Villa in Nyarutarama")
+    asset_type = models.CharField(max_length=30, choices=ASSET_TYPE_CHOICES, default='house')
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES, default='sale')
+    district = models.CharField(max_length=100)
+    sector = models.CharField(max_length=100, blank=True)
+    cell = models.CharField(max_length=100, blank=True)
+    address = models.CharField(max_length=250)
+    land_upi = models.CharField(max_length=50, blank=True, help_text="Rwandan Land UPI Number")
+
+    proposed_price = models.DecimalField(max_digits=15, decimal_places=2)
+    currency = models.CharField(max_length=10, default='RWF')
+    size_sqm = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    bedrooms = models.IntegerField(null=True, blank=True)
+    bathrooms = models.IntegerField(null=True, blank=True)
+    sub_type = models.CharField(max_length=50, blank=True, help_text="e.g. Villa, Apartment, Plot, Office, SUV")
+    specifications = models.JSONField(default=dict, blank=True, help_text="Dynamic domain-specific specs (vehicle, land, commercial, residential)")
+    description = models.TextField(blank=True)
+
+    preferred_visit_date = models.DateField(null=True, blank=True)
+    preferred_time_slot = models.CharField(max_length=20, choices=TIME_SLOT_CHOICES, default='morning')
+    site_contact_name = models.CharField(max_length=150, blank=True)
+    site_contact_phone = models.CharField(max_length=30, blank=True)
+    site_access_notes = models.TextField(blank=True, help_text="Gate codes, landmarks, caretaker details")
+
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pending')
+    assigned_agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_proposals')
+    converted_listing = models.ForeignKey(Listing, on_delete=models.SET_NULL, null=True, blank=True, related_name='origin_proposal')
+    admin_notes = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.proposal_code:
+            import random
+            from django.utils import timezone
+            year = timezone.now().year
+            code_num = random.randint(1000, 9999)
+            self.proposal_code = f"PROP-{year}-{code_num}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"[{self.proposal_code}] {self.title} ({self.get_status_display()})"
 
 class AgentReview(models.Model):
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name='reviews')
@@ -600,18 +917,51 @@ class MaintenanceRequest(models.Model):
     status = models.CharField(max_length=20, choices=[('open', 'Open'), ('in_progress', 'In Progress'), ('completed', 'Completed')], default='open')
 
 class Payment(models.Model):
+    PAYMENT_METHODS = [
+        ('momo', 'MTN Mobile Money'),
+        ('airtel', 'Airtel Money'),
+        ('card', 'Credit / Debit Card'),
+        ('bank', 'Bank Transfer'),
+        ('cash', 'Cash'),
+    ]
+    PAYMENT_TYPES = [
+        ('rent', 'Rent Payment'),
+        ('deposit', 'Security Deposit / Escrow'),
+        ('purchase', 'Asset Purchase'),
+        ('booking', 'Site Visit / Inspection Fee'),
+    ]
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded'),
+    ]
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='payments', null=True, blank=True)
     property = models.ForeignKey('Property', on_delete=models.CASCADE, null=True, blank=True)
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='payments')
-    amount = models.IntegerField()
+    tenant = models.ForeignKey(Tenant, on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
+    payer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='payments_made')
+    amount = models.DecimalField(max_digits=15, decimal_places=2, default=0.0)
+    currency = models.CharField(max_length=10, default='RWF')
+    payment_method = models.CharField(max_length=30, choices=PAYMENT_METHODS, default='momo')
+    payment_type = models.CharField(max_length=30, choices=PAYMENT_TYPES, default='rent')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='completed')
+    transaction_reference = models.CharField(max_length=100, blank=True, null=True, unique=True)
+    gateway_response = models.JSONField(default=dict, blank=True)
     date_paid = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.payment_method.upper()} - {self.amount} {self.currency} ({self.status})"
+
 class Message(models.Model):
+    listing = models.ForeignKey(Listing, on_delete=models.SET_NULL, null=True, blank=True, related_name='messages')
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
     content = models.TextField()
     sent_date = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Msg from {self.sender} to {self.recipient}"
 
 class Visit(models.Model):
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='visits', null=True, blank=True)

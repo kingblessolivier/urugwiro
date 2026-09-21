@@ -2,7 +2,8 @@ import React from 'react';
 import { PublicHeader } from './PublicHeader';
 import { PublicFooter } from './PublicFooter';
 import { MobileTabBar } from './MobileTabBar';
-import type { AppView } from '../../types/navigation';
+import { isAuthView, type AppView } from '../../types/navigation';
+import { cn } from '../../lib/utils';
 
 interface PublicLayoutProps {
   view: AppView;
@@ -18,11 +19,15 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
   onSearch,
   children,
   showFooter = true,
-}) => (
-  <div className="flex min-h-screen flex-col bg-[#f9fafb] text-slate-900">
-    <PublicHeader view={view} onNavigate={onNavigate} onSearch={onSearch} />
-    <main className="flex-1 pb-20 md:pb-0">{children}</main>
-    {showFooter ? <PublicFooter onNavigate={onNavigate} /> : null}
-    <MobileTabBar view={view} onNavigate={onNavigate} />
-  </div>
-);
+}) => {
+  const isAuth = isAuthView(view);
+
+  return (
+    <div className="flex min-h-screen flex-col bg-[#05070b] text-white font-sans antialiased selection:bg-emerald-500/30 w-full max-w-full overflow-x-hidden">
+      <PublicHeader view={view} onNavigate={onNavigate} onSearch={onSearch} />
+      <main className={cn("flex-1 w-full max-w-full overflow-x-hidden", !isAuth && "pb-20 md:pb-0")}>{children}</main>
+      {showFooter && !isAuth ? <PublicFooter onNavigate={onNavigate} /> : null}
+      {!isAuth && <MobileTabBar view={view} onNavigate={onNavigate} />}
+    </div>
+  );
+};

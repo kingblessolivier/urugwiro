@@ -5,12 +5,15 @@ export const api = {
     auth: {
         login: (data: any) => apiClient.post('/auth/login/', data),
         register: (data: any) => apiClient.post('/auth/register/', data),
+        me: () => apiClient.get('/auth/me/'),
+        logout: (refresh?: string) => apiClient.post('/auth/logout/', { refresh }),
     },
 
     // Listings
     listings: {
         list: (params?: any) => apiClient.get('/listings/', { params }),
         detail: (slug: string) => apiClient.get(`/listings/${slug}/`),
+        get: (slugOrId: string) => apiClient.get(`/listings/${slugOrId}/`),
         like: (id: string) => apiClient.post(`/listings/${id}/like/`),
         searchIntent: (intent: string) => apiClient.post('/listings/intent/', { intent }),
         visualSearch: (image: File) => {
@@ -80,9 +83,73 @@ export const api = {
         messages: () => apiClient.get('/tenant/messages/'),
     },
 
+    // Deals & Transaction Pipeline
+    deals: {
+        list: () => apiClient.get('/deals/'),
+        get: (id: string) => apiClient.get(`/deals/${id}/`),
+        create: (data: any) => apiClient.post('/deals/', data),
+        advanceStage: (id: string, data: { next_stage?: string; notes?: string; escrow_status?: string; irembo_bill_id?: string }) =>
+            apiClient.post(`/deals/${id}/advance-stage/`, data),
+        uploadDocument: (id: string, formData: FormData) =>
+            apiClient.post(`/deals/${id}/upload-document/`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            }),
+    },
+
+    // Offers & Negotiations
+    offers: {
+        list: (params?: any) => apiClient.get('/offers/', { params }),
+        create: (data: any) => apiClient.post('/offers/', data),
+        updateStatus: (id: number | string, data: { status: 'accepted' | 'rejected' | 'countered'; counter_amount?: number }) =>
+            apiClient.post(`/offers/${id}/status/`, data),
+    },
+
+    // Site Visits & Showings
+    visits: {
+        list: () => apiClient.get('/visits/'),
+        create: (data: any) => apiClient.post('/visits/', data),
+        updateStatus: (id: number | string, data: { status?: string; report?: string }) =>
+            apiClient.post(`/visits/${id}/status/`, data),
+    },
+
+    // NVIDIA AI Automations
+    ai: {
+        testConnection: (apiKey?: string, model?: string) => apiClient.post('/ai/test-connection/', { api_key: apiKey, model }),
+        analyzeOffer: (listingId: string | number, amount: number) =>
+            apiClient.post('/ai/analyze-offer/', { listing_id: listingId, amount }),
+        verifyMilestone: (dealId: string, docType: string, extractedText: string) =>
+            apiClient.post('/ai/verify-milestone/', { deal_id: dealId, document_type: docType, extracted_text: extractedText }),
+    },
+
     // Settings
     settings: {
-        get: () => apiClient.get('/system-settings/'),
-        update: (data: any) => apiClient.patch('/system-settings/', data),
+        get: () => apiClient.get('/system/settings/'),
+        update: (data: any) => apiClient.post('/system/settings/', data),
+    },
+
+    // Real-Time Chat & Sovereign Communications
+    chat: {
+        contacts: () => apiClient.get('/chat/contacts/'),
+        history: (contactId: number | string, sinceId?: number) =>
+            apiClient.get(`/chat/history/${contactId}/`, { params: sinceId ? { since_id: sinceId } : undefined }),
+        send: (toId: number | string, content: string) =>
+            apiClient.post('/chat/send/', { to_id: toId, content }),
+        newUsers: (query?: string) => apiClient.get('/chat/new-users/', { params: query ? { q: query } : undefined }),
+    },
+
+    // Asset Proposals & Physical Inspection Intake
+    proposals: {
+        create: (data: any) => apiClient.post('/proposals/', data),
+        list: (params?: { status?: string; search?: string }) => apiClient.get('/proposals/', { params }),
+        get: (id: number | string) => apiClient.get(`/proposals/${id}/`),
+        update: (id: number | string, data: any) => apiClient.patch(`/proposals/${id}/`, data),
+        convert: (id: number | string) => apiClient.post(`/proposals/${id}/convert/`),
+    },
+
+    // Sovereign Reports & CSV Exports
+    reports: {
+        exportUrl: (reportType: string) => `/api/reports/export/${reportType}/`,
     },
 };
+
+

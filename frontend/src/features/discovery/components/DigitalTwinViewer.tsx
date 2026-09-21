@@ -22,7 +22,7 @@ const DigitalTwinViewer: React.FC<DigitalTwinViewerProps> = ({ listingId, modelU
 
         // Camera setup
         const camera = new THREE.PerspectiveCamera(
-            75,87
+            75,
             mountRef.current.clientWidth / mountRef.current.clientHeight,
             0.1,
             1000

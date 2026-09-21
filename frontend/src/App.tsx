@@ -12,6 +12,10 @@ import AdminOffers from './features/admin/AdminOffers';
 import AdminReports from './features/admin/AdminReports';
 import AdminUserManagement from './features/admin/AdminUserManagement';
 import AdminPropertyWizard from './features/admin/AdminPropertyWizard';
+import AdminInbox from './features/admin/AdminInbox';
+import TenantLaunchpad from './features/tenant/TenantLaunchpad';
+import AgentLaunchpad from './features/agent/AgentLaunchpad';
+import OwnerLaunchpad from './features/owner/OwnerLaunchpad';
 import LoginPage from './features/auth/LoginPage';
 import RegisterPage from './features/auth/RegisterPage';
 import AboutPage from './features/public/AboutPage';
@@ -20,11 +24,13 @@ import UpdatesPage from './features/public/UpdatesPage';
 import HomePage from './features/public/HomePage';
 import LandInformationPage from './features/public/LandInformationPage';
 import ServicesPage from './features/public/ServicesPage';
+import AssetProposalPage from './features/public/AssetProposalPage';
 import { PublicLayout } from './components/layout/PublicLayout';
+import { AdminLayout } from './components/layout/AdminLayout';
 import { Button } from './components/ui/Button';
+import { isAuthView, isPublicView, isAdminView, type AppView } from './types/navigation';
 import { cn } from './lib/utils';
-import { isAuthView, isPublicView, type AppView } from './types/navigation';
-import './App.css';
+
 
 function App() {
   const [view, setView] = useState<AppView>('home');
@@ -70,11 +76,19 @@ function App() {
       case 'admin-users':
         return <AdminUserManagement />;
       case 'admin-property-wizard':
-        return <AdminPropertyWizard />;
+        return <AdminPropertyWizard onNavigate={setView} />;
+      case 'admin-inbox':
+        return <AdminInbox />;
+      case 'tenant-dashboard':
+        return <TenantLaunchpad />;
+      case 'agent-dashboard':
+        return <AgentLaunchpad />;
+      case 'owner-dashboard':
+        return <OwnerLaunchpad />;
       case 'login':
-        return <LoginPage />;
+        return <LoginPage onNavigate={setView} />;
       case 'register':
-        return <RegisterPage />;
+        return <RegisterPage onNavigate={setView} />;
       case 'about':
         return <AboutPage onNavigate={setView} />;
       case 'contact':
@@ -85,14 +99,29 @@ function App() {
         return <LandInformationPage onNavigate={setView} />;
       case 'services':
         return <ServicesPage onNavigate={setView} />;
+      case 'submit-proposal':
+        return <AssetProposalPage onNavigate={setView} />;
       default:
-        return <HomePage onExplore={goExplore} onSell={() => setView('seller-wizard')} onNavigate={setView} onListingClick={navigateToListing} />;
+        return <HomePage onExplore={goExplore} onSell={() => setView('submit-proposal')} onNavigate={setView} onListingClick={navigateToListing} />;
     }
   };
 
   if (isAuthView(view)) {
-    return renderContent();
+    return (
+      <PublicLayout view={view} onNavigate={setView} onSearch={goExplore} showFooter={false}>
+        {renderContent()}
+      </PublicLayout>
+    );
   }
+
+  if (isAdminView(view)) {
+    return (
+      <AdminLayout currentView={view} onNavigate={setView}>
+        {renderContent()}
+      </AdminLayout>
+    );
+  }
+
 
   if (isPublicView(view)) {
     return (
@@ -103,7 +132,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#05070b] text-zinc-100 font-sans antialiased">
+    <div className="min-h-screen bg-[#05070b] text-zinc-100 font-sans antialiased w-full max-w-full overflow-x-hidden">
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0b0d12]/85 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <button type="button" className="flex items-center gap-2" onClick={() => setView('home')}>

@@ -3,6 +3,8 @@ import FilterPane from './components/FilterPane';
 import ResultsGrid from './components/ResultsGrid';
 import DiscoveryMap from './components/DiscoveryMap';
 import { api } from '../../api/endpoints';
+import { Sparkles, Image as ImageIcon, Search, SlidersHorizontal, Map, Grid, CheckCircle2 } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
 
 interface DiscoveryPageProps {
     onListingClick?: (id: string) => void;
@@ -13,6 +15,8 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
     const [filters, setFilters] = useState({
         search: initialQuery,
         type: 'All',
+        purpose: 'All',
+        category: 'All',
         minPrice: '',
         maxPrice: '',
         city: '',
@@ -25,7 +29,9 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
     const [intentQuery, setIntentQuery] = useState('');
     const [isAnalyzingIntent, setIsAnalyzingIntent] = useState(false);
     const [isVisualSearching, setIsVisualSearching] = useState(false);
-    const [listings, setListings] = useState<unknown[]>([]);
+    const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+    const [listings, setListings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -61,16 +67,40 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
             const response = await api.listings.searchIntent(intentQuery);
             const { filters: aiFilters } = response.data;
 
-            setFilters(prev => ({
-                ...prev,
-                search: aiFilters.keywords ? aiFilters.keywords.join(' ') : prev.search,
-                type: aiFilters.propertyType || prev.type,
-                minPrice: aiFilters.min_price || prev.minPrice,
-                maxPrice: aiFilters.max_price || prev.maxPrice,
-                city: aiFilters.city || prev.city,
-                district: aiFilters.district || prev.district,
-                sector: aiFilters.sector || prev.sector,
-            }));
+            setFilters(prev => {
+                const rawCat = (aiFilters.category || aiFilters.propertyType || '').toLowerCase();
+                const rawPurp = (aiFilters.purpose || aiFilters.listingType || '').toLowerCase();
+
+                let mappedCat = prev.category;
+                if (rawCat.includes('house') || rawCat.includes('villa') || rawCat.includes('home') || rawCat.includes('residen') || rawCat.includes('apartment')) {
+                    mappedCat = 'house';
+                } else if (rawCat.includes('land') || rawCat.includes('plot')) {
+                    mappedCat = 'land';
+                } else if (rawCat.includes('hotel') || rawCat.includes('commercial')) {
+                    mappedCat = 'hotel';
+                } else if (rawCat.includes('car') || rawCat.includes('vehicle')) {
+                    mappedCat = 'car';
+                }
+
+                let mappedPurp = prev.purpose;
+                if (rawPurp.includes('rent') || rawPurp.includes('lease')) {
+                    mappedPurp = 'rent';
+                } else if (rawPurp.includes('sale') || rawPurp.includes('buy')) {
+                    mappedPurp = 'sale';
+                }
+
+                return {
+                    ...prev,
+                    search: aiFilters.keywords ? (Array.isArray(aiFilters.keywords) ? aiFilters.keywords.join(' ') : String(aiFilters.keywords)) : prev.search,
+                    category: mappedCat,
+                    purpose: mappedPurp,
+                    minPrice: aiFilters.min_price !== undefined ? String(aiFilters.min_price) : prev.minPrice,
+                    maxPrice: aiFilters.max_price !== undefined ? String(aiFilters.max_price) : prev.maxPrice,
+                    city: aiFilters.city || prev.city,
+                    district: aiFilters.district || prev.district,
+                    sector: aiFilters.sector || prev.sector,
+                };
+            });
             setIntentQuery('');
         } catch (error) {
             console.error('Intent analysis failed:', error);
@@ -87,7 +117,7 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
         setIsVisualSearching(true);
         try {
             const response = await api.listings.visualSearch(file);
-            setListings(response.data.listings);
+            setListings(response.data?.listings || []);
             setLoading(false);
         } catch (error) {
             console.error('Visual search failed:', error);
@@ -98,54 +128,114 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
     };
 
     return (
-        <div className="flex min-h-[calc(100vh-4rem)] overflow-hidden bg-[#f9fafb] text-slate-900">
-            <aside className="hidden w-[280px] shrink-0 border-r border-slate-200 bg-white lg:block">
+        <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-[#05070b] text-white w-full max-w-full">
+            {/* Desktop Filter Sidebar */}
+            <aside className="hidden w-[310px] shrink-0 overflow-y-auto border-r border-white/10 bg-[#080b11] lg:block">
                 <FilterPane filters={filters} setFilters={setFilters} />
             </aside>
 
+            {/* Main Content Area */}
             <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                <header className="border-b border-slate-200 bg-white px-4 py-4 lg:px-6">
-                    <form onSubmit={handleIntentSearch} className="flex flex-col gap-2 sm:flex-row">
-                        <input
-                            type="text"
-                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-emerald-600"
-                            placeholder="Try: 3 bedroom house in Kicukiro"
-                            value={intentQuery}
-                            onChange={(e) => setIntentQuery(e.target.value)}
-                        />
-                        <div className="flex gap-2">
-                            <label className="flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 px-3 text-sm text-slate-600" title="Visual Search">
-                                Image
-                                <input type="file" className="hidden" accept="image/*" onChange={handleVisualSearch} />
-                            </label>
-                            <button
+                {/* Top Semantic & Visual Search Bar */}
+                <header className="border-b border-white/10 bg-[#080b11]/90 px-4 py-3.5 backdrop-blur-xl lg:px-6">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <form onSubmit={handleIntentSearch} className="flex flex-1 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-1.5 focus-within:border-emerald-500/50 transition-colors">
+                            <div className="flex flex-1 items-center gap-2.5 px-3">
+                                <Sparkles size={16} className="text-emerald-400 shrink-0" />
+                                <input
+                                    type="text"
+                                    className="w-full bg-transparent text-sm text-white placeholder:text-zinc-600 outline-none"
+                                    placeholder="Ask AI: e.g. 4 bedroom villa with pool in Nyarutarama under 400M"
+                                    value={intentQuery}
+                                    onChange={(e) => setIntentQuery(e.target.value)}
+                                />
+                            </div>
+                            <Button
                                 type="submit"
                                 disabled={isAnalyzingIntent || isVisualSearching}
-                                className="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                                className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-600 disabled:opacity-50"
                             >
-                                {isAnalyzingIntent ? 'Searching...' : 'Search'}
+                                {isAnalyzingIntent ? 'Interpreting...' : 'AI Search'}
+                            </Button>
+                        </form>
+
+                        <div className="flex items-center gap-2">
+                            {/* Visual Search Button */}
+                            <label className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs font-semibold text-zinc-300 hover:border-emerald-500/40 hover:bg-white/[0.06] transition-colors" title="Upload property photo for reverse search">
+                                <ImageIcon size={14} className="text-emerald-400" />
+                                <span className="hidden md:inline">Reverse Image</span>
+                                <input type="file" className="hidden" accept="image/*" onChange={handleVisualSearch} />
+                            </label>
+
+                            {/* Mobile Filter Toggle */}
+                            <button
+                                type="button"
+                                onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
+                                className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs font-semibold text-zinc-300 hover:text-white lg:hidden"
+                            >
+                                <SlidersHorizontal size={14} />
+                                <span>Filter</span>
                             </button>
+
+                            {/* Map / Grid View Toggle on all screen sizes */}
+                            <div className="flex items-center rounded-xl border border-white/10 bg-white/[0.03] p-1">
+                                <button
+                                    onClick={() => setViewMode('grid')}
+                                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${viewMode === 'grid' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'text-zinc-400 hover:text-white'}`}
+                                    title="Show full catalog grid"
+                                >
+                                    <Grid size={13} />
+                                    <span className="hidden sm:inline">Grid</span>
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('map')}
+                                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${viewMode === 'map' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'text-zinc-400 hover:text-white'}`}
+                                    title="Show spatial map view"
+                                >
+                                    <Map size={13} />
+                                    <span className="hidden sm:inline">Map</span>
+                                </button>
+                            </div>
                         </div>
-                    </form>
+                    </div>
                 </header>
 
+                {/* Mobile Filter Drawer */}
+                {mobileFilterOpen && (
+                    <div className="border-b border-white/10 bg-[#080b11] p-4 lg:hidden max-h-[50vh] overflow-y-auto">
+                        <FilterPane filters={filters} setFilters={setFilters} />
+                    </div>
+                )}
+
+                {/* Content View: Split Catalog Grid & GIS Map */}
                 <div className="flex flex-1 overflow-hidden">
-                    <section className="flex-1 overflow-y-auto p-4 lg:p-6">
+                    {/* Catalog Results Grid */}
+                    <section className={`flex-1 overflow-y-auto p-5 lg:p-8 ${viewMode === 'map' ? 'hidden md:block md:w-1/2 xl:w-[58%]' : 'block w-full'}`}>
                         <div className="mb-6 flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Explore</p>
-                                <h1 className="mt-1 text-2xl font-semibold tracking-tight">Marketplace</h1>
+                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">Curated Showcase</span>
+                                <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Verified Assets</h1>
                             </div>
-                            <div className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600">
-                                {listings.length} results
+                            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-medium text-zinc-300">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                <span>{listings.length} properties cataloged</span>
                             </div>
                         </div>
-                        <ResultsGrid listings={listings} loading={loading || isVisualSearching} onListingClick={onListingClick} />
+
+                        <ResultsGrid
+                            listings={listings}
+                            loading={loading || isVisualSearching}
+                            onListingClick={onListingClick}
+                            columns={viewMode === 'grid' ? 3 : 2}
+                        />
                     </section>
 
-                    <section className="relative hidden min-w-[320px] w-[38%] border-l border-slate-200 bg-white xl:block">
-                        <DiscoveryMap listings={listings} />
-                    </section>
+                    {/* Spatial GIS Map Container - Only shown when in map mode */}
+                    {viewMode === 'map' && (
+                        <section className="relative flex-1 md:w-1/2 xl:w-[42%] border-l border-white/10 bg-[#080b11]">
+                            <DiscoveryMap listings={listings} />
+                        </section>
+                    )}
                 </div>
             </main>
         </div>

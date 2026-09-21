@@ -29,18 +29,17 @@ class ValuationService:
         # 2. Hierarchical search for comparables
         comparables = []
         search_levels = [
-            {'sector': sector},
-            {'district': district},
-            {'city': city},
+            {'asset__sector__iexact': sector} if sector else {},
+            {'asset__district__iexact': district} if district else {},
+            {'asset__province__iexact': city} if city else {},
         ]
 
         for level in search_levels:
-            if not any(level.values()): continue
+            if not level: continue
 
             # Filter active listings of the same type in the current location level
             qs = Listing.objects.filter(
                 status='listed',
-                listing_type=property_type,
                 **level
             )
 

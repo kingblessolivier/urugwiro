@@ -20,9 +20,12 @@ media/
 staticfiles/
 
 # Frontend dependencies and build output
+node_modules/
 frontend/node_modules/
+dist/
 frontend/dist/
 frontend/.vite/
+.git-corrupt-backup/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

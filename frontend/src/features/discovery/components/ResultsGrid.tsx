@@ -1,5 +1,7 @@
 import React from 'react';
 import { ListingCard, type ListingCardData } from '../../../components/ui/ListingCard';
+import { SearchX, RotateCcw } from 'lucide-react';
+import { Button } from '../../../components/ui/Button';
 
 interface Listing {
     id: string;
@@ -21,14 +23,19 @@ interface ResultsGridProps {
     listings: Listing[];
     loading: boolean;
     onListingClick?: (id: string) => void;
+    columns?: 2 | 3;
 }
 
-const ResultsGrid: React.FC<ResultsGridProps> = ({ listings, loading, onListingClick }) => {
+const ResultsGrid: React.FC<ResultsGridProps> = ({ listings, loading, onListingClick, columns = 3 }) => {
+    const gridClass = columns === 3
+        ? 'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'
+        : 'grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-2';
+
     if (loading) {
         return (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className={gridClass}>
                 {[...Array(6)].map((_, i) => (
-                    <div key={i} className="h-[320px] animate-pulse rounded-2xl border border-slate-200 bg-slate-100" />
+                    <div key={i} className="aspect-[4/5] animate-pulse rounded-2xl border border-white/10 bg-white/[0.02]" />
                 ))}
             </div>
         );
@@ -36,22 +43,29 @@ const ResultsGrid: React.FC<ResultsGridProps> = ({ listings, loading, onListingC
 
     if (listings.length === 0) {
         return (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-                <h2 className="text-xl font-semibold text-slate-900">No listings match these filters</h2>
-                <p className="mt-2 text-sm text-slate-600">Try expanding the location, increasing the budget, or removing a filter.</p>
-                <button
-                    type="button"
-                    onClick={() => window.location.reload()}
-                    className="mt-6 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700"
-                >
-                    Clear filters
-                </button>
+            <div className="rounded-3xl border border-dashed border-white/15 bg-white/[0.02] p-12 text-center backdrop-blur-xl">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.04] text-zinc-500">
+                    <SearchX size={26} />
+                </div>
+                <h2 className="text-xl font-bold text-white">No properties match your current filters</h2>
+                <p className="mt-2 text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
+                    Try broadening your price parameters, expanding your target district, or resetting specific search constraints.
+                </p>
+                <div className="mt-6">
+                    <Button
+                        variant="secondary"
+                        onClick={() => window.location.reload()}
+                        className="rounded-xl border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+                    >
+                        <RotateCcw size={14} className="mr-2 inline" /> Reset All Filters
+                    </Button>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className={gridClass}>
             {listings.map((listing) => (
                 <ListingCard
                     key={listing.id}
