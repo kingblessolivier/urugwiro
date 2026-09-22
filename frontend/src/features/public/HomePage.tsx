@@ -48,6 +48,7 @@ interface HeroSlide {
   searchPlaceholder: string;
   caption: string;
   price: string;
+  watermark: string;
 }
 
 const HERO_SLIDES: HeroSlide[] = [
@@ -62,6 +63,7 @@ const HERO_SLIDES: HeroSlide[] = [
     searchPlaceholder: 'Search villas in Nyarutarama, Gacuriro, Kiyovu...',
     caption: 'Modern Villa, Nyarutarama',
     price: '480,000,000 RWF',
+    watermark: 'ESTATES',
   },
   {
     id: 'land',
@@ -74,6 +76,7 @@ const HERO_SLIDES: HeroSlide[] = [
     searchPlaceholder: 'Search titled plots in Gasabo, Kicukiro, Bugesera...',
     caption: 'Titled Hillside Parcel, Gasabo',
     price: '95,000,000 RWF',
+    watermark: 'CADASTRE',
   },
   {
     id: 'car',
@@ -86,6 +89,7 @@ const HERO_SLIDES: HeroSlide[] = [
     searchPlaceholder: 'Search Toyota Land Cruiser, RAV4, Defender...',
     caption: 'Land Cruiser LC300 GR-Sport',
     price: '165,000,000 RWF',
+    watermark: 'EXECUTIVE',
   },
   {
     id: 'motorbike',
@@ -98,6 +102,7 @@ const HERO_SLIDES: HeroSlide[] = [
     searchPlaceholder: 'Search BMW GS, electric bikes, TVS...',
     caption: 'Adventure Touring Machine',
     price: '18,500,000 RWF',
+    watermark: 'MOBILITY',
   },
 ];
 
@@ -221,6 +226,13 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
             </div>
           ))}
 
+          {/* Subtle shaded architectural watermark */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
+            <span className="text-[14vw] sm:text-[16vw] font-black uppercase tracking-[0.25em] text-white/[0.035] leading-none whitespace-nowrap drop-shadow-2xl">
+              {currentSlide.watermark}
+            </span>
+          </div>
+
           {/* Balanced cinematic overlays - image stays clearly visible & stunning across the entire hero */}
           <div className="absolute inset-0 bg-black/35" />
           <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-[#05070b]/80 to-transparent pointer-events-none" />
@@ -231,8 +243,21 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
           <div className="absolute bottom-1/4 right-1/4 h-[300px] w-[300px] sm:h-[450px] sm:w-[450px] rounded-full bg-[#f98604]/[0.06] blur-[140px] pointer-events-none" />
         </div>
 
-        {/* CENTER: Clean Headline & Search Bar */}
-        <div className="relative z-10 mx-auto w-full max-w-3xl text-center space-y-3 sm:space-y-4 my-auto py-8">
+        {/* CENTER: Clean Headline, Shaded Link Capsule & Search Bar */}
+        <div className="relative z-10 mx-auto w-full max-w-3xl text-center space-y-4 sm:space-y-5 my-auto py-6">
+          {/* Shaded Link Capsule */}
+          <div>
+            <button
+              type="button"
+              onClick={() => onExplore(currentSlide.query)}
+              className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium text-zinc-200 bg-black/45 hover:bg-black/70 border border-white/20 backdrop-blur-xl transition-all shadow-lg hover:border-emerald-400/50 cursor-pointer group"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Explore verified {currentSlide.title.toLowerCase()} in Rwanda</span>
+              <ArrowRight size={13} className="text-zinc-400 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+            </button>
+          </div>
+
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)]">
             {currentSlide.title}
           </h1>
@@ -263,6 +288,27 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
               </Button>
             </div>
           </form>
+
+          {/* Shaded Quick Link Pills */}
+          <div className="pt-1 flex items-center justify-center gap-2 flex-wrap text-xs">
+            <span className="text-zinc-400 text-[11px] uppercase tracking-wider font-semibold mr-1">Trending:</span>
+            {[
+              { label: 'Nyarutarama', q: 'Nyarutarama' },
+              { label: 'Gasabo Plots', q: 'Gasabo land' },
+              { label: 'Gacuriro', q: 'Gacuriro' },
+              { label: 'Executive SUVs', q: 'SUV' },
+            ].map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => onExplore(item.q)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 hover:bg-white/10 border border-white/15 text-zinc-300 hover:text-white backdrop-blur-md transition-all shadow-sm cursor-pointer group"
+              >
+                <span>{item.label}</span>
+                <ArrowUpRight size={11} className="text-zinc-500 group-hover:text-emerald-400 transition-colors" />
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* BOTTOM ROW: Minimal Caption & Slide Controls */}
