@@ -13,7 +13,9 @@ from .api_views import (
     list_create_offers, update_offer_status,
     list_create_site_visits, update_site_visit_status,
     list_create_deals, get_deal_detail, advance_deal_stage, upload_deal_document,
-    api_proposals_view, api_proposal_detail_view, api_convert_proposal_to_listing
+    api_proposals_view, api_proposal_detail_view, api_convert_proposal_to_listing,
+    admin_users_list_create, admin_user_detail_update_delete,
+    admin_user_set_role, admin_user_toggle_status, admin_user_reset_password
 )
 from django.contrib.auth import views as auth_views
 
@@ -97,6 +99,13 @@ urlpatterns = [
 
     # Sovereign Reports Export
     path('api/reports/export/<str:report_type>/', views.admin_reports_export, name='api_reports_export'),
+
+    # Admin User Management APIs
+    path('api/admin/users/', admin_users_list_create, name='api_admin_users_list_create'),
+    path('api/admin/users/<int:pk>/', admin_user_detail_update_delete, name='api_admin_user_detail_update_delete'),
+    path('api/admin/users/<int:pk>/set-role/', admin_user_set_role, name='api_admin_user_set_role'),
+    path('api/admin/users/<int:pk>/toggle-status/', admin_user_toggle_status, name='api_admin_user_toggle_status'),
+    path('api/admin/users/<int:pk>/reset-password/', admin_user_reset_password, name='api_admin_user_reset_password'),
 ]
 
 

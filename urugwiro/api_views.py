@@ -1994,3 +1994,255 @@ def api_convert_proposal_to_listing(request, pk):
     }, status=status.HTTP_201_CREATED)
 
 
+# ─── Sovereign Admin User Management API ───
+
+@api_view(['GET', 'POST'])
+def admin_users_list_create(request):
+    """
+    GET: Returns a list of all users with search, role, status filtering, and metadata totals.
+    POST: Creates a new user with role assignment and security settings.
+    """
+    from django.contrib.auth import get_user_model
+    from .serializers import UserSerializer, AdminUserCreateSerializer
+    from .log_service import syslog
+    from django.db.models import Q
+
+    User = get_user_model()
+
+    if request.method == 'POST':
+        serializer = AdminUserCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            syslog('USER', f"Admin created new user account '{user.username}' (role: {user.role})",
+                   level='INFO', user=request.user if request.user.is_authenticated else None, request=request)
+            return Response({
+                'success': True,
+                'message': f"User '{user.username}' created successfully.",
+                'user': UserSerializer(user).data
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # GET
+    queryset = User.objects.all().order_by('-date_joined')
+    search = request.query_params.get('search', '').strip()
+    role = request.query_params.get('role', '').strip()
+    status_filter = request.query_params.get('status', '').strip()
+
+    if search:
+        queryset = queryset.filter(
+            Q(username__icontains=search) |
+            Q(email__icontains=search) |
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search)
+        )
+
+    if role and role != 'all':
+        queryset = queryset.filter(role=role)
+
+    if status_filter:
+        if status_filter.lower() in ['active', 'true', '1']:
+            queryset = queryset.filter(is_active=True)
+        elif status_filter.lower() in ['inactive', 'suspended', 'false', '0']:
+            queryset = queryset.filter(is_active=False)
+
+    # Calculate global platform stats
+    all_users = User.objects.all()
+    total_count = all_users.count()
+    active_count = all_users.filter(is_active=True).count()
+    inactive_count = all_users.filter(is_active=False).count()
+    admins_count = all_users.filter(role='Admin').count()
+    agents_count = all_users.filter(role='Agent').count()
+    sellers_count = all_users.filter(role='Seller').count()
+    owners_count = all_users.filter(role='Owner').count()
+    tenants_count = all_users.filter(role='Tenant').count()
+    buyers_count = all_users.filter(role='Buyer').count()
+
+    serializer = UserSerializer(queryset, many=True)
+    return Response({
+        'users': serializer.data,
+        'count': queryset.count(),
+        'stats': {
+            'total': total_count,
+            'active': active_count,
+            'inactive': inactive_count,
+            'admins': admins_count,
+            'agents': agents_count,
+            'sellers': sellers_count,
+            'owners': owners_count,
+            'tenants': tenants_count,
+            'buyers': buyers_count,
+        }
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET', 'PATCH', 'PUT', 'DELETE'])
+def admin_user_detail_update_delete(request, pk):
+    """
+    GET: Retrieve detailed user account including profile relations and activity.
+    PATCH/PUT: Update user details (username, email, names, is_active, is_staff, role).
+    DELETE: Permanently delete user with superuser safety safeguards.
+    """
+    from django.contrib.auth import get_user_model
+    from .serializers import UserSerializer
+    from .log_service import syslog
+
+    User = get_user_model()
+    user = get_object_or_404(User, pk=pk)
+
+    if request.method == 'GET':
+        return Response({
+            'user': UserSerializer(user).data
+        }, status=status.HTTP_200_OK)
+
+    elif request.method in ['PATCH', 'PUT']:
+        data = request.data
+        if 'username' in data and data['username']:
+            user.username = data['username']
+        if 'email' in data:
+            user.email = data['email']
+        if 'first_name' in data:
+            user.first_name = data['first_name']
+        if 'last_name' in data:
+            user.last_name = data['last_name']
+        if 'role' in data:
+            user.role = data['role']
+        if 'is_active' in data:
+            user.is_active = bool(data['is_active'])
+        if 'is_staff' in data:
+            user.is_staff = bool(data['is_staff'])
+
+        user.save()
+        syslog('USER', f"Admin updated account profile for '{user.username}'",
+               level='INFO', user=request.user if request.user.is_authenticated else None, request=request)
+        return Response({
+            'success': True,
+            'message': f"User '{user.username}' updated successfully.",
+            'user': UserSerializer(user).data
+        }, status=status.HTTP_200_OK)
+
+    elif request.method == 'DELETE':
+        if user.is_superuser:
+            return Response({'error': 'Superuser accounts cannot be deleted.'}, status=status.HTTP_403_FORBIDDEN)
+        if request.user.is_authenticated and request.user.id == user.id:
+            return Response({'error': 'You cannot delete your own account.'}, status=status.HTTP_403_FORBIDDEN)
+
+        deleted_username = user.username
+        user.delete()
+        syslog('USER', f"Admin deleted user account '{deleted_username}' (ID: {pk})",
+               level='WARNING', user=request.user if request.user.is_authenticated else None, request=request)
+        return Response({
+            'success': True,
+            'message': f"User '{deleted_username}' has been deleted."
+        }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def admin_user_set_role(request, pk):
+    """Changes a user's role and synchronizes domain profile records."""
+    from django.contrib.auth import get_user_model
+    from .serializers import UserSerializer
+    from .models import ListingOwner
+    from .log_service import syslog
+
+    User = get_user_model()
+    user = get_object_or_404(User, pk=pk)
+
+    new_role = request.data.get('role')
+    if not new_role:
+        return Response({'error': 'Role parameter required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    valid_roles = ['Admin', 'Owner', 'Agent', 'Seller', 'Tenant', 'Buyer', 'RentalManager']
+    if new_role not in valid_roles:
+        return Response({'error': f'Invalid role. Must be one of: {", ".join(valid_roles)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+    old_role = user.role
+    user.role = new_role
+
+    if new_role == 'Admin':
+        user.is_staff = True
+    elif old_role == 'Admin' and not user.is_superuser:
+        user.is_staff = False
+
+    # Sync profiles
+    if new_role in ['Seller', 'Owner']:
+        if not hasattr(user, 'listing_owner_profile'):
+            ListingOwner.objects.get_or_create(
+                user=user,
+                defaults={
+                    'name': f"{user.first_name} {user.last_name}".strip() or user.username,
+                    'email': user.email or f"{user.username}@urugwiro.rw",
+                    'phone_number': '+250788000000',
+                }
+            )
+
+    user.save()
+    syslog('USER', f"Admin changed role for '{user.username}': {old_role} → {new_role}",
+           level='WARNING' if new_role == 'Admin' else 'INFO',
+           user=request.user if request.user.is_authenticated else None, request=request)
+
+    return Response({
+        'success': True,
+        'message': f"Role for '{user.username}' changed to {new_role}.",
+        'user': UserSerializer(user).data
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def admin_user_toggle_status(request, pk):
+    """Toggles or sets the active/suspended status of a user."""
+    from django.contrib.auth import get_user_model
+    from .serializers import UserSerializer
+    from .log_service import syslog
+
+    User = get_user_model()
+    user = get_object_or_404(User, pk=pk)
+
+    if user.is_superuser:
+        return Response({'error': 'Superuser status cannot be modified.'}, status=status.HTTP_403_FORBIDDEN)
+    if request.user.is_authenticated and request.user.id == user.id:
+        return Response({'error': 'You cannot deactivate your own account.'}, status=status.HTTP_403_FORBIDDEN)
+
+    target_status = request.data.get('is_active')
+    if target_status is not None:
+        user.is_active = bool(target_status)
+    else:
+        user.is_active = not user.is_active
+
+    user.save()
+    status_label = "activated" if user.is_active else "deactivated / suspended"
+    syslog('USER', f"Admin {status_label} account for '{user.username}'",
+           level='WARNING' if not user.is_active else 'INFO',
+           user=request.user if request.user.is_authenticated else None, request=request)
+
+    return Response({
+        'success': True,
+        'message': f"User '{user.username}' has been {status_label}.",
+        'user': UserSerializer(user).data
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def admin_user_reset_password(request, pk):
+    """Sets a new password for a user account."""
+    from django.contrib.auth import get_user_model
+    from .log_service import syslog
+
+    User = get_user_model()
+    user = get_object_or_404(User, pk=pk)
+
+    new_password = request.data.get('new_password')
+    if not new_password or len(new_password) < 6:
+        return Response({'error': 'New password must be at least 6 characters long.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.save()
+    syslog('USER', f"Admin reset password for user '{user.username}'",
+           level='WARNING', user=request.user if request.user.is_authenticated else None, request=request)
+
+    return Response({
+        'success': True,
+        'message': f"Password for '{user.username}' reset successfully."
+    }, status=status.HTTP_200_OK)
+
+
+

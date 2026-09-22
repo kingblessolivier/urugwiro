@@ -103,9 +103,47 @@ class SystemSettingSerializer(serializers.ModelSerializer):
         fields = ['id', 'key', 'value', 'description', 'updated_at']
 
 class UserSerializer(serializers.ModelSerializer):
+    listings_count = serializers.SerializerMethodField()
+    offers_count = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role']
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'role', 'is_active', 'is_staff', 'is_superuser',
+            'date_joined', 'last_login', 'listings_count', 'offers_count'
+        ]
+
+    def get_listings_count(self, obj):
+        try:
+            from .models import Listing
+            if hasattr(obj, 'listing_owner_profile'):
+                return obj.listing_owner_profile.listings.count()
+            return Listing.objects.filter(owner__user=obj).count()
+        except Exception:
+            return 0
+
+    def get_offers_count(self, obj):
+        try:
+            from .models import Offer
+            return Offer.objects.filter(buyer=obj).count()
+        except Exception:
+            return 0
+
+
+class AdminUserCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, min_length=6)
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'role', 'password', 'is_active', 'is_staff']
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
 
 class ArticleCategorySerializer(serializers.ModelSerializer):
     class Meta:

@@ -28,7 +28,19 @@ export const api = {
 
     // Admin
     admin: {
-        users: () => apiClient.get('/admin/users/'),
+        users: Object.assign(
+            (params?: any) => apiClient.get('/api/admin/users/', { params }),
+            {
+                list: (params?: any) => apiClient.get('/api/admin/users/', { params }),
+                create: (data: any) => apiClient.post('/api/admin/users/', data),
+                detail: (id: number | string) => apiClient.get(`/api/admin/users/${id}/`),
+                update: (id: number | string, data: any) => apiClient.patch(`/api/admin/users/${id}/`, data),
+                setRole: (id: number | string, role: string) => apiClient.post(`/api/admin/users/${id}/set-role/`, { role }),
+                toggleStatus: (id: number | string, is_active?: boolean) => apiClient.post(`/api/admin/users/${id}/toggle-status/`, { is_active }),
+                resetPassword: (id: number | string, new_password: string) => apiClient.post(`/api/admin/users/${id}/reset-password/`, { new_password }),
+                delete: (id: number | string) => apiClient.delete(`/api/admin/users/${id}/`),
+            }
+        ),
         properties: () => apiClient.get('/admin/properties/'),
         tenants: () => apiClient.get('/admin/tenants/'),
         owners: () => apiClient.get('/admin/owners/'),
