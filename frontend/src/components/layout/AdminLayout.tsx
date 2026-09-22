@@ -11,6 +11,7 @@ import { cn } from '../../lib/utils';
 import { type AppView } from '../../types/navigation';
 import { api } from '../../api/endpoints';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../../context/AuthContext';
 
 interface AdminLayoutProps {
   currentView: AppView;
@@ -31,6 +32,10 @@ interface NavSection {
 }
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigate, children }) => {
+  const { user } = useAuth();
+  const displayName = user?.full_name || (user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user?.username) || 'Administrator';
+  const initial = displayName.slice(0, 1).toUpperCase();
+
   // Collapsed state persisted in localStorage
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('urugwiro_admin_sidebar_collapsed') === 'true';
@@ -265,12 +270,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
             )}
           >
             <div className="h-8 w-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold flex items-center justify-center text-xs shrink-0">
-              A
+              {initial}
             </div>
             {!isCollapsed && (
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-white truncate">Administrator</p>
-                <p className="text-[10px] text-zinc-400 font-mono truncate">Executive Command</p>
+                <p className="text-xs font-bold text-white truncate">{displayName}</p>
+                <p className="text-[10px] text-zinc-400 font-mono truncate">{user?.role ? `${user.role} Executive` : 'Executive Command'}</p>
               </div>
             )}
           </div>

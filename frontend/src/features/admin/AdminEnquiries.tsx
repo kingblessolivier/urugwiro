@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Mail,
   Eye,
@@ -21,7 +22,8 @@ import {
   Check,
   AlertCircle,
   Car,
-  Layers
+  Layers,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -35,15 +37,8 @@ interface Enquiry {
   propertyTitle: string;
   message: string;
   status: 'unread' | 'read' | 'archived';
-  createdAt: string;
+  createdAt?: string;
 }
-
-const MOCK_ENQUIRIES: Enquiry[] = [
-  { id: '1', name: 'Jean Paul', email: 'jp@example.com', propertyTitle: 'Modern Villa Kicukiro', message: 'I am interested in this property. Is the price negotiable?', status: 'unread', createdAt: '2026-09-18T10:00:00Z' },
-  { id: '2', name: 'Marie Claire', email: 'mc@example.com', propertyTitle: 'Prime Plot Gasabo', message: 'Does this plot have a registered title deed?', status: 'read', createdAt: '2026-09-17T14:30:00Z' },
-  { id: '3', name: 'Eric Kabera', email: 'ek@example.com', propertyTitle: 'Toyota RAV4 2021', message: 'Can I schedule a viewing for this weekend?', status: 'archived', createdAt: '2026-09-15T09:15:00Z' },
-  { id: '4', name: 'Sarah Umutoni', email: 'su@example.com', propertyTitle: 'Modern Villa Kicukiro', message: 'Is there a payment plan available for this house?', status: 'unread', createdAt: '2026-09-19T08:00:00Z' },
-];
 
 export const AdminEnquiries: React.FC = () => {
   // Mode: Proposals Intake vs General Enquiries
@@ -60,6 +55,7 @@ export const AdminEnquiries: React.FC = () => {
   // Enquiry State
   const [activeTab, setActiveTab] = useState<'unread' | 'read' | 'archived'>('unread');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedEnquiry, setSelectedEnquiry] = useState<Enquiry | null>(null);
 
   const fetchProposals = async () => {
     setLoadingProposals(true);
@@ -82,7 +78,57 @@ export const AdminEnquiries: React.FC = () => {
     }
   }, [section, proposalFilter, searchQuery]);
 
-  // Actions
+  // Live Database Enquiries Query
+  const { data: enquiriesData, isLoading: loadingEnquiries, refetch: refetchEnquiries } = useQuery({
+    queryKey: ['admin-enquiries', activeTab, searchQuery],
+    queryFn: async () => {
+      const res = await api.admin.enquiries({
+        status: activeTab,
+        search: searchQuery || undefined,
+      });
+      return res.data;
+    },
+    enabled: section === 'enquiries',
+  });
+
+  const enquiriesList: Enquiry[] = enquiriesData?.enquiries || [];
+  const enquiryStats = enquiriesData?.stats || { total: 0, unread: 0, read: 0, archived: 0 };
+
+  // Actions for Enquiries
+  const handleUpdateEnquiryStatus = async (id: string, newStatus: 'read' | 'unread' | 'archived') => {
+    setActionLoading(true);
+    try {
+      await api.admin.updateEnquiry(id, { status: newStatus });
+      setActionSuccess(`Enquiry marked as ${newStatus}.`);
+      refetchEnquiries();
+      if (selectedEnquiry && selectedEnquiry.id === id) {
+        setSelectedEnquiry(prev => prev ? { ...prev, status: newStatus } : null);
+      }
+      setTimeout(() => setActionSuccess(''), 3000);
+    } catch (err) {
+      console.error('Failed to update enquiry status:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteEnquiry = async (id: string) => {
+    if (!window.confirm('Are you sure you want to permanently delete this enquiry?')) return;
+    setActionLoading(true);
+    try {
+      await api.admin.deleteEnquiry(id);
+      setActionSuccess('Enquiry removed permanently.');
+      refetchEnquiries();
+      setSelectedEnquiry(null);
+      setTimeout(() => setActionSuccess(''), 3000);
+    } catch (err) {
+      console.error('Failed to delete enquiry:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Actions for Proposals
   const handleConfirmVisit = async (id: number) => {
     setActionLoading(true);
     try {
@@ -113,17 +159,10 @@ export const AdminEnquiries: React.FC = () => {
     }
   };
 
-  const filteredEnquiries = MOCK_ENQUIRIES.filter(e =>
-    e.status === activeTab &&
-    (e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     e.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     e.propertyTitle.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
   const enquiryTabs = [
-    { id: 'unread', label: 'Unread', color: 'bg-red-500/10 text-red-400 border-red-500/30', count: MOCK_ENQUIRIES.filter(e => e.status === 'unread').length },
-    { id: 'read', label: 'Read', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', count: MOCK_ENQUIRIES.filter(e => e.status === 'read').length },
-    { id: 'archived', label: 'Archived', color: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30', count: MOCK_ENQUIRIES.filter(e => e.status === 'archived').length },
+    { id: 'unread', label: 'Unread', color: 'bg-red-500/10 text-red-400 border-red-500/30', count: enquiryStats.unread },
+    { id: 'read', label: 'Read', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', count: enquiryStats.read },
+    { id: 'archived', label: 'Archived', color: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/30', count: enquiryStats.archived },
   ];
 
   const pendingCount = proposals.filter(p => p.status === 'pending').length;
@@ -478,7 +517,7 @@ export const AdminEnquiries: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.06]">
-                    {filteredEnquiries.map((enquiry) => (
+                    {enquiriesList.map((enquiry) => (
                       <tr key={enquiry.id} className="group hover:bg-white/[0.02] transition-colors">
                         <td className="px-5 py-4">
                           <p className="font-medium text-white">{enquiry.name}</p>
@@ -489,6 +528,11 @@ export const AdminEnquiries: React.FC = () => {
                         </td>
                         <td className="px-5 py-4">
                           <p className="text-zinc-400 truncate max-w-xs">{enquiry.message}</p>
+                          {enquiry.createdAt && (
+                            <span className="text-[10px] text-zinc-500 block mt-0.5 font-mono">
+                              {new Date(enquiry.createdAt).toLocaleDateString()}
+                            </span>
+                          )}
                         </td>
                         <td className="px-5 py-4 text-center">
                           <span
@@ -503,17 +547,61 @@ export const AdminEnquiries: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <div className="flex justify-end gap-1.5">
-                            <Button variant="ghost" className="p-1.5 text-zinc-500 hover:text-emerald-400">
-                              <Reply size={15} />
-                            </Button>
-                            <Button variant="ghost" className="p-1.5 text-zinc-500 hover:text-white">
-                              <Eye size={15} />
-                            </Button>
+                          <div className="flex justify-end items-center gap-1.5">
+                            {enquiry.status === 'unread' ? (
+                              <button
+                                onClick={() => handleUpdateEnquiryStatus(enquiry.id, 'read')}
+                                className="px-2 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 cursor-pointer"
+                                title="Mark as Read"
+                              >
+                                Mark Read
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleUpdateEnquiryStatus(enquiry.id, 'unread')}
+                                className="px-2 py-1 rounded-lg text-xs font-semibold bg-white/[0.04] text-zinc-400 hover:text-white border border-white/10 cursor-pointer"
+                                title="Mark as Unread"
+                              >
+                                Unread
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleUpdateEnquiryStatus(enquiry.id, enquiry.status === 'archived' ? 'read' : 'archived')}
+                              className="px-2 py-1 rounded-lg text-xs font-semibold bg-white/[0.04] text-zinc-400 hover:text-white border border-white/10 cursor-pointer"
+                              title={enquiry.status === 'archived' ? 'Restore' : 'Archive'}
+                            >
+                              {enquiry.status === 'archived' ? 'Restore' : 'Archive'}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteEnquiry(enquiry.id)}
+                              className="px-2 py-1 rounded-lg text-xs font-semibold bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 cursor-pointer"
+                              title="Delete Enquiry"
+                            >
+                              Delete
+                            </button>
                           </div>
                         </td>
                       </tr>
                     ))}
+
+                    {enquiriesList.length === 0 && !loadingEnquiries && (
+                      <tr>
+                        <td colSpan={5} className="p-12 text-center text-zinc-500">
+                          <Mail size={36} className="mx-auto mb-2 text-zinc-700" />
+                          <p className="font-semibold text-zinc-300">No customer enquiries found</p>
+                          <p className="text-xs text-zinc-500 mt-1">Real inquiries submitted from property listings or the Contact page will be logged here.</p>
+                        </td>
+                      </tr>
+                    )}
+
+                    {loadingEnquiries && (
+                      <tr>
+                        <td colSpan={5} className="p-12 text-center text-zinc-500">
+                          <RefreshCw size={24} className="mx-auto mb-2 animate-spin text-emerald-400" />
+                          <p className="text-xs text-zinc-400">Loading enquiries from live database...</p>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Package, MessageSquare, HandCoins,
   ShieldCheck, TrendingUp, Eye, Bell, User, LogOut, Plus,
@@ -13,6 +14,8 @@ import { SellerOfferManager } from './SellerOfferManager';
 import { SellerAiCopilot } from './SellerAiCopilot';
 import { ChatWindow } from '../chat/ChatWindow';
 import ListingWizard from './ListingWizard';
+import { useAuth } from '../../context/AuthContext';
+import { api } from '../../api/endpoints';
 
 export type SellerTab = 'overview' | 'listings' | 'offers' | 'messages' | 'copilot' | 'verification' | 'new-listing';
 
@@ -39,77 +42,89 @@ interface ListingItem {
 }
 
 export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, initialTab = 'overview' }) => {
+  const { user, logout } = useAuth();
+  const displayName = user?.full_name || (user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user?.username) || 'Seller';
+  const displayRole = user?.role || 'Seller';
+
   const [activeTab, setActiveTab] = useState<SellerTab>(initialTab);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'house' | 'land' | 'car'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Sample verified listings
-  const [listings] = useState<ListingItem[]>([
-    {
-      id: '1',
-      title: 'Modern 5-Bed Villa with Panoramic Hills View',
-      category: 'house',
-      location: 'Nyarutarama, Kigali',
-      price: 450000000,
-      currency: 'RWF',
-      views: 1420,
-      inquiries: 18,
-      offers: 2,
-      status: 'Active',
-      upiNumber: '1/03/05/02/1042',
-      image: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80',
-      verified: true,
-      updatedAt: '2h ago',
+  // 1. Live database listings
+  const { data: rawListings = [], isLoading: loadingListings } = useQuery({
+    queryKey: ['seller-database-listings', user?.id],
+    queryFn: async () => {
+      try {
+        const res = await api.listings.list();
+        return Array.isArray(res.data) ? res.data : (res.data?.results || []);
+      } catch (e) {
+        console.error('Failed to fetch listings:', e);
+        return [];
+      }
     },
-    {
-      id: '2',
-      title: 'Prime Commercial Plot (Zoning C1) on Tarmac',
-      category: 'land',
-      location: 'Kicukiro, Sonatubes',
-      price: 180000000,
-      currency: 'RWF',
-      views: 980,
-      inquiries: 9,
-      offers: 1,
-      status: 'Under Offer',
-      upiNumber: '1/02/09/01/5521',
-      image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80',
-      verified: true,
-      updatedAt: '4h ago',
+  });
+
+  // 2. Live database offers
+  const { data: rawOffers = [] } = useQuery({
+    queryKey: ['seller-database-offers'],
+    queryFn: async () => {
+      try {
+        const res = await api.offers.list();
+        return Array.isArray(res.data) ? res.data : (res.data?.results || []);
+      } catch {
+        return [];
+      }
     },
-    {
-      id: '3',
-      title: '2022 Toyota Land Cruiser Prado VXR',
-      category: 'car',
-      location: 'Gacuriro, Kigali',
-      price: 85000000,
-      currency: 'RWF',
-      views: 2310,
-      inquiries: 27,
-      offers: 3,
-      status: 'Active',
-      image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80',
-      verified: true,
-      updatedAt: '1d ago',
+  });
+
+  // 3. Live unread messages count
+  const { data: contactsData } = useQuery({
+    queryKey: ['seller-chat-contacts'],
+    queryFn: async () => {
+      try {
+        const res = await api.chat.contacts();
+        return res.data;
+      } catch {
+        return null;
+      }
     },
-    {
-      id: '4',
-      title: 'Luxury 4-Bed Duplex with Swimming Pool',
-      category: 'house',
-      location: 'Kibagabaga, Kigali',
-      price: 290000000,
-      currency: 'RWF',
-      views: 640,
-      inquiries: 5,
-      offers: 0,
-      status: 'Pending Verification',
-      upiNumber: '1/03/04/05/8892',
-      image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
-      verified: false,
-      updatedAt: '2d ago',
-    }
-  ]);
+  });
+  const unreadMessagesCount = contactsData?.total_unread || 0;
+
+  // Map raw database listings to UI model
+  const listings: ListingItem[] = useMemo(() => {
+    return rawListings.map((item: any) => {
+      let cat: 'house' | 'land' | 'car' = 'house';
+      const c = (item.category || item.type || '').toLowerCase();
+      if (c.includes('land') || c.includes('plot')) cat = 'land';
+      else if (c.includes('car') || c.includes('vehic') || c.includes('motor')) cat = 'car';
+
+      let upi = '';
+      if (item.asset?.land_spec?.upi_number) upi = item.asset.land_spec.upi_number;
+      else if (item.upi_number) upi = item.upi_number;
+
+      const img = item.featured_image || item.media?.[0]?.file || item.image ||
+        (cat === 'land' ? '/images/hero/land.jpg' : cat === 'car' ? '/images/hero/car.jpg' : '/images/hero/house.jpg');
+
+      return {
+        id: String(item.id),
+        title: item.title || 'Untitled Property',
+        category: cat,
+        location: item.address || item.district || 'Kigali, Rwanda',
+        price: Number(item.price) || 0,
+        currency: item.currency || 'RWF',
+        views: item.views_count || item.views || 0,
+        inquiries: item.inquiries_count || 0,
+        offers: item.offers_count || 0,
+        status: item.status === 'listed' ? 'Active' : (item.status === 'sold' ? 'Sold' : 'Pending Verification'),
+        upiNumber: upi,
+        image: img,
+        verified: item.is_verified || Boolean(item.verification_level && item.verification_level !== 'none'),
+        updatedAt: item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Recent',
+      };
+    });
+  }, [rawListings]);
 
   const filteredListings = listings.filter(item => {
     const matchesCat = categoryFilter === 'all' || item.category === categoryFilter;
@@ -120,15 +135,15 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
   const totalValue = listings.reduce((acc, curr) => acc + curr.price, 0);
   const totalViews = listings.reduce((acc, curr) => acc + curr.views, 0);
   const totalInquiries = listings.reduce((acc, curr) => acc + curr.inquiries, 0);
-  const totalOffers = listings.reduce((acc, curr) => acc + curr.offers, 0);
+  const totalOffers = rawOffers.length;
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'listings', label: 'My Listings', icon: Package, badge: listings.length.toString() },
-    { id: 'offers', label: 'Offers & Deals', icon: HandCoins, badge: '3 Active' },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, badge: '2 New' },
+    { id: 'listings', label: 'My Listings', icon: Package, badge: listings.length > 0 ? listings.length.toString() : undefined },
+    { id: 'offers', label: 'Offers & Deals', icon: HandCoins, badge: totalOffers > 0 ? `${totalOffers} Active` : undefined },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, badge: unreadMessagesCount > 0 ? `${unreadMessagesCount} New` : undefined },
     { id: 'copilot', label: 'AI Co-Pilot', icon: Sparkles, highlight: true },
-    { id: 'verification', label: 'Trust & Verification', icon: ShieldCheck, badge: '98%' },
+    { id: 'verification', label: 'Trust & Verification', icon: ShieldCheck },
   ];
 
   return (
@@ -229,20 +244,18 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
         {/* Seller Trust Profile */}
         <div className="pt-4 border-t border-white/10 space-y-3">
           <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
-            <div className="relative">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-                alt="Seller Avatar"
-                className="w-10 h-10 rounded-xl object-cover border border-emerald-500/30"
-              />
+            <div className="relative shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 flex items-center justify-center font-bold text-emerald-400 text-sm">
+                {displayName.slice(0, 2).toUpperCase()}
+              </div>
               <CheckCircle2 size={12} className="absolute -bottom-1 -right-1 text-emerald-400 bg-[#080b11] rounded-full" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-white truncate">Kigali Prime Estates</p>
+              <p className="text-xs font-bold text-white truncate">{displayName}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[10px] text-emerald-400 font-mono">RLMUA Verified</span>
+                <span className="text-[10px] text-emerald-400 font-mono">{displayRole}</span>
                 <span className="text-[9px] text-zinc-500">•</span>
-                <span className="text-[10px] text-zinc-400">98% Trust</span>
+                <span className="text-[10px] text-zinc-400 truncate">{user?.email || 'Verified Account'}</span>
               </div>
             </div>
           </div>
@@ -255,7 +268,10 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
               <ArrowRight size={12} className="rotate-180" /> Public Portal
             </button>
             <button 
-              onClick={() => onNavigate ? onNavigate('home') : null}
+              onClick={async () => {
+                await logout();
+                if (onNavigate) onNavigate('home');
+              }}
               className="hover:text-red-400 transition-colors flex items-center gap-1 text-[11px]"
             >
               <LogOut size={12} /> Exit
@@ -442,23 +458,25 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                       AI Market Intelligence Active
                     </div>
                     <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white font-display">
-                      Welcome Back, <span className="text-emerald-400">Kigali Prime</span>
+                      Welcome Back, <span className="text-emerald-400">{displayName}</span>
                     </h1>
                     <p className="text-zinc-400 text-sm sm:text-base mt-1 max-w-2xl">
-                      Your 4 assets have captured <span className="text-white font-semibold">5,350 views</span> and <span className="text-emerald-400 font-semibold">3 active buyer offers</span>. Land valuations in Gasabo and Kicukiro are trending +7.4% this quarter.
+                      {listings.length > 0
+                        ? `Your ${listings.length} verified ${listings.length === 1 ? 'asset has' : 'assets have'} captured ${totalViews.toLocaleString()} views and ${totalOffers} active buyer ${totalOffers === 1 ? 'offer' : 'offers'}.`
+                        : 'Welcome to your sovereign seller workspace. List your first home, titled land parcel, or vehicle to reach verified buyers.'}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <button
                       onClick={() => setActiveTab('new-listing')}
-                      className="flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-lg shadow-emerald-900/40 transition-all hover:scale-105"
+                      className="flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-lg shadow-emerald-900/40 transition-all hover:scale-105 cursor-pointer"
                     >
                       <Plus size={16} />
                       List New Asset
                     </button>
                     <button
                       onClick={() => setActiveTab('copilot')}
-                      className="flex items-center gap-2 px-4 py-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold text-sm transition-all"
+                      className="flex items-center gap-2 px-4 py-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold text-sm transition-all cursor-pointer"
                     >
                       <Bot size={16} />
                       Consult AI Copilot
@@ -477,11 +495,11 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                     </span>
                   </div>
                   <div className="text-xl sm:text-2xl font-bold font-mono text-white">
-                    {(totalValue / 1000000).toFixed(0)}M <span className="text-xs text-zinc-400 font-sans">RWF</span>
+                    {totalValue > 0 ? `${(totalValue / 1000000).toLocaleString(undefined, { maximumFractionDigits: 1 })}M` : '0'} <span className="text-xs text-zinc-400 font-sans">RWF</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 mt-2 font-medium">
                     <TrendingUp size={12} />
-                    <span>+12.8% portfolio gain</span>
+                    <span>{listings.length} live {listings.length === 1 ? 'property' : 'properties'}</span>
                   </div>
                 </div>
 
@@ -497,7 +515,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-blue-400 mt-2 font-medium">
                     <TrendingUp size={12} />
-                    <span>+18% from last week</span>
+                    <span>Verified impressions</span>
                   </div>
                 </div>
 
@@ -513,7 +531,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-purple-400 mt-2 font-medium">
                     <Clock size={12} />
-                    <span>Avg response: 18m</span>
+                    <span>{unreadMessagesCount > 0 ? `${unreadMessagesCount} unread message(s)` : 'Direct communication'}</span>
                   </div>
                 </div>
 
@@ -525,11 +543,11 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                     </span>
                   </div>
                   <div className="text-xl sm:text-2xl font-bold font-mono text-white">
-                    {totalOffers} Deals
+                    {totalOffers} {totalOffers === 1 ? 'Deal' : 'Deals'}
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-amber-400 mt-2 font-medium">
                     <Sparkles size={12} />
-                    <span>AI Feasibility Analyzed</span>
+                    <span>In conveyance escrow</span>
                   </div>
                 </div>
               </div>
@@ -553,60 +571,74 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                   </div>
 
                   <div className="space-y-3">
-                    {listings.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-white/5 bg-black/20 hover:bg-white/[0.03] hover:border-white/10 transition-all"
-                      >
-                        <div className="flex items-center gap-3.5">
-                          <img
-                            src={item.image}
-                            alt={item.title}
-                            className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/10"
-                          />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-semibold text-sm text-white line-clamp-1">{item.title}</h4>
-                              {item.verified && (
-                                <Badge variant="success" className="text-[9px] py-0 px-1.5 bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                                  RLMUA
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5">
-                              <MapPin size={11} className="text-zinc-500" />
-                              {item.location}
-                            </p>
-                            <p className="text-xs font-mono font-bold text-emerald-400 mt-1">
-                              {item.price.toLocaleString()} {item.currency}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
-                          <div className="text-left sm:text-right text-xs">
-                            <span className="text-zinc-400 font-medium block">
-                              {item.views} views • {item.inquiries} inquiries
-                            </span>
-                            <span className={cn(
-                              "text-[10px] font-semibold px-2 py-0.5 rounded-full inline-block mt-1",
-                              item.status === 'Active' ? "bg-emerald-500/10 text-emerald-400" :
-                              item.status === 'Under Offer' ? "bg-amber-500/10 text-amber-400" : "bg-zinc-800 text-zinc-400"
-                            )}>
-                              {item.status}
-                            </span>
-                          </div>
-
-                          <button
-                            onClick={() => setActiveTab('copilot')}
-                            title="Analyze with AI Co-Pilot"
-                            className="p-2 rounded-xl border border-white/10 bg-white/5 hover:border-emerald-500/40 hover:text-emerald-400 text-zinc-400 transition-colors"
-                          >
-                            <Sparkles size={14} />
-                          </button>
-                        </div>
+                    {listings.length === 0 ? (
+                      <div className="p-8 text-center text-zinc-500 rounded-2xl border border-white/5 bg-black/20">
+                        <Package size={32} className="mx-auto text-zinc-600 mb-2" />
+                        <p className="text-sm text-zinc-300 font-semibold">No properties listed yet</p>
+                        <p className="text-xs text-zinc-500 mt-1">Publish your first property to start receiving buyer inquiries and purchase offers.</p>
+                        <button
+                          onClick={() => setActiveTab('new-listing')}
+                          className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus size={14} /> List New Asset
+                        </button>
                       </div>
-                    ))}
+                    ) : (
+                      listings.slice(0, 5).map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-white/5 bg-black/20 hover:bg-white/[0.03] hover:border-white/10 transition-all"
+                        >
+                          <div className="flex items-center gap-3.5">
+                            <img
+                              src={item.image}
+                              alt={item.title}
+                              className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/10"
+                            />
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold text-sm text-white line-clamp-1">{item.title}</h4>
+                                {item.verified && (
+                                  <Badge variant="success" className="text-[9px] py-0 px-1.5 bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                                    RLMUA
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5">
+                                <MapPin size={11} className="text-zinc-500" />
+                                {item.location}
+                              </p>
+                              <p className="text-xs font-mono font-bold text-emerald-400 mt-1">
+                                {item.price.toLocaleString()} {item.currency}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                            <div className="text-left sm:text-right text-xs">
+                              <span className="text-zinc-400 font-medium block">
+                                {item.views} views • {item.inquiries} inquiries
+                              </span>
+                              <span className={cn(
+                                "text-[10px] font-semibold px-2 py-0.5 rounded-full inline-block mt-1",
+                                item.status === 'Active' ? "bg-emerald-500/10 text-emerald-400" :
+                                item.status === 'Under Offer' ? "bg-amber-500/10 text-amber-400" : "bg-zinc-800 text-zinc-400"
+                              )}>
+                                {item.status}
+                              </span>
+                            </div>
+
+                            <button
+                              onClick={() => setActiveTab('copilot')}
+                              title="Analyze with AI Co-Pilot"
+                              className="p-2 rounded-xl border border-white/10 bg-white/5 hover:border-emerald-500/40 hover:text-emerald-400 text-zinc-400 transition-colors cursor-pointer"
+                            >
+                              <Sparkles size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -620,16 +652,18 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                         <Bot size={18} />
                       </div>
                       <div>
-                        <h4 className="font-bold text-white text-sm">AI Pricing Recommendation</h4>
-                        <span className="text-[10px] text-zinc-400">Updated 10m ago • Nyarutarama</span>
+                        <h4 className="font-bold text-white text-sm">AI Pricing Intelligence</h4>
+                        <span className="text-[10px] text-zinc-400">Automated Market Comps Active</span>
                       </div>
                     </div>
                     <p className="text-xs text-zinc-300 leading-relaxed">
-                      "Your 5-bed Villa in Nyarutarama is priced at <span className="text-emerald-400 font-semibold">450M RWF</span>. High buyer search traffic indicates similar villas closed at <span className="text-white font-semibold">465M - 480M RWF</span> last week. You hold strong pricing power."
+                      {listings.length > 0
+                        ? `AI automated valuation is active for "${listings[0].title}". Current market comparables in ${listings[0].location} indicate strong buyer liquidity and competitive demand.`
+                        : "Connect your properties to Urugwiro AI to receive automated valuation bounds, buyer price sensitivity telemetry, and RLMUA cadastre verification."}
                     </p>
                     <button
                       onClick={() => setActiveTab('copilot')}
-                      className="w-full py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-emerald-500/15 border border-emerald-500/20 text-xs font-semibold text-emerald-400 flex items-center justify-center gap-1.5 transition-all"
+                      className="w-full py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-emerald-500/15 border border-emerald-500/20 text-xs font-semibold text-emerald-400 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                     >
                       <span>Open Valuation Engine</span>
                       <ArrowRight size={12} />
@@ -739,101 +773,126 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
 
               {/* Listing Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredListings.map((item) => (
-                  <div
-                    key={item.id}
-                    className="group rounded-3xl border border-white/10 bg-white/[0.02] hover:border-emerald-500/30 overflow-hidden flex flex-col transition-all duration-300"
-                  >
-                    {/* Thumbnail */}
-                    <div className="relative h-48 w-full overflow-hidden bg-zinc-900">
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                      
-                      <div className="absolute top-3 left-3 flex gap-2">
-                        <Badge
-                          variant={item.status === 'Active' ? 'success' : 'neutral'}
-                          className={cn(
-                            "text-[10px] uppercase font-mono px-2 py-0.5",
-                            item.status === 'Active' ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40" : "bg-black/80 text-zinc-300 border border-white/20"
-                          )}
-                        >
-                          {item.status}
-                        </Badge>
-                        {item.verified && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/30 font-semibold flex items-center gap-1">
-                            <ShieldCheck size={10} /> RLMUA Verified
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
-                        <span className="text-lg font-bold font-mono text-white">
-                          {item.price.toLocaleString()} <span className="text-xs text-zinc-400 font-sans">{item.currency}</span>
-                        </span>
-                        {item.upiNumber && (
-                          <span className="text-[10px] font-mono text-zinc-400 bg-black/60 px-1.5 py-0.5 rounded border border-white/10">
-                            UPI: {item.upiNumber}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Body */}
-                    <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                      <div>
-                        <h3 className="font-semibold text-white text-base group-hover:text-emerald-400 transition-colors line-clamp-1">
-                          {item.title}
-                        </h3>
-                        <p className="text-xs text-zinc-400 flex items-center gap-1 mt-1">
-                          <MapPin size={12} className="text-zinc-500" />
-                          {item.location}
-                        </p>
-                      </div>
-
-                      {/* Performance Bar */}
-                      <div className="grid grid-cols-3 gap-2 py-2.5 px-3 rounded-xl bg-black/30 border border-white/5 text-center">
-                        <div>
-                          <span className="text-[10px] text-zinc-500 uppercase block">Views</span>
-                          <span className="text-xs font-mono font-bold text-white">{item.views}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-500 uppercase block">Inquiries</span>
-                          <span className="text-xs font-mono font-bold text-white">{item.inquiries}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-zinc-500 uppercase block">Offers</span>
-                          <span className="text-xs font-mono font-bold text-emerald-400">{item.offers}</span>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 pt-1">
-                        <button
-                          onClick={() => {
-                            setActiveTab('copilot');
-                          }}
-                          className="flex-1 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-xs font-semibold text-emerald-400 flex items-center justify-center gap-1.5 transition-colors"
-                        >
-                          <Sparkles size={12} />
-                          AI Optimization
-                        </button>
-                        <button
-                          onClick={() => {
-                            setActiveTab('messages');
-                          }}
-                          className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/10 border border-white/10 text-zinc-400 hover:text-white transition-colors"
-                          title="View Inquiries"
-                        >
-                          <MessageSquare size={14} />
-                        </button>
-                      </div>
-                    </div>
+                {filteredListings.length === 0 ? (
+                  <div className="col-span-full p-16 text-center text-zinc-500 rounded-3xl border border-white/10 bg-white/[0.01]">
+                    <Package size={40} className="mx-auto text-zinc-600 mb-3" />
+                    <h3 className="text-base font-semibold text-white">No properties found</h3>
+                    <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
+                      {searchQuery || categoryFilter !== 'all'
+                        ? "No listings match your current filters. Try resetting the filters."
+                        : "You haven't listed any properties yet. Click 'List New Asset' to create your first listing in the live database."}
+                    </p>
+                    <button
+                      onClick={() => {
+                        if (searchQuery || categoryFilter !== 'all') {
+                          setSearchQuery('');
+                          setCategoryFilter('all');
+                        } else {
+                          setActiveTab('new-listing');
+                        }
+                      }}
+                      className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors cursor-pointer"
+                    >
+                      {searchQuery || categoryFilter !== 'all' ? 'Reset Filters' : 'List New Asset'}
+                    </button>
                   </div>
-                ))}
+                ) : (
+                  filteredListings.map((item) => (
+                    <div
+                      key={item.id}
+                      className="group rounded-3xl border border-white/10 bg-white/[0.02] hover:border-emerald-500/30 overflow-hidden flex flex-col transition-all duration-300"
+                    >
+                      {/* Thumbnail */}
+                      <div className="relative h-48 w-full overflow-hidden bg-zinc-900">
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                        
+                        <div className="absolute top-3 left-3 flex gap-2">
+                          <Badge
+                            variant={item.status === 'Active' ? 'success' : 'neutral'}
+                            className={cn(
+                              "text-[10px] uppercase font-mono px-2 py-0.5",
+                              item.status === 'Active' ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40" : "bg-black/80 text-zinc-300 border border-white/20"
+                            )}
+                          >
+                            {item.status}
+                          </Badge>
+                          {item.verified && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/30 font-semibold flex items-center gap-1">
+                              <ShieldCheck size={10} /> RLMUA Verified
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
+                          <span className="text-lg font-bold font-mono text-white">
+                            {item.price.toLocaleString()} <span className="text-xs text-zinc-400 font-sans">{item.currency}</span>
+                          </span>
+                          {item.upiNumber && (
+                            <span className="text-[10px] font-mono text-zinc-400 bg-black/60 px-1.5 py-0.5 rounded border border-white/10">
+                              UPI: {item.upiNumber}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Body */}
+                      <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                        <div>
+                          <h3 className="font-semibold text-white text-base group-hover:text-emerald-400 transition-colors line-clamp-1">
+                            {item.title}
+                          </h3>
+                          <p className="text-xs text-zinc-400 flex items-center gap-1 mt-1">
+                            <MapPin size={12} className="text-zinc-500" />
+                            {item.location}
+                          </p>
+                        </div>
+
+                        {/* Performance Bar */}
+                        <div className="grid grid-cols-3 gap-2 py-2.5 px-3 rounded-xl bg-black/30 border border-white/5 text-center">
+                          <div>
+                            <span className="text-[10px] text-zinc-500 uppercase block">Views</span>
+                            <span className="text-xs font-mono font-bold text-white">{item.views}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-zinc-500 uppercase block">Inquiries</span>
+                            <span className="text-xs font-mono font-bold text-white">{item.inquiries}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-zinc-500 uppercase block">Offers</span>
+                            <span className="text-xs font-mono font-bold text-white">{item.offers}</span>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            onClick={() => {
+                              setActiveTab('copilot');
+                            }}
+                            className="flex-1 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-xs font-semibold text-emerald-400 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Sparkles size={12} />
+                            AI Optimization
+                          </button>
+                          <button
+                            onClick={() => {
+                              setActiveTab('messages');
+                            }}
+                            className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/10 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            title="View Inquiries"
+                          >
+                            <MessageSquare size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
 
             </div>

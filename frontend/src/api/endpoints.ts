@@ -49,7 +49,9 @@ export const api = {
         logs: () => apiClient.get('/admin/logs/'),
         announcements: () => apiClient.get('/admin/announcements/'),
         reports: () => apiClient.get('/admin/reports/'),
-        enquiries: () => apiClient.get('/admin/enquiries/'),
+        enquiries: (params?: { status?: string; search?: string }) => apiClient.get('/admin/enquiries/', { params }),
+        updateEnquiry: (id: string | number, data: { status?: string }) => apiClient.patch(`/admin/enquiries/${id}/`, data),
+        deleteEnquiry: (id: string | number) => apiClient.delete(`/admin/enquiries/${id}/`),
         leases: () => apiClient.get('/admin/leases/'),
         maintenance: () => apiClient.get('/admin/maintenance/'),
         inbox: () => apiClient.get('/admin/inbox/'),
@@ -59,6 +61,15 @@ export const api = {
             review: (id: string, decision: string, notes: string) =>
                 apiClient.post(`/verification/review/${id}/`, { status: decision, notes }),
         },
+    },
+
+    // Public Platform Data
+    public: {
+        about: () => apiClient.get('/public/about/'),
+        updates: () => apiClient.get('/public/updates/'),
+        platformStats: () => apiClient.get('/public/platform-stats/'),
+        contactSubmit: (data: { name: string; email: string; message: string; subject?: string }) =>
+            apiClient.post('/contact/submit/', data),
     },
 
     // Agent

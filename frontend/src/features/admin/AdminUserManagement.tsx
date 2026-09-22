@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   User, UserCheck, UserMinus, ShieldCheck,
   Search, Filter, Edit3, Trash2, CheckCircle2,
-  XCircle, AlertCircle, ChevronRight, UserPlus,
+  XCircle, AlertCircle, ChevronRight, ChevronLeft, UserPlus,
   Key, Eye, EyeOff, Building, Package, HandCoins,
   RefreshCw, X, MoreVertical, Shield, Mail,
   Calendar, Phone, Lock, ExternalLink
@@ -88,11 +88,15 @@ export const AdminUserManagement: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  // Pagination state
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
   // 1. Fetch Users Query
   const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
-    queryKey: ['admin-users', searchQuery, roleFilter, statusFilter],
+    queryKey: ['admin-users', searchQuery, roleFilter, statusFilter, page, pageSize],
     queryFn: async () => {
-      const params: any = {};
+      const params: any = { page, page_size: pageSize };
       if (searchQuery.trim()) params.search = searchQuery.trim();
       if (roleFilter) params.role = roleFilter;
       if (statusFilter) params.status = statusFilter;
@@ -103,8 +107,11 @@ export const AdminUserManagement: React.FC = () => {
   });
 
   const users: UserItem[] = Array.isArray(data) ? data : (data?.users || []);
+  const totalCount: number = data?.count ?? users.length;
+  const totalPages: number = data?.total_pages ?? Math.max(1, Math.ceil(totalCount / pageSize));
+
   const stats: UserStats = data?.stats || {
-    total: users.length,
+    total: totalCount,
     active: users.filter(u => u.is_active).length,
     inactive: users.filter(u => !u.is_active).length,
     admins: users.filter(u => u.role === 'Admin').length,
@@ -311,7 +318,7 @@ export const AdminUserManagement: React.FC = () => {
               type="text"
               placeholder="Search by username, email, or full name..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
               className="w-full bg-black/40 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-xs sm:text-sm text-white placeholder:text-zinc-600 outline-none focus:border-emerald-500/50 transition-all"
             />
           </div>
@@ -319,7 +326,7 @@ export const AdminUserManagement: React.FC = () => {
           <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
             <select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
+              onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
               className="bg-black/40 border border-white/10 rounded-xl py-2 px-3 text-xs text-zinc-300 outline-none focus:border-emerald-500/50"
             >
               <option value="">All Roles</option>
@@ -333,7 +340,7 @@ export const AdminUserManagement: React.FC = () => {
 
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
               className="bg-black/40 border border-white/10 rounded-xl py-2 px-3 text-xs text-zinc-300 outline-none focus:border-emerald-500/50"
             >
               <option value="">All Status</option>
@@ -343,7 +350,7 @@ export const AdminUserManagement: React.FC = () => {
 
             {(searchQuery || roleFilter || statusFilter) && (
               <button
-                onClick={() => { setSearchQuery(''); setRoleFilter(''); setStatusFilter(''); }}
+                onClick={() => { setSearchQuery(''); setRoleFilter(''); setStatusFilter(''); setPage(1); }}
                 className="text-xs text-zinc-400 hover:text-white px-2 py-1 underline whitespace-nowrap"
               >
                 Clear
@@ -559,6 +566,79 @@ export const AdminUserManagement: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          {/* ── PAGINATION CONTROLS ── */}
+          {!isLoading && !isError && totalCount > 0 && (
+            <div className="p-4 sm:p-5 border-t border-white/10 bg-white/[0.01] flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-xs text-zinc-400">
+                <span>
+                  Showing <strong className="text-white font-mono">{totalCount === 0 ? 0 : (page - 1) * pageSize + 1}</strong> to{' '}
+                  <strong className="text-white font-mono">{Math.min(page * pageSize, totalCount)}</strong> of{' '}
+                  <strong className="text-white font-mono">{totalCount}</strong> accounts
+                </span>
+                <div className="flex items-center gap-1.5 ml-2 border-l border-white/10 pl-3">
+                  <span className="text-zinc-500">Rows:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setPage(1);
+                    }}
+                    className="bg-black/50 border border-white/10 rounded-lg py-1 px-2 text-xs text-zinc-300 outline-none focus:border-emerald-500/50 cursor-pointer"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Page Buttons */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="px-3 py-1.5 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <ChevronLeft size={14} />
+                  <span>Prev</span>
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                  .map((p, idx, arr) => {
+                    const prevP = arr[idx - 1];
+                    const hasGap = prevP && p - prevP > 1;
+                    return (
+                      <React.Fragment key={p}>
+                        {hasGap && <span className="px-1 text-zinc-600 font-mono">...</span>}
+                        <button
+                          onClick={() => setPage(p)}
+                          className={cn(
+                            "w-8 h-8 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer",
+                            page === p
+                              ? "bg-emerald-500 text-black shadow-lg shadow-emerald-950/50"
+                              : "border border-white/10 bg-white/[0.02] text-zinc-400 hover:text-white hover:bg-white/[0.06]"
+                          )}
+                        >
+                          {p}
+                        </button>
+                      </React.Fragment>
+                    );
+                  })}
+
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="px-3 py-1.5 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Next</span>
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

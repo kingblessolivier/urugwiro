@@ -745,16 +745,54 @@ def api_about(request):
 @api_view(['POST'])
 def api_contact_submit(request):
     """
-    Handles contact form submissions.
+    Handles contact form submissions and persists them into the database (CustRequest).
     """
+    from .models import CustRequest
     name = request.data.get('name')
     email = request.data.get('email')
     message = request.data.get('message')
+    subject = request.data.get('subject')
 
     if not all([name, email, message]):
         return Response({'error': 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
 
-    return Response({'status': 'Success', 'message': 'Your message has been sent. Our team will contact you shortly.'}, status=status.HTTP_201_CREATED)
+    msg_body = f"Subject: {subject}\n\n{message}" if subject else message
+
+    CustRequest.objects.create(
+        name=name.strip(),
+        email=email.strip(),
+        message=msg_body.strip(),
+        is_read=False,
+        is_archived=False
+    )
+
+    return Response({'status': 'Success', 'message': 'Your message has been received. Our team will contact you shortly.'}, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+def api_platform_stats(request):
+    """
+    Returns live database metrics for the public homepage and discovery dashboard.
+    """
+    from .models import Listing, TransactionDeal, User
+
+    total_listings = Listing.objects.count()
+    verified_listings = Listing.objects.filter(verification_level__in=['verified', 'professional']).count()
+    completed_deals = TransactionDeal.objects.filter(current_stage='closed').count()
+    active_deals = TransactionDeal.objects.exclude(current_stage='closed').count()
+    total_users = User.objects.count()
+
+    districts_count = Listing.objects.filter(asset__district__isnull=False).exclude(asset__district='').values('asset__district').distinct().count()
+    if districts_count == 0:
+        districts_count = 30
+
+    return Response({
+        'properties_listed': total_listings,
+        'verified_listings': verified_listings,
+        'completed_deals': completed_deals,
+        'active_deals': active_deals,
+        'active_users': total_users,
+        'districts_covered': districts_count,
+    }, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def api_public_updates(request):
@@ -2057,10 +2095,37 @@ def admin_users_list_create(request):
     tenants_count = all_users.filter(role='Tenant').count()
     buyers_count = all_users.filter(role='Buyer').count()
 
-    serializer = UserSerializer(queryset, many=True)
+    import math
+    filtered_count = queryset.count()
+    page_param = request.query_params.get('page')
+    page_size_param = request.query_params.get('page_size', 10)
+
+    try:
+        page_size = max(1, min(100, int(page_size_param)))
+    except (ValueError, TypeError):
+        page_size = 10
+
+    total_pages = max(1, math.ceil(filtered_count / page_size)) if filtered_count > 0 else 1
+
+    if page_param is not None:
+        try:
+            current_page = max(1, min(total_pages, int(page_param)))
+        except (ValueError, TypeError):
+            current_page = 1
+        start = (current_page - 1) * page_size
+        end = start + page_size
+        paginated_queryset = queryset[start:end]
+    else:
+        current_page = 1
+        paginated_queryset = queryset
+
+    serializer = UserSerializer(paginated_queryset, many=True)
     return Response({
         'users': serializer.data,
-        'count': queryset.count(),
+        'count': filtered_count,
+        'total_pages': total_pages,
+        'current_page': current_page,
+        'page_size': page_size,
         'stats': {
             'total': total_count,
             'active': active_count,
@@ -2243,6 +2308,96 @@ def admin_user_reset_password(request, pk):
         'success': True,
         'message': f"Password for '{user.username}' reset successfully."
     }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def admin_enquiries_list(request):
+    """
+    Returns real customer inquiries and contact submissions from the database (CustRequest model).
+    """
+    from .models import CustRequest
+    from django.db.models import Q
+
+    status_filter = request.query_params.get('status', 'all')
+    search = request.query_params.get('search', '').strip()
+
+    qs = CustRequest.objects.select_related('listing', 'property').all().order_by('-created_at')
+
+    if status_filter == 'unread':
+        qs = qs.filter(is_read=False, is_archived=False)
+    elif status_filter == 'read':
+        qs = qs.filter(is_read=True, is_archived=False)
+    elif status_filter == 'archived':
+        qs = qs.filter(is_archived=True)
+
+    if search:
+        qs = qs.filter(
+            Q(name__icontains=search) |
+            Q(email__icontains=search) |
+            Q(message__icontains=search) |
+            Q(listing__title__icontains=search)
+        )
+
+    enquiries_data = []
+    for enq in qs:
+        title = enq.listing.title if enq.listing else (enq.property.name if enq.property else 'General Marketplace Enquiry')
+        enquiries_data.append({
+            'id': str(enq.id),
+            'name': enq.name,
+            'email': enq.email,
+            'propertyTitle': title,
+            'message': enq.message,
+            'status': 'archived' if enq.is_archived else ('read' if enq.is_read else 'unread'),
+            'createdAt': enq.created_at.isoformat() if enq.created_at else None,
+        })
+
+    all_qs = CustRequest.objects.all()
+    stats = {
+        'total': all_qs.count(),
+        'unread': all_qs.filter(is_read=False, is_archived=False).count(),
+        'read': all_qs.filter(is_read=True, is_archived=False).count(),
+        'archived': all_qs.filter(is_archived=True).count(),
+    }
+
+    return Response({
+        'enquiries': enquiries_data,
+        'stats': stats,
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['PATCH', 'DELETE'])
+def admin_enquiry_detail_update(request, pk):
+    """
+    Updates or deletes a CustRequest enquiry record.
+    """
+    from .models import CustRequest
+    enq = get_object_or_404(CustRequest, pk=pk)
+
+    if request.method == 'DELETE':
+        enq.delete()
+        return Response({'success': True, 'message': 'Enquiry deleted successfully.'}, status=status.HTTP_200_OK)
+
+    new_status = request.data.get('status')
+    if new_status == 'read':
+        enq.is_read = True
+        enq.is_archived = False
+    elif new_status == 'unread':
+        enq.is_read = False
+        enq.is_archived = False
+    elif new_status == 'archived':
+        enq.is_archived = True
+        enq.is_read = True
+
+    enq.save()
+    return Response({
+        'success': True,
+        'message': f"Enquiry status updated to {new_status}.",
+        'enquiry': {
+            'id': str(enq.id),
+            'status': 'archived' if enq.is_archived else ('read' if enq.is_read else 'unread'),
+        }
+    }, status=status.HTTP_200_OK)
+
 
 
 

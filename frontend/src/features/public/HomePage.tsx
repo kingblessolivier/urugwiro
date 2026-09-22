@@ -174,12 +174,6 @@ const steps = [
   { step: '03', title: 'Transact', desc: 'Make offers, schedule visits, and close deals through our secure escrow-protected pipeline.' },
 ];
 
-const testimonials = [
-  { name: 'Jean-Pierre M.', role: 'Property Investor, Kigali', quote: 'Urugwiro transformed how I find verified land. The UPI verification saved me from a fraudulent listing.' },
-  { name: 'Diane U.', role: 'First-Time Buyer', quote: 'The AI valuation tool helped me negotiate confidently. I knew exactly what the property was worth.' },
-  { name: 'Patrick K.', role: 'Real Estate Agent', quote: 'My clients trust listings on Urugwiro because of the verification process. It\'s elevated our entire business.' },
-];
-
 const mapApiListing = (item: Record<string, unknown>): ListingCardData => {
   const media = Array.isArray(item.media) ? item.media : [];
   const asset = (item.asset as Record<string, unknown> | undefined) || {};
@@ -244,8 +238,26 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
     retry: false,
   });
 
+  const statsQuery = useQuery({
+    queryKey: ['homepage-platform-stats'],
+    queryFn: async () => {
+      const response = await api.public.platformStats();
+      return response.data;
+    },
+    staleTime: 60000,
+  });
+
   const featured = useMemo(() => (listingsQuery.data || []).slice(0, 6), [listingsQuery.data]);
   const totalListings = listingsQuery.data?.length || 0;
+
+  const liveStats = statsQuery.data || {
+    properties_listed: totalListings,
+    verified_listings: 0,
+    completed_deals: 0,
+    active_deals: 0,
+    active_users: 0,
+    districts_covered: 30,
+  };
 
   const submitSearch = (event: React.FormEvent) => {
     event.preventDefault();
@@ -631,47 +643,20 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
         </div>
       </section>
 
-      {/* ━━━ 06 — MARKET STATISTICS ━━━ */}
+      {/* ━━━ 06 — MARKET STATISTICS (LIVE DATABASE AUDIT) ━━━ */}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:py-20 lg:px-12">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 sm:p-10 md:p-14">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 sm:p-10 md:p-14 backdrop-blur-xl">
           <div className="grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-4 text-center">
             {[
-              { icon: Building2, value: totalListings > 0 ? totalListings.toLocaleString() : '1,200+', label: 'Properties Listed' },
-              { icon: CheckCircle2, value: '340+', label: 'Completed Deals' },
-              { icon: Users, value: '8,500+', label: 'Active Users' },
-              { icon: Globe, value: '30', label: 'Districts Covered' },
+              { icon: Building2, value: Number(liveStats.properties_listed || totalListings || 0).toLocaleString(), label: 'Live Catalog Properties' },
+              { icon: CheckCircle2, value: Number(liveStats.verified_listings || 0).toLocaleString(), label: 'RLMUA Cadastre Verified' },
+              { icon: Users, value: Number(liveStats.active_users || 0).toLocaleString(), label: 'Platform Members' },
+              { icon: Globe, value: `${liveStats.districts_covered || 30}`, label: 'Districts Across Rwanda' },
             ].map(({ icon: Icon, value, label }) => (
               <div key={label}>
                 <Icon size={20} className="mx-auto mb-2 text-emerald-400" />
-                <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{value}</p>
-                <p className="mt-1 text-[11px] sm:text-xs text-zinc-500">{label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ━━━ 07 — TESTIMONIALS ━━━ */}
-      <section className="border-y border-white/[0.06] bg-white/[0.01] px-4 py-12 sm:py-20 lg:px-12">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-10 sm:mb-14 text-center space-y-2.5 sm:space-y-3">
-            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-400">Trusted By</p>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">What Our Users Say</h2>
-          </div>
-
-          <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
-            {testimonials.map((t) => (
-              <div key={t.name} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-7 transition-all hover:border-white/[0.15]">
-                <p className="text-xs sm:text-sm leading-relaxed text-zinc-300 italic">"{t.quote}"</p>
-                <div className="mt-4 sm:mt-6 flex items-center gap-3">
-                  <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400 text-xs font-bold shrink-0">
-                    {t.name.split(' ').map(p => p[0]).join('')}
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-semibold text-white">{t.name}</p>
-                    <p className="text-[10px] sm:text-[11px] text-zinc-500">{t.role}</p>
-                  </div>
-                </div>
+                <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white font-mono">{value}</p>
+                <p className="mt-1 text-[11px] sm:text-xs text-zinc-400 font-medium">{label}</p>
               </div>
             ))}
           </div>

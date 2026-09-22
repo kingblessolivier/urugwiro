@@ -15,7 +15,8 @@ from .api_views import (
     list_create_deals, get_deal_detail, advance_deal_stage, upload_deal_document,
     api_proposals_view, api_proposal_detail_view, api_convert_proposal_to_listing,
     admin_users_list_create, admin_user_detail_update_delete,
-    admin_user_set_role, admin_user_toggle_status, admin_user_reset_password
+    admin_user_set_role, admin_user_toggle_status, admin_user_reset_password,
+    api_platform_stats, admin_enquiries_list, admin_enquiry_detail_update
 )
 from django.contrib.auth import views as auth_views
 
@@ -45,6 +46,13 @@ urlpatterns = [
     path('api/valuation/estimate/', valuation_estimate, name='api_valuation_estimate'),
     path('api/public/about/', api_about, name='api_public_about'),
     path('api/public/updates/', api_public_updates, name='api_public_updates'),
+    path('api/public/platform-stats/', api_platform_stats, name='api_platform_stats'),
+
+    # Admin Customer Enquiries
+    path('api/admin/enquiries/', admin_enquiries_list, name='api_admin_enquiries'),
+    path('api/admin/enquiries/<int:pk>/', admin_enquiry_detail_update, name='api_admin_enquiry_detail'),
+    path('api/api/admin/enquiries/', admin_enquiries_list, name='api_api_admin_enquiries_fallback'),
+    path('api/api/admin/enquiries/<int:pk>/', admin_enquiry_detail_update, name='api_api_admin_enquiry_detail_fallback'),
 
     # Offers & Negotiations
     path('api/offers/', list_create_offers, name='api_offers'),

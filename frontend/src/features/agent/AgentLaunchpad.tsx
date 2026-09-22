@@ -3,55 +3,49 @@ import { useQuery } from '@tanstack/react-query';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { api } from '../../api/endpoints';
+import { useAuth } from '../../context/AuthContext';
+import { Building2, Calendar, FileText, CheckCircle2, Layers, ShieldCheck, MapPin, ArrowRight } from 'lucide-react';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 const AgentLaunchpad: React.FC = () => {
-    const { data: dashboardData, isLoading: loadingDashboard } = useQuery({
-        queryKey: ['agent-dashboard'],
-        queryFn: async () => {
-            const response = await api.agent.dashboard();
-            return response.data;
-        },
-    });
+    const { user } = useAuth();
+    const displayName = user?.full_name || user?.username || 'Field Agent';
 
-    const { data: visits = [], isLoading: loadingVisits } = useQuery({
-        queryKey: ['agent-visits'],
-        queryFn: async () => {
-            const response = await api.agent.visits();
-            return response.data;
-        },
-    });
-
-    const { data: offers = [], isLoading: loadingOffers } = useQuery({
-        queryKey: ['agent-offers'],
-        queryFn: async () => {
-            const response = await api.agent.offers();
-            return response.data;
-        },
-    });
-
-    const { data: properties = [], isLoading: loadingProperties } = useQuery({
+    const { data: properties = [] } = useQuery({
         queryKey: ['agent-properties'],
         queryFn: async () => {
-            const response = await api.agent.properties();
-            return response.data;
+            const response = await api.listings.list();
+            return Array.isArray(response.data) ? response.data : [];
         },
     });
 
-    if (loadingDashboard || loadingVisits || loadingOffers || loadingProperties) {
-        return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500">Loading Agent Launchpad...</div>;
-    }
+    const { data: visits = [] } = useQuery({
+        queryKey: ['agent-visits'],
+        queryFn: async () => {
+            const response = await api.visits.list();
+            return Array.isArray(response.data) ? response.data : [];
+        },
+    });
 
-    const agent = dashboardData;
-    const metrics = agent.metrics;
+    const { data: offers = [] } = useQuery({
+        queryKey: ['agent-offers'],
+        queryFn: async () => {
+            const response = await api.offers.list();
+            return Array.isArray(response.data) ? response.data : [];
+        },
+    });
+
+    const activeListings = properties.filter((p: any) => (p.status || '').toLowerCase() === 'listed' || !p.status);
+    const pendingOffers = offers.filter((o: any) => (o.status || '').toLowerCase() === 'pending');
+    const confirmedVisits = visits.filter((v: any) => (v.status || '').toLowerCase() === 'confirmed' || (v.status || '').toLowerCase() === 'pending');
 
     const statusChartData = {
-        labels: ['Active', 'Negotiating', 'Sold'],
+        labels: ['Active Listings', 'Pending Offers', 'Site Visits'],
         datasets: [
             {
-                data: [metrics.active, metrics.negotiating, metrics.sold],
-                backgroundColor: ['#2D5A27', '#ff9800', '#1565C0'],
+                data: [activeListings.length || 1, pendingOffers.length || 0, visits.length || 0],
+                backgroundColor: ['#10b981', '#38bdf8', '#fbbf24'],
                 borderWidth: 0,
                 borderRadius: 4,
             },
@@ -59,13 +53,13 @@ const AgentLaunchpad: React.FC = () => {
     };
 
     const performanceChartData = {
-        labels: ['Assigned', 'Active', 'Deals', 'Reviews'],
+        labels: ['Listings', 'Visits', 'Offers'],
         datasets: [
             {
-                label: 'Count',
-                data: [metrics.assigned, metrics.active, metrics.sold, agent.totalReviews],
-                backgroundColor: ['rgba(45, 90, 39, 0.2)', 'rgba(21, 101, 192, 0.2)', 'rgba(255, 152, 0, 0.2)', 'rgba(32, 201, 151, 0.2)'],
-                borderColor: ['#2D5A27', '#1565C0', '#ff9800', '#20c997'],
+                label: 'Activity Count',
+                data: [properties.length, visits.length, offers.length],
+                backgroundColor: ['rgba(16, 185, 129, 0.2)', 'rgba(56, 189, 248, 0.2)', 'rgba(251, 191, 36, 0.2)'],
+                borderColor: ['#10b981', '#38bdf8', '#fbbf24'],
                 borderWidth: 2,
                 borderRadius: 8,
             },
@@ -73,182 +67,116 @@ const AgentLaunchpad: React.FC = () => {
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8">
+        <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 bg-[#05070b] min-h-screen text-zinc-100">
             {/* Hero Section */}
-            <div className="relative overflow-hidden bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-2xl">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-emerald-950/30 via-white/[0.02] to-transparent p-8 shadow-2xl backdrop-blur-xl">
                 <div className="relative z-10 flex justify-between items-start flex-wrap gap-6">
                     <div>
-                        <h1 className="text-4xl font-bold text-white mb-2">Welcome back, {agent.name} 👋</h1>
-                        <p className="text-zinc-400 text-lg">Manage your assigned properties, site visits, and negotiations.</p>
-                    </div>
-                    <div className="flex gap-3">
-                        <button className="px-5 py-2 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all flex items-center gap-2">
-                            <span>📅</span> My Visits
-                        </button>
-                        <button className="px-5 py-2 bg-zinc-800 text-white font-bold rounded-xl border border-zinc-700 hover:bg-zinc-700 transition-all flex items-center gap-2">
-                            <span>🏢</span> Properties
-                        </button>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
+                            <ShieldCheck size={14} /> Certified Field Broker Cockpit
+                        </div>
+                        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
+                            Welcome back, <span className="text-emerald-400">{displayName}</span> 👋
+                        </h1>
+                        <p className="text-zinc-400 text-sm sm:text-base">
+                            Oversee assigned portfolio assets, schedule physical property inspections, and negotiate sovereign offers.
+                        </p>
                     </div>
                 </div>
-                <div className="absolute -top-24 -right-24 w-64 h-64 bg-green-500/10 blur-3xl rounded-full pointer-events-none" />
+                <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
             </div>
 
             {/* Metrics Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: 'Assigned Properties', value: metrics.assigned, icon: '🏢', color: 'text-blue-500' },
-                    { label: 'Active Listings', value: metrics.active, icon: '✅', color: 'text-green-500' },
-                    { label: 'Under Negotiation', value: metrics.negotiating, icon: '🤝', color: 'text-yellow-500' },
-                    { label: 'Sold', value: metrics.sold, icon: '💰', color: 'text-emerald-500' },
-                    { label: 'Rating', value: agent.rating, icon: '⭐', color: 'text-yellow-400' },
-                    { label: 'Reviews', value: agent.totalReviews, icon: '💬', color: 'text-zinc-400' },
-                ].map((stat, i) => (
-                    <div key={i} className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl flex flex-col items-center text-center hover:border-zinc-600 transition-all">
-                        <div className="text-2xl mb-2">{stat.icon}</div>
-                        <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-                        <div className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">{stat.label}</div>
-                    </div>
-                ))}
+                    { label: 'Assigned Assets', value: properties.length, icon: Building2, color: 'text-sky-400' },
+                    { label: 'Active Listings', value: activeListings.length, icon: CheckCircle2, color: 'text-emerald-400' },
+                    { label: 'Scheduled Visits', value: confirmedVisits.length, icon: Calendar, color: 'text-amber-400' },
+                    { label: 'Negotiating Offers', value: pendingOffers.length, icon: FileText, color: 'text-emerald-300' },
+                ].map((stat, i) => {
+                    const Icon = stat.icon;
+                    return (
+                        <div key={i} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex flex-col items-center text-center hover:border-emerald-500/40 transition-all backdrop-blur-xl">
+                            <div className="p-3 rounded-xl bg-white/[0.04] text-emerald-400 mb-2">
+                                <Icon size={20} />
+                            </div>
+                            <div className={`text-xl sm:text-2xl font-bold ${stat.color} font-mono`}>{stat.value}</div>
+                            <div className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mt-1">{stat.label}</div>
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl h-[400px] flex flex-col">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                            <span>📊</span> Property Status
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 h-[380px] flex flex-col backdrop-blur-xl">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-base font-bold text-white flex items-center gap-2">
+                            <Layers size={16} className="text-emerald-400" /> Asset Distribution
                         </h3>
-                        <span className="px-3 py-1 bg-green-500/10 text-green-400 text-xs font-bold rounded-full border border-green-500/20">Overview</span>
+                        <span className="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-full border border-emerald-500/20">Live Pipeline</span>
                     </div>
-                    <div className="flex-1 relative">
-                        <Doughnut data={statusChartData} options={{ maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#71717a' } } } }} />
-                    </div>
-                </div>
-                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl h-[400px] flex flex-col">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                            <span>📈</span> Performance
-                        </h3>
-                        <span className="px-3 py-1 bg-blue-500/10 text-blue-400 text-xs font-bold rounded-full border border-blue-500/20">Stats</span>
-                    </div>
-                    <div className="flex-1 relative">
-                        <Bar data={performanceChartData} options={{ maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#71717a' }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { ticks: { color: '#71717a' }, grid: { display: false } } } }} />
-                    </div>
-                </div>
-            </div>
-
-            {/* Lists Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Upcoming Visits */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden">
-                    <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                            <span>📍</span> Upcoming Site Visits
-                        </h3>
-                        <button className="text-xs text-zinc-500 hover:text-white transition-colors flex items-center gap-1">
-                            View All <span>→</span>
-                        </button>
-                    </div>
-                    <div className="divide-y divide-zinc-800">
-                        {visits.slice(0, 5).map((v: any) => (
-                            <div key={v.id} className="p-4 hover:bg-zinc-800/50 transition-all flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center">📅</div>
-                                <div className="flex-1">
-                                    <div className="text-sm font-bold text-white">{v.property_title}</div>
-                                    <div className="text-xs text-zinc-500">{v.date}</div>
-                                </div>
-                                <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[10px] font-bold border border-zinc-700">{v.status}</span>
-                            </div>
-                        ))}
-                        {visits.length === 0 && <div className="p-10 text-center text-zinc-500">No upcoming visits</div>}
+                    <div className="flex-1 relative flex items-center justify-center">
+                        <Doughnut data={statusChartData} options={{ maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { family: 'Inter' } } } } }} />
                     </div>
                 </div>
 
-                {/* Recent Offers */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden">
-                    <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                            <span>🤝</span> Recent Offers
+                <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 h-[380px] flex flex-col backdrop-blur-xl">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-base font-bold text-white flex items-center gap-2">
+                            <Building2 size={16} className="text-emerald-400" /> Operational Volume
                         </h3>
-                        <button className="text-xs text-zinc-500 hover:text-white transition-colors flex items-center gap-1">
-                            View All <span>→</span>
-                        </button>
+                        <span className="px-2.5 py-0.5 bg-sky-500/10 text-sky-400 text-xs font-bold rounded-full border border-sky-500/20">Real-Time</span>
                     </div>
-                    <div className="divide-y divide-zinc-800">
-                        {offers.slice(0, 5).map((o: any) => (
-                            <div key={o.id} className="p-4 hover:bg-zinc-800/50 transition-all flex items-center gap-4">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                    o.status === 'accepted' ? 'bg-green-500/10 text-green-500' :
-                                    o.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
-                                    'bg-red-500/10 text-red-500'
-                                }`}>💰</div>
-                                <div className="flex-1">
-                                    <div className="text-sm font-bold text-white">{o.property_title} — {o.amount?.toLocaleString()} Frw</div>
-                                    <div className="text-xs text-zinc-500">{o.buyer} · {o.date}</div>
-                                </div>
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                    o.status === 'accepted' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                    o.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                    'bg-red-500/10 text-red-400 border-red-500/20'
-                                }`}>
-                                    {o.status}
-                                </span>
-                            </div>
-                        ))}
-                        {offers.length === 0 && <div className="p-10 text-center text-zinc-500">No offers yet</div>}
+                    <div className="flex-1 relative">
+                        <Bar data={performanceChartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#71717a' }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { ticks: { color: '#71717a' }, grid: { display: false } } } }} />
                     </div>
                 </div>
             </div>
 
             {/* Assigned Properties Table */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden">
-                <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                        <span>🏢</span> My Assigned Properties
-                    </h3>
-                    <button className="text-xs text-zinc-500 hover:text-white transition-colors flex items-center gap-1">
-                        View All <span>→</span>
-                    </button>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.02] overflow-hidden backdrop-blur-xl">
+                <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                    <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                        <Building2 size={18} className="text-emerald-400" /> Catalog Properties Under Representation
+                    </h2>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="bg-zinc-800/50 text-zinc-400 text-xs uppercase tracking-wider">
+                    <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead className="bg-white/[0.01] text-zinc-500 text-[10px] uppercase tracking-wider font-bold border-b border-white/10">
                             <tr>
-                                <th className="px-6 py-4 font-medium">Title</th>
-                                <th className="px-6 py-4 font-medium">Type</th>
-                                <th className="px-6 py-4 font-medium">Price</th>
-                                <th className="px-6 py-4 font-medium">Location</th>
-                                <th className="px-6 py-4 font-medium">Status</th>
-                                <th className="px-6 py-4 font-medium text-right">Actions</th>
+                                <th className="px-6 py-4">Asset Title</th>
+                                <th className="px-6 py-4">Location</th>
+                                <th className="px-6 py-4">Price</th>
+                                <th className="px-6 py-4">Verification</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-800">
-                            {properties.slice(0, 5).map((p: any) => (
-                                <tr key={p.id} className="hover:bg-zinc-800/30 transition-colors group">
-                                    <td className="px-6 py-4 text-sm font-medium text-white">{p.title}</td>
-                                    <td className="px-6 py-4 text-sm text-zinc-400">{p.type}</td>
-                                    <td className="px-6 py-4 text-sm font-bold text-green-500">{p.price?.toLocaleString()} Frw</td>
-                                    <td className="px-6 py-4 text-sm text-zinc-500">{p.location}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                            p.status === 'listed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                            p.status === 'under_negotiation' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                            'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                                        }`}>
-                                            {p.status}
-                                        </span>
+                        <tbody className="divide-y divide-white/[0.06]">
+                            {properties.slice(0, 10).map((prop: any) => (
+                                <tr key={prop.id} className="hover:bg-white/[0.02] transition-colors">
+                                    <td className="px-6 py-4 font-bold text-white">{prop.title}</td>
+                                    <td className="px-6 py-4 text-zinc-400">{prop.location || prop.district || 'Rwanda'}</td>
+                                    <td className="px-6 py-4 font-mono font-bold text-emerald-400">
+                                        {Number(prop.price || 0).toLocaleString()} {prop.currency || 'RWF'}
                                     </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button className="p-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-lg border border-zinc-700 transition-colors" title="Schedule Visit">📅</button>
-                                            <button className="p-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-lg border border-zinc-700 transition-colors" title="Upload Photos">📷</button>
-                                        </div>
+                                    <td className="px-6 py-4">
+                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                            {prop.verification_level || 'standard'}
+                                        </span>
                                     </td>
                                 </tr>
                             ))}
+                            {properties.length === 0 && (
+                                <tr>
+                                    <td colSpan={4} className="p-12 text-center text-zinc-500">
+                                        <Building2 size={32} className="mx-auto mb-2 text-zinc-700" />
+                                        <p className="font-semibold text-zinc-400">No properties assigned</p>
+                                        <p className="text-xs text-zinc-600 mt-1">Properties assigned to your agent account will appear here.</p>
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
-                    {properties.length === 0 && <div className="p-10 text-center text-zinc-500">No properties assigned yet.</div>}
                 </div>
             </div>
         </div>
