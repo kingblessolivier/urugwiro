@@ -1214,86 +1214,207 @@ def ai_verify_milestone_document(request):
     return Response(audit_result, status=status.HTTP_200_OK)
 
 
-# ─── Conversational AI Chatbot Endpoint (Seller, Public, Admin) ───
+# ─── Conversational AI Support Endpoint (Database-Grounded, Zero Asterisks) ───
+
+def strip_all_stars(text: str) -> str:
+    """Removes all asterisk formatting characters (* and **) to ensure clean, readable output without stars."""
+    if not text:
+        return ""
+    import re
+    # Remove markdown bold and italic asterisks
+    cleaned = text.replace('**', '').replace('*', '')
+    # Remove double dashes at start of line
+    cleaned = re.sub(r'^\s*-\s*-\s*', '- ', cleaned, flags=re.MULTILINE)
+    return cleaned.strip()
+
+
+def get_database_catalog_items(category: str = None, location: str = None, limit: int = 8) -> list:
+    """Queries real live listings directly from the Django database."""
+    from .models import Listing
+    qs = Listing.objects.filter(status='listed').select_related('asset').order_by('-id')
+    if category:
+        qs = qs.filter(category=category)
+    if location:
+        qs = qs.filter(address__icontains=location)
+
+    results = []
+    for item in qs[:limit]:
+        specs = []
+        upi = None
+        if hasattr(item, 'asset') and item.asset:
+            if hasattr(item.asset, 'house_spec') and item.asset.house_spec:
+                hs = item.asset.house_spec
+                if hs.bedrooms:
+                    specs.append(f"{hs.bedrooms} Bedrooms")
+                if hs.bathrooms:
+                    specs.append(f"{hs.bathrooms} Bathrooms")
+                if hs.sub_type:
+                    specs.append(hs.sub_type)
+            elif hasattr(item.asset, 'land_spec') and item.asset.land_spec:
+                ls = item.asset.land_spec
+                if ls.upi_number:
+                    upi = ls.upi_number
+                if ls.zoning_code:
+                    specs.append(f"Zoning {ls.zoning_code}")
+                if ls.terrain:
+                    specs.append(f"Terrain {ls.terrain}")
+            elif hasattr(item.asset, 'vehicle_spec') and item.asset.vehicle_spec:
+                vs = item.asset.vehicle_spec
+                specs.append(f"{vs.year} {vs.make} {vs.model}")
+                if vs.transmission:
+                    specs.append(vs.transmission)
+
+        results.append({
+            'title': item.title,
+            'price': f"{item.price:,.0f} {item.currency}",
+            'location': item.address or 'Kigali, Rwanda',
+            'category': item.category,
+            'specs': ", ".join(specs) if specs else "",
+            'upi': upi or "",
+        })
+    return results
+
+
+def format_database_listings_response(items: list, category_label: str = "properties") -> str:
+    """Builds a star-free, structured response presenting real database listings."""
+    if not items:
+        return (
+            f"Welcome to Urugwiro AI Support.\n\n"
+            f"Currently, there are no active listings under {category_label} in our database. "
+            f"However, we have other verified assets available across Kigali. "
+            f"Would you like me to show you available homes, titled land plots, or vehicles?"
+        )
+
+    lines = [
+        f"Welcome to Urugwiro AI Support.",
+        f"",
+        f"Here are the verified {category_label} currently available in our database:",
+        f""
+    ]
+
+    for idx, item in enumerate(items, 1):
+        lines.append(f"{idx}. {item['title']}")
+        lines.append(f"   Price: {item['price']}")
+        lines.append(f"   Location: {item['location']}")
+        if item.get('specs'):
+            lines.append(f"   Details: {item['specs']}")
+        if item.get('upi'):
+            lines.append(f"   RLMUA Cadastre UPI: {item['upi']}")
+        lines.append("")
+
+    lines.append(
+        "All listings are verified through official Rwandan land cadastre records and secured by Urugwiro milestone escrow. "
+        "Would you like to schedule an accompanied site visit or submit an offer?"
+    )
+    return "\n".join(lines)
+
 
 def generate_rwandan_ai_fallback(query: str, context: str, property_context: dict = None) -> str:
-    """Provides authoritative, domain-grounded Rwandan real estate responses when LLM API is unavailable."""
+    """Provides authoritative, database-grounded Rwandan real estate responses without asterisks."""
     q = query.lower()
     prop_title = property_context.get('title') if property_context else None
+
+    # Detect if user is asking for available inventory
+    is_asking_homes = any(w in q for w in ['home', 'house', 'villa', 'apartment', 'residential', 'living']) and any(w in q for w in ['available', 'list', 'show', 'what', 'which', 'any', 'have', 'for sale', 'to rent', 'find', 'get', 'see'])
+    is_asking_land = any(w in q for w in ['land', 'plot', 'parcel', 'upi', 'terrain']) and any(w in q for w in ['available', 'list', 'show', 'what', 'which', 'any', 'have', 'for sale', 'find', 'get', 'see'])
+    is_asking_cars = any(w in q for w in ['car', 'vehicle', 'prado', 'suv', 'truck', 'auto']) and any(w in q for w in ['available', 'list', 'show', 'what', 'which', 'any', 'have', 'for sale', 'find', 'get', 'see'])
+    is_asking_general_listings = any(w in q for w in ['available', 'what is on sale', 'what properties', 'show listings', 'catalog', 'inventory', 'what do you have', 'what can i buy'])
+
+    # Direct Database Query Handlers
+    if is_asking_homes:
+        items = get_database_catalog_items(category='house')
+        return format_database_listings_response(items, "homes and villas")
+
+    if is_asking_land:
+        items = get_database_catalog_items(category='land')
+        return format_database_listings_response(items, "titled land plots")
+
+    if is_asking_cars:
+        items = get_database_catalog_items(category='car')
+        return format_database_listings_response(items, "executive vehicles")
+
+    if is_asking_general_listings:
+        items = get_database_catalog_items(limit=6)
+        return format_database_listings_response(items, "properties and assets")
 
     if context == 'seller':
         if any(w in q for w in ['price', 'pricing', 'valuat', 'worth', 'how much']):
             return (
-                "**Urugwiro Valuation Assessment**:\n\n"
-                "- **Prime Residential (Nyarutarama, Gacuriro, Kiyovu)**: Modern 4-5 bed villas average 350M – 750M RWF depending on compound size and finish level.\n"
-                "- **Growth Corridors (Kicukiro, Kanombe, Rebero)**: Quality family homes typically trade between 120M – 280M RWF.\n"
-                "- **Titled Land Plots (Gasabo/Kicukiro)**: Clean residential plots (300–600 sqm) range from 45M to 130M RWF.\n\n"
-                "💡 **Recommendation**: Set an initial listing price within 5% of comps to attract serious qualified buyers, and submit your parcel for physical verification to earn the **Verified Seller Badge**."
+                "Urugwiro AI Support - Valuation Assessment:\n\n"
+                "1. Prime Residential (Nyarutarama, Gacuriro, Kiyovu): Modern 4-5 bed villas average 350M to 750M RWF depending on compound size and finish level.\n"
+                "2. Growth Corridors (Kicukiro, Kanombe, Rebero): Quality family homes typically trade between 120M to 280M RWF.\n"
+                "3. Titled Land Plots (Gasabo/Kicukiro): Clean residential plots (300-600 sqm) range from 45M to 130M RWF.\n\n"
+                "Recommendation: Set an initial listing price within 5% of comps to attract serious qualified buyers, and submit your parcel for physical verification to earn the Verified Seller Badge."
             )
         elif any(w in q for w in ['offer', 'counter', 'negotiat', 'lowball', 'discount']):
             return (
-                "**Negotiation Strategy & Counter-Offer Guidance**:\n\n"
-                "1. **Analyze Buyer Variance**: In Kigali transactions, a buyer variance under 7% is standard commercial negotiation. If the discount exceeds 12%, do not accept outright.\n"
-                "2. **Optimal Counter Strategy**: Propose meeting midway with a 3–5% concession conditioned on a **10% earnest escrow deposit** within 5 business days.\n"
-                "3. **Draft Response Template**:\n"
-                "> *\"Thank you for your proposal. While we cannot accept the offered amount, the seller is prepared to counter at [Target Amount] RWF, provided the transaction proceeds through Urugwiro escrow with immediate title transfer upon closing.\"*"
+                "Urugwiro AI Support - Negotiation Strategy & Counter-Offer Guidance:\n\n"
+                "1. Analyze Buyer Variance: In Kigali transactions, a buyer variance under 7% is standard commercial negotiation. If the discount exceeds 12%, do not accept outright.\n"
+                "2. Optimal Counter Strategy: Propose meeting midway with a 3% to 5% concession conditioned on a 10% earnest escrow deposit within 5 business days.\n"
+                "3. Draft Response Template:\n"
+                "Thank you for your proposal. While we cannot accept the offered amount, the seller is prepared to counter at [Target Amount] RWF, provided the transaction proceeds through Urugwiro escrow with immediate title transfer upon closing."
             )
         elif any(w in q for w in ['upi', 'cadastre', 'zoning', 'master plan', 'rlmua', 'title']):
             return (
-                "**Rwandan Cadastre & Zoning Intelligence**:\n\n"
-                "- **UPI (Unique Parcel Identifier)**: Formatted as `Province/District/Sector/Cell/Parcel` (e.g., `1/02/11/04/1820`).\n"
-                "- **Kigali Master Plan 2050 Zoning**:\n"
-                "  - **R1/R1A**: Single family residential.\n"
-                "  - **R2/R3**: Medium/High density apartments.\n"
-                "  - **C1/C2**: Mixed-use and commercial.\n"
-                "- **Selling Step**: Ensure your property tax (Rwanda Revenue Authority) is up to date and your e-Title deed is accessible on Irembo for instant verification."
+                "Urugwiro AI Support - Rwandan Cadastre & Zoning Intelligence:\n\n"
+                "- UPI (Unique Parcel Identifier): Formatted as Province/District/Sector/Cell/Parcel (e.g. 1/02/11/04/1820).\n"
+                "- Kigali Master Plan 2050 Zoning:\n"
+                "  - R1/R1A: Single family residential.\n"
+                "  - R2/R3: Medium/High density apartments.\n"
+                "  - C1/C2: Mixed-use and commercial.\n"
+                "- Selling Step: Ensure your property tax (Rwanda Revenue Authority) is up to date and your e-Title deed is accessible on Irembo for instant verification."
             )
         elif any(w in q for w in ['narrative', 'description', 'write', 'copy']):
             subject = prop_title or "your property"
             return (
-                f"**Luxury Marketing Narrative for {subject}**:\n\n"
-                f"\"Nestled in one of Kigali's most sought-after residential enclaves, this exceptional property represents the pinnacle of modern architectural poise and capital appreciation.\n\n"
+                f"Urugwiro AI Support - Luxury Marketing Narrative for {subject}:\n\n"
+                f"Nestled in one of Kigali's most sought-after residential enclaves, this exceptional property represents the pinnacle of modern architectural poise and capital appreciation.\n\n"
                 f"Featuring spacious natural-lit interiors, secure perimeter infrastructure, and verified cadastral title integrity, this residence delivers an unmatched lifestyle for discerning homeowners and high-yield investors alike.\n\n"
-                f"**Key Highlights**: Cadastre Verified • Escrow Protected • High Expat Rental Demand • Turnkey Ready.\""
+                f"Key Highlights: Cadastre Verified, Escrow Protected, High Expat Rental Demand, Turnkey Ready."
             )
         else:
             return (
-                f"**Urugwiro Seller Intelligence Co-Pilot**:\n\n"
-                f"I am ready to assist you with your listing portfolio. I can help you with:\n"
-                f"1. **Pricing & Valuation Comps** in Kigali districts.\n"
-                f"2. **Drafting Luxury Marketing Narratives** for your listings.\n"
-                f"3. **Analyzing Buyer Offers & Drafting Counters**.\n"
-                f"4. **RLMUA UPI Cadastre & Master Plan Zoning Verification**.\n\n"
-                f"What specific property or transaction question would you like to explore?"
+                "Welcome to Urugwiro AI Support (Seller Workspace):\n\n"
+                "I am ready to assist you with your listing portfolio. I can help you with:\n"
+                "1. Pricing and Valuation Comps in Kigali districts.\n"
+                "2. Drafting Luxury Marketing Narratives for your listings.\n"
+                "3. Analyzing Buyer Offers and Drafting Counter-Offers.\n"
+                "4. RLMUA UPI Cadastre and Master Plan Zoning Verification.\n\n"
+                "What specific property or transaction question would you like to explore?"
             )
     else: # public
         if any(w in q for w in ['escrow', 'safe', 'protect', 'scam', 'fraud']):
             return (
-                "**Urugwiro Sovereign Escrow Protection**:\n\n"
+                "Urugwiro AI Support - Sovereign Escrow Protection:\n\n"
                 "All high-value transactions on Urugwiro are guarded by milestone escrow:\n"
-                "1. **Deposit**: Buyer funds are held securely in a regulated escrow account.\n"
-                "2. **Physical & Title Inspection**: Official cadastre boundaries (UPI) and notary title deeds are verified with RLMUA.\n"
-                "3. **Disbursement**: Funds are released to the seller only after official Irembo title transfer confirmation.\n\n"
+                "1. Deposit: Buyer funds are held securely in a regulated tripartite escrow account.\n"
+                "2. Physical and Title Inspection: Official cadastre boundaries (UPI) and notary title deeds are verified with RLMUA.\n"
+                "3. Disbursement: Funds are released to the seller only after official Irembo title transfer confirmation.\n\n"
                 "This eliminates fraud and protects both buyer and seller."
             )
         elif any(w in q for w in ['neighborhood', 'district', 'area', 'where to buy', 'kigali']):
             return (
-                "**Kigali Neighborhood Guide**:\n\n"
-                "- **Nyarutarama & Kiyovu**: Kigali's most prestigious diplomatic and executive residential enclaves.\n"
-                "- **Gacuriro & Kimihurura**: Vibrant lifestyle, premier restaurants, and high expat rental yields.\n"
-                "- **Kicukiro & Rebero**: Elevated panoramic views, tranquil living, and strong capital appreciation.\n"
-                "- **Bugesera & Gasabo Outskirts**: Exceptional land investment growth driven by new airport and infrastructure corridors."
+                "Urugwiro AI Support - Kigali Neighborhood Guide:\n\n"
+                "- Nyarutarama and Kiyovu: Kigali's most prestigious diplomatic and executive residential enclaves.\n"
+                "- Gacuriro and Kimihurura: Vibrant lifestyle, premier restaurants, and high expat rental yields.\n"
+                "- Kicukiro and Rebero: Elevated panoramic views, tranquil living, and strong capital appreciation.\n"
+                "- Bugesera and Gasabo Outskirts: Exceptional land investment growth driven by new airport and infrastructure corridors."
             )
         else:
+            # Check database first to include real count of available properties
+            homes_count = len(get_database_catalog_items(category='house'))
+            land_count = len(get_database_catalog_items(category='land'))
+            car_count = len(get_database_catalog_items(category='car'))
             return (
-                "**Welcome to Urugwiro AI Concierge**:\n\n"
-                "I can help you explore verified homes, titled land plots, and executive vehicles across Rwanda. "
-                "You can ask me about:\n"
-                "- **Verified Land Titles & UPI Cadastre**\n"
-                "- **Neighborhood Guides & Investment Yields**\n"
-                "- **The Urugwiro Escrow & Conveyance Process**\n"
-                "- **Financing, Irembo Notarization & Closing Costs**\n\n"
-                "How can I assist your property search today?"
+                "Welcome to Urugwiro AI Support.\n\n"
+                f"I am connected to the Urugwiro live database with {homes_count} verified homes, {land_count} titled land parcels, and {car_count} executive vehicles available today.\n\n"
+                "You can ask me:\n"
+                "- What are homes available?\n"
+                "- What titled land plots are listed?\n"
+                "- What executive cars are available?\n"
+                "- How does RLMUA UPI cadastre verification work in Rwanda?\n"
+                "- How does the Urugwiro escrow protect my transaction?\n\n"
+                "How can I assist your search in Rwanda today?"
             )
 
 
@@ -1301,8 +1422,8 @@ def generate_rwandan_ai_fallback(query: str, context: str, property_context: dic
 def api_ai_chat(request):
     """
     Unified conversational AI endpoint supporting multi-persona interactions:
-    - context='seller': Acts as Urugwiro Seller Intelligence Advisor (pricing, narrative, counter-offers, zoning).
-    - context='public': Acts as Urugwiro Concierge (property discovery, Rwandan cadastre, legal process).
+    - context='seller': Acts as Urugwiro AI Support for sellers (pricing, narrative, counter-offers, zoning).
+    - context='public': Acts as Urugwiro AI Support for public property discovery (queries real database listings).
     - context='admin': Acts as Compliance & Title Auditor.
     """
     import json
@@ -1314,29 +1435,56 @@ def api_ai_chat(request):
         return Response({'error': 'Messages list required'}, status=status.HTTP_400_BAD_REQUEST)
 
     latest_user_message = next((m.get('content', '') for m in reversed(messages) if m.get('role') == 'user'), '')
+    q_lower = latest_user_message.lower()
+
+    # Pre-fetch database catalog so the AI is always grounded in real inventory
+    live_catalog = get_database_catalog_items(limit=10)
+    catalog_summary = "\n".join([
+        f"- [{item['category'].upper()}] {item['title']}: {item['price']} located at {item['location']}" +
+        (f" (Details: {item['specs']})" if item['specs'] else "") +
+        (f" (UPI: {item['upi']})" if item['upi'] else "")
+        for item in live_catalog
+    ])
+
+    # Check if user specifically asks about inventory availability
+    is_asking_inventory = any(w in q_lower for w in [
+        'available', 'what are homes', 'what houses', 'what land', 'what cars',
+        'what properties', 'what is for sale', 'show me', 'list of', 'do you have'
+    ])
 
     if context == 'seller':
         system_prompt = (
-            "You are the Urugwiro Seller AI Co-Pilot, an elite Rwandan real estate investment strategist, "
-            "pricing advisor, and cadastral intelligence expert. "
-            "You help Rwandan sellers, landlords, and asset owners maximize value, price their properties accurately "
-            "based on Kigali master plan zoning (Gasabo, Kicukiro, Nyarutarama, Gacuriro, Kiyovu), negotiate buyer offers firmly yet politely, "
-            "and navigate official land cadastre (RLMUA UPI titles, land transfers via Irembo). "
+            "You are Urugwiro AI Support, an elite Rwandan real estate investment strategist and pricing advisor. "
+            "You help Rwandan sellers, landlords, and asset owners maximize value, price properties accurately "
+            "based on Kigali master plan zoning (Gasabo, Kicukiro, Nyarutarama, Gacuriro, Kiyovu), negotiate buyer offers firmly, "
+            "and navigate official land cadastre (RLMUA UPI titles, Irembo transfers). "
             "Always be practical, professional, precise with Rwandan currency (RWF), and concise."
         )
     elif context == 'admin':
         system_prompt = (
-            "You are the Urugwiro Sovereign Compliance & Cadastre Auditor AI. "
+            "You are Urugwiro AI Support (Sovereign Compliance & Cadastre Auditor). "
             "You assist platform administrators in reviewing UPI deeds, verifying escrow milestones, "
             "and auditing transaction pipelines under Rwandan land law (Law N° 27/2021)."
         )
     else:
         system_prompt = (
-            "You are the Urugwiro AI Concierge, the official digital advisor for Urugwiro—Rwanda's verified real estate "
+            "You are Urugwiro AI Support, the official digital advisor for Urugwiro, Rwanda's verified real estate "
             "and mobility marketplace. You assist prospective buyers, investors, and tenants with discovering verified villas, "
             "titled land parcels, and executive vehicles. "
             "Explain Rwandan property procedures clearly: UPI cadastre checks with RLMUA, Irembo notarization, and Urugwiro escrow security."
         )
+
+    # Inject real database inventory into prompt
+    system_prompt += f"\n\nCURRENT LIVE DATABASE INVENTORY:\n{catalog_summary}\n"
+
+    # Strict formatting instructions against stars
+    system_prompt += (
+        "\nCRITICAL FORMATTING RULES:\n"
+        "1. Your name is Urugwiro AI Support. Always introduce or refer to yourself as Urugwiro AI Support.\n"
+        "2. STRICTLY NEVER USE ASTERISKS OR STARS (* or **) ANYWHERE in your response. Do not use markdown bold with asterisks. "
+        "Write in clean plain text using numbered lists (1., 2.) or simple dashes (-).\n"
+        "3. When the user asks about available homes, land, vehicles, or properties, ALWAYS cite the real listings from the database inventory above with their exact prices in RWF and locations."
+    )
 
     if property_context:
         system_prompt += f"\nCurrent Property Context: {json.dumps(property_context)}"
@@ -1344,6 +1492,7 @@ def api_ai_chat(request):
     api_key = get_nvidia_api_key()
     ai_reply = None
 
+    # If asking specifically about available homes/land/cars, ensure deterministic database query if LLM is slow
     if api_key:
         try:
             formatted_messages = [{'role': 'system', 'content': system_prompt}]
@@ -1357,23 +1506,29 @@ def api_ai_chat(request):
                 json={
                     'model': get_nvidia_model(),
                     'messages': formatted_messages,
-                    'temperature': 0.6,
+                    'temperature': 0.5,
                     'max_tokens': 600,
                 },
                 timeout=12
             )
             if res.status_code == 200:
-                ai_reply = res.json()['choices'][0]['message']['content'].strip()
+                raw_reply = res.json()['choices'][0]['message']['content'].strip()
+                # Clean all stars from LLM response
+                ai_reply = strip_all_stars(raw_reply)
         except Exception:
             pass
 
-    if not ai_reply:
+    # If LLM didn't reply or if inventory was requested but LLM gave a generic greeting, fallback to direct DB query
+    if not ai_reply or (is_asking_inventory and "available" not in ai_reply.lower()):
         ai_reply = generate_rwandan_ai_fallback(latest_user_message, context, property_context)
+
+    # Final pass to guarantee zero asterisks
+    ai_reply = strip_all_stars(ai_reply)
 
     return Response({
         'reply': ai_reply,
         'context': context,
-        'model': get_nvidia_model() if api_key else 'urugwiro-deterministic-intelligence',
+        'model': get_nvidia_model() if api_key else 'urugwiro-database-intelligence',
     }, status=status.HTTP_200_OK)
 
 

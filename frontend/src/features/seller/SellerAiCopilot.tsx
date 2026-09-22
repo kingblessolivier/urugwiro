@@ -21,7 +21,7 @@ export const SellerAiCopilot: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content: "Hello! I am your **Urugwiro Seller Intelligence Co-Pilot**.\n\nI can help you price your property against current Kigali comps, generate luxury marketing descriptions, advise on counter-offers, and verify RLMUA zoning codes.\n\nWhat would you like to work on today?"
+      content: "Welcome to Urugwiro AI Support (Seller Workspace).\n\nI can help you price your property against current Kigali comps, generate luxury marketing descriptions, advise on counter-offers, and verify RLMUA zoning codes.\n\nWhat would you like to work on today?"
     }
   ]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -197,8 +197,8 @@ export const SellerAiCopilot: React.FC = () => {
                         : "bg-black/40 text-zinc-200 border border-white/10 rounded-tl-sm backdrop-blur-md"
                     )}
                   >
-                    <div className="prose prose-invert prose-xs max-w-none whitespace-pre-wrap break-words">
-                      {msg.content}
+                    <div className="prose prose-invert prose-xs max-w-none whitespace-pre-wrap break-words font-sans">
+                      {(msg.content || '').replace(/\*\*/g, '').replace(/\*/g, '')}
                     </div>
                   </div>
                 </div>
