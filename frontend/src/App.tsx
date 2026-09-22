@@ -144,7 +144,12 @@ function App() {
     );
   }
 
-  // Dedicated authorized launchpads (seller-dashboard, tenant-dashboard, agent-dashboard, owner-dashboard, seller-wizard)
+  // Dedicated authorized launchpads (seller-dashboard, tenant-dashboard, agent-dashboard, owner-dashboard)
+  // Render full-screen workspace without public consumer marketplace navbar
+  if (view === 'seller-dashboard') {
+    return <SellerDashboard onNavigate={setView} />;
+  }
+
   return (
     <PublicLayout view={view} onNavigate={setView} onSearch={goExplore} showFooter={false}>
       <div className="pt-4">

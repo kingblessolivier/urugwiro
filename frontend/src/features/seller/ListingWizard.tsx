@@ -150,7 +150,11 @@ const INITIAL_STATE: ListingFormData = {
     verificationDocs: [],
 };
 
-const ListingWizard: React.FC = () => {
+interface ListingWizardProps {
+    onSuccess?: () => void;
+}
+
+const ListingWizard: React.FC<ListingWizardProps> = ({ onSuccess }) => {
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState<ListingFormData>(INITIAL_STATE);
     const [isGeneratingAi, setIsGeneratingAi] = useState(false);
@@ -228,8 +232,12 @@ const ListingWizard: React.FC = () => {
             });
         },
         onSuccess: () => {
-            alert('Listing published successfully! It is now live in the marketplace.');
-            window.location.href = '/discovery';
+            alert('Listing published successfully! It is now live in your inventory.');
+            if (onSuccess) {
+                onSuccess();
+            } else {
+                window.location.href = '/discovery';
+            }
         },
         onError: (error: any) => {
             alert(`Submission failed: ${error.response?.data?.detail || error.message || 'Unknown error'}`);

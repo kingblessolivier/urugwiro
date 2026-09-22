@@ -81,9 +81,18 @@ export const api = {
         updateVisit: (id: string, status: string) => apiClient.patch(`/agent/visits/${id}/`, { status }),
     },
 
-    // Seller
+    // Seller Studio & Inventory Management
     seller: {
         dashboard: () => apiClient.get('/seller/dashboard/'),
+        listings: (params?: { category?: string; search?: string }) => apiClient.get('/seller/listings/', { params }),
+        listingDetail: (id: string | number) => apiClient.get(`/seller/listings/${id}/`),
+        updateListing: (id: string | number, data: any) => apiClient.patch(`/seller/listings/${id}/`, data),
+        deleteListing: (id: string | number) => apiClient.delete(`/seller/listings/${id}/`),
+        toggleStatus: (id: string | number, status?: string) => apiClient.post(`/seller/listings/${id}/status/`, { status }),
+        assignAgent: (id: string | number, data: { agent_id: number; notes?: string }) =>
+            apiClient.post(`/seller/listings/${id}/assign-agent/`, data),
+        deals: () => apiClient.get('/seller/deals/'),
+        agents: () => apiClient.get('/seller/agents/'),
         wizard: (data: any) => apiClient.post('/seller/listings/create/', data),
         generateNarrative: (data: any) => apiClient.post('/seller/ai/generate-narrative/', data),
         offers: () => apiClient.get('/seller/offers/'),

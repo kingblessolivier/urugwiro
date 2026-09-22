@@ -5,7 +5,8 @@ import {
   ShieldCheck, TrendingUp, Eye, Bell, User, LogOut, Plus,
   ArrowUpRight, Filter, Search, Sparkles, CheckCircle2,
   Clock, AlertCircle, ChevronRight, MapPin, Building,
-  Car, FileText, ArrowRight, ExternalLink, Bot, Menu, X
+  Car, FileText, ArrowRight, ExternalLink, Bot, Menu, X,
+  UserCheck, DollarSign, Edit3
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -14,10 +15,14 @@ import { SellerOfferManager } from './SellerOfferManager';
 import { SellerAiCopilot } from './SellerAiCopilot';
 import { ChatWindow } from '../chat/ChatWindow';
 import ListingWizard from './ListingWizard';
+import { PropertyInspectionDrawer } from './components/PropertyInspectionDrawer';
+import { PropertyEditModal } from './components/PropertyEditModal';
+import { SellerEarningsAndDeals } from './components/SellerEarningsAndDeals';
+import { SellerAgentNetwork } from './components/SellerAgentNetwork';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/endpoints';
 
-export type SellerTab = 'overview' | 'listings' | 'offers' | 'messages' | 'copilot' | 'verification' | 'new-listing';
+export type SellerTab = 'overview' | 'listings' | 'offers' | 'deals' | 'agents' | 'messages' | 'copilot' | 'verification' | 'new-listing';
 
 interface SellerDashboardProps {
   onNavigate?: (view: any) => void;
@@ -51,15 +56,19 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'house' | 'land' | 'car'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 1. Live database listings
-  const { data: rawListings = [], isLoading: loadingListings } = useQuery({
+  // Selected property for deep inspection drawer & edit modal
+  const [inspectingPropertyId, setInspectingPropertyId] = useState<string | null>(null);
+  const [editingListing, setEditingListing] = useState<any | null>(null);
+
+  // 1. Live database listings strictly owned by this authenticated seller
+  const { data: rawListings = [], isLoading: loadingListings, refetch: refetchListings } = useQuery({
     queryKey: ['seller-database-listings', user?.id],
     queryFn: async () => {
       try {
-        const res = await api.listings.list();
+        const res = await api.seller.listings();
         return Array.isArray(res.data) ? res.data : (res.data?.results || []);
       } catch (e) {
-        console.error('Failed to fetch listings:', e);
+        console.error('Failed to fetch seller listings:', e);
         return [];
       }
     },
@@ -140,7 +149,9 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'listings', label: 'My Listings', icon: Package, badge: listings.length > 0 ? listings.length.toString() : undefined },
-    { id: 'offers', label: 'Offers & Deals', icon: HandCoins, badge: totalOffers > 0 ? `${totalOffers} Active` : undefined },
+    { id: 'offers', label: 'Offers & Negotiations', icon: HandCoins, badge: totalOffers > 0 ? `${totalOffers} Active` : undefined },
+    { id: 'deals', label: 'Sales & Earnings', icon: DollarSign },
+    { id: 'agents', label: 'Verified Agents', icon: UserCheck },
     { id: 'messages', label: 'Messages', icon: MessageSquare, badge: unreadMessagesCount > 0 ? `${unreadMessagesCount} New` : undefined },
     { id: 'copilot', label: 'AI Co-Pilot', icon: Sparkles, highlight: true },
     { id: 'verification', label: 'Trust & Verification', icon: ShieldCheck },
@@ -587,7 +598,8 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                       listings.slice(0, 5).map((item) => (
                         <div
                           key={item.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-white/5 bg-black/20 hover:bg-white/[0.03] hover:border-white/10 transition-all"
+                          onClick={() => setInspectingPropertyId(item.id)}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-white/5 bg-black/20 hover:bg-white/[0.04] hover:border-emerald-500/30 transition-all cursor-pointer group"
                         >
                           <div className="flex items-center gap-3.5">
                             <img
@@ -871,22 +883,36 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                         {/* Actions */}
                         <div className="flex items-center gap-2 pt-1">
                           <button
+                            onClick={() => setInspectingPropertyId(item.id)}
+                            className="flex-1 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-xs font-semibold text-emerald-400 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <Eye size={13} />
+                            <span>Inspect Asset</span>
+                          </button>
+
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await api.seller.listingDetail(item.id);
+                                setEditingListing(res.data);
+                              } catch {
+                                setEditingListing(item);
+                              }
+                            }}
+                            className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/10 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            title="Edit Listing Specs"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+
+                          <button
                             onClick={() => {
                               setActiveTab('copilot');
                             }}
-                            className="flex-1 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-xs font-semibold text-emerald-400 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                            className="p-2 rounded-xl bg-white/[0.04] hover:bg-emerald-500/10 border border-white/10 text-zinc-400 hover:text-emerald-400 transition-colors cursor-pointer"
+                            title="AI Optimization"
                           >
-                            <Sparkles size={12} />
-                            AI Optimization
-                          </button>
-                          <button
-                            onClick={() => {
-                              setActiveTab('messages');
-                            }}
-                            className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/10 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                            title="View Inquiries"
-                          >
-                            <MessageSquare size={14} />
+                            <Sparkles size={14} />
                           </button>
                         </div>
                       </div>
@@ -905,21 +931,35 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
             </div>
           )}
 
-          {/* TAB 4: REAL-TIME MESSAGING (INTEGRATED CHAT WINDOW) */}
+          {/* TAB 4: EARNINGS & CONVEYANCE DEALS */}
+          {activeTab === 'deals' && (
+            <div className="max-w-7xl mx-auto animate-fadeIn">
+              <SellerEarningsAndDeals />
+            </div>
+          )}
+
+          {/* TAB 5: VERIFIED AGENT NETWORK */}
+          {activeTab === 'agents' && (
+            <div className="max-w-7xl mx-auto animate-fadeIn">
+              <SellerAgentNetwork listings={listings} onRefresh={() => refetchListings()} />
+            </div>
+          )}
+
+          {/* TAB 6: REAL-TIME MESSAGING (INTEGRATED CHAT WINDOW) */}
           {activeTab === 'messages' && (
             <div className="max-w-7xl mx-auto h-[calc(100vh-10rem)] animate-fadeIn">
               <ChatWindow currentRole="seller" />
             </div>
           )}
 
-          {/* TAB 5: SELLER AI CO-PILOT WORKSPACE */}
+          {/* TAB 7: SELLER AI CO-PILOT WORKSPACE */}
           {activeTab === 'copilot' && (
             <div className="max-w-7xl mx-auto animate-fadeIn">
               <SellerAiCopilot />
             </div>
           )}
 
-          {/* TAB 6: TRUST & TITLE VERIFICATION WORKSPACE */}
+          {/* TAB 8: TRUST & TITLE VERIFICATION WORKSPACE */}
           {activeTab === 'verification' && (
             <div className="max-w-5xl mx-auto space-y-6 animate-fadeIn">
               
@@ -1001,7 +1041,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
             </div>
           )}
 
-          {/* TAB 7: NEW LISTING WIZARD */}
+          {/* TAB 9: NEW LISTING WIZARD */}
           {activeTab === 'new-listing' && (
             <div className="max-w-5xl mx-auto space-y-4 animate-fadeIn">
               <div className="flex items-center justify-between pb-2">
@@ -1018,7 +1058,12 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
               </div>
 
               <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-4 sm:p-6">
-                <ListingWizard />
+                <ListingWizard 
+                  onSuccess={() => {
+                    refetchListings();
+                    setActiveTab('listings');
+                  }} 
+                />
               </div>
             </div>
           )}
@@ -1026,6 +1071,31 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
         </main>
 
       </div>
+
+      {/* Property Deep Inspection Drawer */}
+      <PropertyInspectionDrawer
+        listingId={inspectingPropertyId}
+        onClose={() => setInspectingPropertyId(null)}
+        onEdit={(prop) => {
+          setInspectingPropertyId(null);
+          setEditingListing(prop);
+        }}
+        onRefresh={() => {
+          refetchListings();
+        }}
+      />
+
+      {/* Property Edit Modal */}
+      {editingListing && (
+        <PropertyEditModal
+          listing={editingListing}
+          isOpen={!!editingListing}
+          onClose={() => setEditingListing(null)}
+          onSuccess={() => {
+            refetchListings();
+          }}
+        />
+      )}
 
     </div>
   );

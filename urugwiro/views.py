@@ -4859,54 +4859,59 @@ def admin_reports_export(request, report_type):
 
 
 
-# ── FB-style Chat API ──────────────────────────────────────────────────────────
+# ── Real-Time Chat APIs ──────────────────────────────────────────────────────────
 
-@login_required
+from rest_framework import status
+
+@api_view(['GET'])
 def chat_contacts_api(request):
-    """JSON: list of recent conversations with unread counts."""
-    from django.http import JsonResponse
-    from django.db.models import Q
+    """JSON: list of recent conversations with unread counts for authenticated user."""
+    if not request.user or not request.user.is_authenticated:
+        return Response({'contacts': [], 'total_unread': 0}, status=status.HTTP_200_OK)
+
     convos = _get_conversations(request.user)
     data = []
     for c in convos:
         contact = c['contact']
         lm = c['last_message']
         data.append({
+            'id':           contact.id,
             'user_id':      contact.id,
             'name':         contact.get_full_name() or contact.username,
-            'initial':      contact.username[0].upper(),
-            'role':         contact.role,
+            'username':     contact.username,
+            'initial':      (contact.username or '?')[0].upper(),
+            'role':         getattr(contact, 'role', 'User'),
             'room_id':      f"{min(request.user.id, contact.id)}_{max(request.user.id, contact.id)}",
             'last_message': lm.content[:60] if lm else '',
             'last_time':    lm.sent_date.strftime('%H:%M') if lm else '',
             'unread':       c['unread'],
         })
     total_unread = sum(c['unread'] for c in convos)
-    return JsonResponse({'contacts': data, 'total_unread': total_unread})
+    return Response({'contacts': data, 'total_unread': total_unread}, status=status.HTTP_200_OK)
 
 
-@login_required
+@api_view(['GET'])
 def chat_history_api(request, contact_id):
-    """JSON: message history between current user and contact; marks messages read.
-    Optional ?since_id=N returns only messages with id > N (for polling).
-    """
-    from django.http import JsonResponse
-    from django.db.models import Q
+    """JSON: message history between current user and contact; marks messages read."""
+    if not request.user or not request.user.is_authenticated:
+        return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
     contact = get_object_or_404(User, id=contact_id)
     qs = Message.objects.filter(
         Q(sender=request.user, recipient=contact) |
         Q(sender=contact,       recipient=request.user)
     ).order_by('sent_date')
-    since_id = request.GET.get('since_id')
+
+    since_id = request.query_params.get('since_id')
     if since_id:
         try:
             qs = qs.filter(id__gt=int(since_id))
         except (ValueError, TypeError):
             pass
     else:
-        # mark as read only on full history load
         qs.filter(recipient=request.user, is_read=False).update(is_read=True)
-    msgs = list(qs[:80])
+
+    msgs = list(qs[:100])
     data = [{
         'id':        m.id,
         'sender_id': m.sender_id,
@@ -4914,64 +4919,79 @@ def chat_history_api(request, contact_id):
         'time':      m.sent_date.strftime('%H:%M'),
         'date':      m.sent_date.strftime('%b %d'),
     } for m in msgs]
-    return JsonResponse({
+
+    return Response({
         'messages': data,
         'me_id':    request.user.id,
         'contact':  {
             'id':      contact.id,
+            'user_id': contact.id,
             'name':    contact.get_full_name() or contact.username,
+            'username': contact.username,
             'initial': contact.username[0].upper() if contact.username else '?',
-            'role':    contact.role,
+            'role':    getattr(contact, 'role', 'User'),
         },
-    })
+    }, status=status.HTTP_200_OK)
 
 
-@login_required
+@api_view(['POST'])
 def chat_send_api(request):
-    """POST: send a message, return saved message JSON."""
-    from django.http import JsonResponse
-    import json
-    if request.method != 'POST':
-        return JsonResponse({'error': 'POST required'}, status=405)
-    try:
-        body    = json.loads(request.body)
-        to_id   = int(body.get('to_id', 0))
-        content = body.get('content', '').strip()
-    except Exception:
-        return JsonResponse({'error': 'Bad request'}, status=400)
+    """POST: send a direct encrypted message to another platform member."""
+    if not request.user or not request.user.is_authenticated:
+        return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    to_id = request.data.get('to_id') or request.data.get('toId')
+    content = (request.data.get('content') or '').strip()
+
     if not content or not to_id:
-        return JsonResponse({'error': 'Missing fields'}, status=400)
+        return Response({'error': 'Missing recipient or content.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        to_id = int(to_id)
+    except (ValueError, TypeError):
+        return Response({'error': 'Invalid recipient ID.'}, status=status.HTTP_400_BAD_REQUEST)
+
     recipient = get_object_or_404(User, id=to_id)
     msg = Message.objects.create(sender=request.user, recipient=recipient, content=content)
-    return JsonResponse({
+
+    return Response({
         'ok':      True,
         'id':      msg.id,
         'content': msg.content,
         'time':    msg.sent_date.strftime('%H:%M'),
-    })
+    }, status=status.HTTP_201_CREATED)
 
 
+@api_view(['GET'])
 def chat_new_users_api(request):
-    """JSON: list of all users the current user can start a new chat with."""
-    from django.http import JsonResponse
-    if not request.user.is_authenticated:
-        return JsonResponse({'users': []}, status=200)
+    """JSON: list of platform members (buyers, agents, owners, admins) to start a new chat with."""
+    if not request.user or not request.user.is_authenticated:
+        return Response({'users': []}, status=status.HTTP_200_OK)
+
     try:
-        q = request.GET.get('q', '').strip()
+        q = request.query_params.get('q', '').strip()
         qs = User.objects.exclude(id=request.user.id).order_by('username')
         if q:
             qs = qs.filter(
-                Q(username__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q)
+                Q(username__icontains=q) |
+                Q(first_name__icontains=q) |
+                Q(last_name__icontains=q) |
+                Q(role__icontains=q) |
+                Q(email__icontains=q)
             )
+
         data = []
-        for u in qs[:40]:
+        for u in qs[:60]:
             uname = u.username or ''
             data.append({
+                'id':      u.id,
                 'user_id': u.id,
                 'name':    u.get_full_name() or uname,
+                'username': uname,
                 'initial': uname[0].upper() if uname else '?',
-                'role':    u.role if hasattr(u, 'role') and u.role else 'User',
+                'role':    getattr(u, 'role', 'Member') or 'Member',
+                'email':   u.email or '',
             })
-        return JsonResponse({'users': data})
+        return Response({'users': data}, status=status.HTTP_200_OK)
     except Exception as e:
-        return JsonResponse({'users': [], 'error': str(e)}, status=200)
+        return Response({'users': [], 'error': str(e)}, status=status.HTTP_200_OK)

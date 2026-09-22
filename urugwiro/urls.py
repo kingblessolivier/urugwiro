@@ -16,7 +16,9 @@ from .api_views import (
     api_proposals_view, api_proposal_detail_view, api_convert_proposal_to_listing,
     admin_users_list_create, admin_user_detail_update_delete,
     admin_user_set_role, admin_user_toggle_status, admin_user_reset_password,
-    api_platform_stats, admin_enquiries_list, admin_enquiry_detail_update
+    api_platform_stats, admin_enquiries_list, admin_enquiry_detail_update,
+    seller_listings_list, seller_listing_detail_manage, seller_listing_toggle_status,
+    seller_deals_earnings, seller_agents_list, seller_assign_agent
 )
 from django.contrib.auth import views as auth_views
 
@@ -29,7 +31,15 @@ urlpatterns = [
     path('api/listings/<slug:slug>/', ListingDetailView.as_view(), name='api_listing_detail'),
     path('api/listings/<int:pk>/like/', toggle_like, name='api_listing_like'),
     path('api/listings/<int:pk>/verify/', submit_verification_docs, name='api_listing_verify'),
+    
+    # Seller Studio & Inventory Management
+    path('api/seller/listings/', seller_listings_list, name='api_seller_listings'),
     path('api/seller/listings/create/', seller_create_listing, name='api_seller_create_listing'),
+    path('api/seller/listings/<int:pk>/', seller_listing_detail_manage, name='api_seller_listing_detail_manage'),
+    path('api/seller/listings/<int:pk>/status/', seller_listing_toggle_status, name='api_seller_listing_toggle_status'),
+    path('api/seller/listings/<int:pk>/assign-agent/', seller_assign_agent, name='api_seller_assign_agent'),
+    path('api/seller/deals/', seller_deals_earnings, name='api_seller_deals_earnings'),
+    path('api/seller/agents/', seller_agents_list, name='api_seller_agents_list'),
     path('api/seller/ai/generate-narrative/', generate_ai_narrative, name='api_generate_narrative'),
     path('api/verification/', list_verification_requests, name='api_verification_list'),
     path('api/verification/<int:pk>/', get_verification_request_detail, name='api_verification_detail'),

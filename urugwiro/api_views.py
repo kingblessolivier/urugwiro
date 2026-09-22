@@ -2457,5 +2457,368 @@ def admin_enquiry_detail_update(request, pk):
     }, status=status.HTTP_200_OK)
 
 
+# ─── Seller Dashboard & Inventory Management APIs ───
+
+def _get_or_create_seller_owner(user):
+    """Helper to retrieve or safely provision a ListingOwner profile for authenticated user."""
+    if not user or not user.is_authenticated:
+        return None
+    owner, _ = ListingOwner.objects.get_or_create(
+        user=user,
+        defaults={
+            'name': f"{user.first_name} {user.last_name}".strip() or user.username,
+            'email': user.email or f"{user.username}@urugwiro.rw",
+            'phone_number': getattr(user, 'phone_number', '+250788000000') or '+250788000000',
+        }
+    )
+    return owner
+
+
+@api_view(['GET'])
+def seller_listings_list(request):
+    """
+    Returns listings exclusively owned by the authenticated seller.
+    Includes counts for inquiries, offers, and scheduled site visits.
+    """
+    if not request.user or not request.user.is_authenticated:
+        return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    owner = _get_or_create_seller_owner(request.user)
+    listings = Listing.objects.filter(owner=owner).select_related('asset').prefetch_related('media')
+
+    # Optional status or category filters
+    cat = request.query_params.get('category')
+    if cat and cat != 'all':
+        listings = listings.filter(category=cat)
+
+    search = request.query_params.get('search')
+    if search:
+        listings = listings.filter(
+            Q(title__icontains=search) |
+            Q(address__icontains=search) |
+            Q(asset__district__icontains=search) |
+            Q(asset__sector__icontains=search)
+        )
+
+    from .models import CustRequest, Offer, SiteVisit, AgentAssignment
+    data = []
+    for l in listings:
+        ser = ListingSerializer(l).data
+        ser['inquiries_count'] = CustRequest.objects.filter(listing=l).count()
+        ser['offers_count'] = Offer.objects.filter(listing=l).count()
+        ser['visits_count'] = SiteVisit.objects.filter(listing=l).count()
+        assigned = AgentAssignment.objects.filter(listing=l, is_active=True).select_related('agent').first()
+        ser['assigned_agent'] = {
+            'id': assigned.agent.id,
+            'name': assigned.agent.name,
+            'phone': assigned.agent.phone_number,
+            'rating': float(assigned.agent.rating),
+            'specialization': assigned.agent.specialization,
+        } if assigned else None
+        data.append(ser)
+
+    return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+def seller_listing_detail_manage(request, pk):
+    """
+    Detailed inspection, updating, or deletion of a specific listing owned by the seller.
+    GET: Returns full listing specs, media, inquiries, offers, visits, deeds, and assigned agent.
+    PATCH: Updates title, price, description, purpose, category, specs, and address.
+    DELETE: Unlists/deletes listing.
+    """
+    if not request.user or not request.user.is_authenticated:
+        return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    owner = _get_or_create_seller_owner(request.user)
+    # Admin can inspect any listing; normal sellers can only inspect their own
+    is_admin = request.user.is_staff or request.user.is_superuser or getattr(request.user, 'role', None) in ['Admin', 'admin']
+    if is_admin:
+        listing = get_object_or_404(Listing.objects.select_related('asset').prefetch_related('media'), pk=pk)
+    else:
+        listing = get_object_or_404(Listing.objects.select_related('asset').prefetch_related('media'), pk=pk, owner=owner)
+
+    if request.method == 'GET':
+        ser = ListingSerializer(listing).data
+        
+        # Inquiries
+        from .models import CustRequest, Offer, SiteVisit, VerificationDocument, AgentAssignment
+        cust_reqs = CustRequest.objects.filter(listing=listing).order_by('-created_at')
+        ser['inquiries'] = [{
+            'id': str(cr.id),
+            'name': cr.name,
+            'email': cr.email,
+            'message': cr.message,
+            'is_read': cr.is_read,
+            'created_at': cr.created_at.isoformat() if cr.created_at else None,
+        } for cr in cust_reqs]
+
+        # Offers
+        offers = Offer.objects.filter(listing=listing).select_related('buyer').order_by('-created_at')
+        ser['offers'] = OfferSerializer(offers, many=True).data
+
+        # Site Visits
+        visits = SiteVisit.objects.filter(listing=listing).select_related('visitor', 'agent').order_by('-scheduled_date')
+        ser['visits'] = SiteVisitSerializer(visits, many=True).data
+
+        # Legal Deeds & Documents
+        deeds = VerificationDocument.objects.filter(listing=listing)
+        ser['verification_documents'] = VerificationDocumentSerializer(deeds, many=True).data
+
+        # Assigned Agent
+        assignment = AgentAssignment.objects.filter(listing=listing, is_active=True).select_related('agent').first()
+        ser['assigned_agent'] = {
+            'id': assignment.agent.id,
+            'name': assignment.agent.name,
+            'phone': assignment.agent.phone_number,
+            'email': assignment.agent.email,
+            'rating': float(assignment.agent.rating),
+            'specialization': assignment.agent.specialization,
+            'assigned_date': assignment.assigned_date.isoformat() if assignment.assigned_date else None,
+        } if assignment else None
+
+        return Response(ser, status=status.HTTP_200_OK)
+
+    elif request.method == 'PATCH':
+        data = request.data
+        if 'title' in data:
+            listing.title = data['title']
+        if 'description' in data:
+            listing.description = data['description']
+        if 'price' in data:
+            listing.price = data['price']
+        if 'purpose' in data:
+            listing.purpose = data['purpose']
+        if 'category' in data:
+            listing.category = data['category']
+        if 'address' in data:
+            listing.address = data['address']
+        if 'status' in data:
+            listing.status = data['status']
+        if 'rental_frequency' in data:
+            listing.rental_frequency = data['rental_frequency']
+        listing.save()
+
+        # Update Asset and Specs if provided
+        asset = listing.asset
+        if asset:
+            if 'district' in data:
+                asset.district = data['district']
+            if 'sector' in data:
+                asset.sector = data['sector']
+            if 'total_area' in data or 'sizeSqm' in data:
+                try:
+                    asset.total_area = float(data.get('total_area') or data.get('sizeSqm'))
+                except (ValueError, TypeError):
+                    pass
+            asset.save()
+
+            # Residential specs
+            if hasattr(asset, 'residential_spec') and asset.residential_spec:
+                spec = asset.residential_spec
+                for f in ['bedrooms', 'bathrooms', 'year_built']:
+                    if f in data and data[f] is not None:
+                        try:
+                            setattr(spec, f, int(data[f]))
+                        except (ValueError, TypeError):
+                            pass
+                for f in ['built_up_area_sqm', 'compound_size_sqm']:
+                    if f in data and data[f] is not None:
+                        try:
+                            setattr(spec, f, float(data[f]))
+                        except (ValueError, TypeError):
+                            pass
+                for b in ['is_furnished', 'has_swimming_pool', 'has_garden', 'has_water_tank', 'has_backup_generator']:
+                    if b in data:
+                        setattr(spec, b, data[b] in [True, 'true', 'True', 1, '1'])
+                spec.save()
+
+            # Land specs
+            if hasattr(asset, 'land_spec') and asset.land_spec:
+                lspec = asset.land_spec
+                if 'upi_number' in data:
+                    lspec.upi_number = data['upi_number']
+                if 'zoning_code' in data:
+                    lspec.zoning_code = data['zoning_code']
+                lspec.save()
+
+        return Response(ListingSerializer(listing).data, status=status.HTTP_200_OK)
+
+    elif request.method == 'DELETE':
+        listing.status = 'withdrawn'
+        listing.save()
+        return Response({'success': True, 'message': 'Listing has been withdrawn / archived.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def seller_listing_toggle_status(request, pk):
+    """Toggle listing status between 'listed', 'withdrawn', or 'sold'."""
+    if not request.user or not request.user.is_authenticated:
+        return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    owner = _get_or_create_seller_owner(request.user)
+    is_admin = request.user.is_staff or request.user.is_superuser or getattr(request.user, 'role', None) in ['Admin', 'admin']
+    if is_admin:
+        listing = get_object_or_404(Listing, pk=pk)
+    else:
+        listing = get_object_or_404(Listing, pk=pk, owner=owner)
+
+    new_status = request.data.get('status')
+    if new_status in ['listed', 'withdrawn', 'sold', 'under_negotiation']:
+        listing.status = new_status
+        listing.save()
+        return Response({
+            'success': True,
+            'id': listing.id,
+            'status': listing.status,
+            'message': f"Listing status updated to {new_status}."
+        }, status=status.HTTP_200_OK)
+
+    # Simple toggle between listed and withdrawn if no explicit status is passed
+    listing.status = 'withdrawn' if listing.status == 'listed' else 'listed'
+    listing.save()
+    return Response({
+        'success': True,
+        'id': listing.id,
+        'status': listing.status,
+        'message': f"Listing status toggled to {listing.status}."
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def seller_deals_earnings(request):
+    """
+    Returns closed & active deals, financial totals (Sold Volume, Escrow in transit, Disbursed),
+    and verified notary deeds/paperwork for the authenticated seller.
+    """
+    if not request.user or not request.user.is_authenticated:
+        return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    owner = _get_or_create_seller_owner(request.user)
+    deals = TransactionDeal.objects.filter(seller_or_landlord=owner).select_related(
+        'listing', 'buyer_or_tenant', 'assigned_agent'
+    ).prefetch_related('documents').order_by('-created_at')
+
+    # Financial Aggregates
+    closed_sales_volume = 0
+    escrow_in_transit = 0
+    net_disbursed = 0
+    total_active_deals = 0
+
+    deals_data = []
+    all_documents = []
+
+    for d in deals:
+        price = float(d.agreed_price)
+        escrow = float(d.escrow_deposit_amount)
+
+        if d.current_stage == 'settled_closed' or d.escrow_status == 'released_to_seller':
+            closed_sales_volume += price
+            net_disbursed += (price * 0.97)  # 3% platform/notary escrow fee
+        elif d.escrow_status == 'held_in_escrow':
+            escrow_in_transit += escrow
+            total_active_deals += 1
+        elif d.current_stage != 'cancelled':
+            total_active_deals += 1
+
+        deals_data.append(TransactionDealSerializer(d).data)
+
+        # Collect documents
+        for doc in d.documents.all():
+            all_documents.append({
+                'id': str(doc.id),
+                'deal_id': str(d.id),
+                'listing_title': d.listing.title if d.listing else 'Asset',
+                'title': doc.title,
+                'document_type': doc.document_type,
+                'document_type_label': doc.get_document_type_display(),
+                'file_url': doc.file.url if doc.file else None,
+                'is_verified': doc.is_verified,
+                'uploaded_at': doc.uploaded_at.isoformat() if doc.uploaded_at else None,
+            })
+
+    return Response({
+        'metrics': {
+            'closed_sales_volume': round(closed_sales_volume),
+            'escrow_in_transit': round(escrow_in_transit),
+            'net_disbursed': round(net_disbursed),
+            'total_deals': deals.count(),
+            'active_deals': total_active_deals,
+            'currency': 'RWF',
+        },
+        'deals': deals_data,
+        'documents': all_documents,
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def seller_agents_list(request):
+    """
+    Returns list of verified Rwandan brokers and agents available for co-brokering.
+    """
+    from .models import Agent
+    agents = Agent.objects.all().order_by('-rating', '-total_deals')
+    data = []
+    for a in agents:
+        data.append({
+            'id': a.id,
+            'name': a.name,
+            'email': a.email,
+            'phone': a.phone_number,
+            'license_number': a.license_number,
+            'specialization': a.specialization or 'Residential & Land Brokerage',
+            'rating': float(a.rating) if a.rating else 4.9,
+            'total_deals': a.total_deals,
+            'is_verified': a.is_verified,
+            'image': a.image.url if a.image else None,
+        })
+    return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def seller_assign_agent(request, pk):
+    """
+    Assigns or changes the co-brokering agent on a seller's listing.
+    """
+    if not request.user or not request.user.is_authenticated:
+        return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    owner = _get_or_create_seller_owner(request.user)
+    is_admin = request.user.is_staff or request.user.is_superuser or getattr(request.user, 'role', None) in ['Admin', 'admin']
+    if is_admin:
+        listing = get_object_or_404(Listing, pk=pk)
+    else:
+        listing = get_object_or_404(Listing, pk=pk, owner=owner)
+
+    agent_id = request.data.get('agent_id')
+    from .models import Agent, AgentAssignment
+    agent = get_object_or_404(Agent, pk=agent_id)
+
+    # Deactivate previous active assignments
+    AgentAssignment.objects.filter(listing=listing).update(is_active=False)
+
+    # Create new assignment
+    assignment = AgentAssignment.objects.create(
+        listing=listing,
+        agent=agent,
+        notes=request.data.get('notes', 'Direct seller co-brokering assignment.'),
+        is_active=True
+    )
+
+    return Response({
+        'success': True,
+        'message': f"Agent {agent.name} successfully assigned to {listing.title}.",
+        'assigned_agent': {
+            'id': agent.id,
+            'name': agent.name,
+            'phone': agent.phone_number,
+            'rating': float(agent.rating),
+            'specialization': agent.specialization,
+        }
+    }, status=status.HTTP_200_OK)
+
+
+
 
 
