@@ -13,11 +13,14 @@ import {
   Settings,
   User as UserIcon,
   Compass,
-  FileText
+  FileText,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import type { AppView } from '../../types/navigation';
 
 interface PublicHeaderProps {
@@ -36,6 +39,7 @@ const links: { label: string; view: AppView }[] = [
 
 export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, onSearch }) => {
   const { user, isAuthenticated, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -124,7 +128,9 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
   const badgeInfo = getRoleBadge(role);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#080b11]/95 backdrop-blur-xl shadow-lg shadow-black/40">
+    <header className="sticky top-0 z-50 w-full border-b transition-colors duration-300"
+      style={{ background: 'var(--color-header-bg)', borderColor: 'var(--color-header-border)' }}
+    >
       <div className="flex h-16 w-full items-center justify-between gap-6 px-5 lg:px-8">
         {/* Logo */}
         <button
@@ -137,7 +143,9 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
             alt="Urugwiro Logo"
             className="h-9 w-9 rounded-xl object-contain drop-shadow-md group-hover:scale-105 transition-transform"
           />
-          <span className="text-xl font-black font-display tracking-tight text-white group-hover:text-emerald-400 transition-colors">
+          <span className="text-xl font-black font-display tracking-tight transition-colors"
+            style={{ color: 'var(--color-text-main)' }}
+          >
             Urugwiro
           </span>
         </button>
@@ -150,12 +158,16 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
               type="button"
               onClick={() => onNavigate(link.view)}
               className={cn(
-                'rounded-lg px-3.5 py-2 text-[13px] font-medium transition-all duration-200 cursor-pointer',
+                'relative rounded-xl px-3.5 py-2 text-[13px] font-medium transition-all duration-200 cursor-pointer',
                 view === link.view
-                  ? 'bg-white/[0.08] text-white'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                  ? 'text-emerald-500 font-semibold'
+                  : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.04]'
               )}
+              style={{ color: view === link.view ? undefined : 'var(--color-text-muted)' }}
             >
+              {view === link.view && (
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full bg-emerald-500" />
+              )}
               {link.label}
             </button>
           ))}
@@ -177,7 +189,25 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
         )}
 
         {/* Desktop Actions */}
-        <div className="ml-auto hidden items-center gap-3 lg:flex">
+        <div className="ml-auto hidden items-center gap-2 lg:flex">
+          {/* Theme Toggle */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="h-9 w-9 flex items-center justify-center rounded-xl border transition-all duration-200 cursor-pointer oneui-press"
+            style={{
+              borderColor: 'var(--color-border)',
+              background: 'var(--color-input-bg)',
+              color: 'var(--color-text-muted)',
+            }}
+          >
+            {isDark
+              ? <Sun size={16} className="text-amber-400" />
+              : <Moon size={16} className="text-indigo-500" />
+            }
+          </button>
+
           {/* List Property CTA (Asset Intake & Inspection Proposal) */}
           <Button
             variant="primary"
@@ -546,7 +576,21 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
           </div>
 
           {/* Action Buttons in Mobile Drawer */}
-          <div className="mt-5 grid gap-2.5 pt-4 border-t border-white/10">
+          <div className="mt-5 grid gap-2.5 pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+            {/* Theme Toggle Row */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex items-center justify-between rounded-xl px-4 py-3 border transition-colors cursor-pointer"
+              style={{ borderColor: 'var(--color-border)', background: 'var(--color-input-bg)', color: 'var(--color-text-main)' }}
+            >
+              <span className="text-sm font-medium">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+              {isDark
+                ? <Sun size={16} className="text-amber-400" />
+                : <Moon size={16} className="text-indigo-500" />
+              }
+            </button>
+
             <Button
               variant="primary"
               onClick={() => { onNavigate('submit-proposal'); setOpen(false); }}

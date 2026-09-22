@@ -32,8 +32,10 @@ const ContactPage: React.FC = () => {
     }
   };
 
+  const inputClass = "mt-2 w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all";
+
   return (
-    <div>
+    <div style={{ background: 'var(--color-bg-deep)', color: 'var(--color-text-main)' }} className="transition-colors duration-300">
       <PageHero
         eyebrow="Contact"
         title="Get in touch with our team."
@@ -51,29 +53,31 @@ const ContactPage: React.FC = () => {
             <a
               key={title}
               href={href}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-6 transition-all hover:border-emerald-500/30 hover:bg-white/[0.05] group block"
+              className="rounded-2xl border p-6 transition-all hover:border-emerald-500/30 group block oneui-card"
+              style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)', boxShadow: 'var(--shadow-depth-1)' }}
             >
-              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
                 <Icon size={18} />
               </div>
-              <h2 className="font-bold text-white">{title}</h2>
-              <p className="mt-1 text-sm text-zinc-400">{detail}</p>
+              <h2 className="font-bold" style={{ color: 'var(--color-text-main)' }}>{title}</h2>
+              <p className="mt-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>{detail}</p>
             </a>
           ))}
         </div>
 
         {/* Form + Sidebar */}
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
-          <form onSubmit={handleSubmit} className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-7 md:p-9">
-            <h2 className="text-xl font-bold text-white mb-1">Send a message</h2>
-            <p className="text-sm text-zinc-500 mb-6">We typically respond within 24 hours on business days.</p>
+          <form onSubmit={handleSubmit} className="rounded-2xl border p-7 md:p-9"
+            style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)', boxShadow: 'var(--shadow-depth-2)' }}>
+            <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--color-text-main)' }}>Send a message</h2>
+            <p className="text-sm mb-6" style={{ color: 'var(--color-text-muted)' }}>We typically respond within 24 hours on business days.</p>
 
             {status && (
               <div
                 className={cn(
                   'mb-6 flex items-center gap-2 rounded-xl border px-4 py-3 text-sm',
                   status.type === 'success'
-                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500'
                     : 'border-red-500/30 bg-red-500/10 text-red-400'
                 )}
               >
@@ -84,53 +88,65 @@ const ContactPage: React.FC = () => {
 
             <div className="grid gap-5 md:grid-cols-2">
               <label className="block">
-                <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Full Name</span>
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Full Name</span>
                 <input
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-emerald-500/50 transition-colors placeholder:text-zinc-600"
+                  className={inputClass}
+                  style={{ background: 'var(--color-input-bg)', borderColor: 'var(--color-input-border)', color: 'var(--color-text-main)' }}
+                  onFocus={e => e.currentTarget.style.borderColor = 'rgba(16,185,129,0.5)'}
+                  onBlur={e => e.currentTarget.style.borderColor = 'var(--color-input-border)'}
                   placeholder="Your name"
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Email</span>
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Email</span>
                 <input
                   required
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-emerald-500/50 transition-colors placeholder:text-zinc-600"
+                  className={inputClass}
+                  style={{ background: 'var(--color-input-bg)', borderColor: 'var(--color-input-border)', color: 'var(--color-text-main)' }}
+                  onFocus={e => e.currentTarget.style.borderColor = 'rgba(16,185,129,0.5)'}
+                  onBlur={e => e.currentTarget.style.borderColor = 'var(--color-input-border)'}
                   placeholder="you@email.com"
                 />
               </label>
             </div>
 
             <label className="mt-5 block">
-              <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Subject</span>
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Subject</span>
               <input
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-emerald-500/50 transition-colors placeholder:text-zinc-600"
+                className={inputClass}
+                style={{ background: 'var(--color-input-bg)', borderColor: 'var(--color-input-border)', color: 'var(--color-text-main)' }}
+                onFocus={e => e.currentTarget.style.borderColor = 'rgba(16,185,129,0.5)'}
+                onBlur={e => e.currentTarget.style.borderColor = 'var(--color-input-border)'}
                 placeholder="What's this about?"
               />
             </label>
 
             <label className="mt-5 block">
-              <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Message</span>
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Message</span>
               <textarea
                 required
                 rows={5}
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-emerald-500/50 transition-colors placeholder:text-zinc-600 resize-none"
+                className={inputClass + " resize-none"}
+                style={{ background: 'var(--color-input-bg)', borderColor: 'var(--color-input-border)', color: 'var(--color-text-main)' }}
+                onFocus={e => e.currentTarget.style.borderColor = 'rgba(16,185,129,0.5)'}
+                onBlur={e => e.currentTarget.style.borderColor = 'var(--color-input-border)'}
                 placeholder="Tell us more..."
               />
             </label>
 
             <Button
               type="submit"
-              className="mt-6 rounded-xl px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-all"
+              className="mt-6 rounded-xl px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-all shadow-lg shadow-emerald-500/20"
               disabled={loading}
               isLoading={loading}
             >
@@ -138,21 +154,22 @@ const ContactPage: React.FC = () => {
             </Button>
           </form>
 
-          <aside className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-7 h-fit">
+          <aside className="rounded-2xl border p-7 h-fit"
+            style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)', boxShadow: 'var(--shadow-depth-1)' }}>
             <div className="flex items-center gap-2 mb-5">
-              <Clock size={16} className="text-emerald-400" />
-              <h2 className="font-bold text-white">Support Hours</h2>
+              <Clock size={16} className="text-emerald-500" />
+              <h2 className="font-bold" style={{ color: 'var(--color-text-main)' }}>Support Hours</h2>
             </div>
-            <ul className="space-y-3 text-sm text-zinc-400">
-              <li className="flex justify-between border-b border-white/[0.06] pb-3"><span>Monday – Friday</span><span className="text-white font-medium">9:00 – 18:00</span></li>
-              <li className="flex justify-between border-b border-white/[0.06] pb-3"><span>Saturday</span><span className="text-white font-medium">10:00 – 14:00</span></li>
-              <li className="flex justify-between"><span>Sunday</span><span className="text-zinc-600">Closed</span></li>
+            <ul className="space-y-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+              <li className="flex justify-between pb-3" style={{ borderBottom: '1px solid var(--color-border)' }}><span>Monday – Friday</span><span className="font-medium" style={{ color: 'var(--color-text-main)' }}>9:00 – 18:00</span></li>
+              <li className="flex justify-between pb-3" style={{ borderBottom: '1px solid var(--color-border)' }}><span>Saturday</span><span className="font-medium" style={{ color: 'var(--color-text-main)' }}>10:00 – 14:00</span></li>
+              <li className="flex justify-between"><span>Sunday</span><span style={{ color: 'var(--color-text-dim)' }}>Closed</span></li>
             </ul>
 
-            <div className="mt-8 pt-6 border-t border-white/[0.06]">
-              <h3 className="font-bold text-white mb-2">Urgent Issues</h3>
-              <p className="text-sm text-zinc-500">For urgent property matters outside business hours:</p>
-              <a href="tel:+250788999999" className="mt-2 inline-block text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition-colors">
+            <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--color-border)' }}>
+              <h3 className="font-bold mb-2" style={{ color: 'var(--color-text-main)' }}>Urgent Issues</h3>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>For urgent property matters outside business hours:</p>
+              <a href="tel:+250788999999" className="mt-2 inline-block text-sm font-semibold text-emerald-500 hover:text-emerald-400 transition-colors">
                 +250 788 999 999
               </a>
             </div>

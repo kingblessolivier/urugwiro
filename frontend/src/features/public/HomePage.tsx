@@ -29,6 +29,7 @@ import { Button } from '../../components/ui/Button';
 import { api } from '../../api/endpoints';
 import type { AppView } from '../../types/navigation';
 import { cn } from '../../lib/utils';
+import { useTheme } from '../../context/ThemeContext';
 
 interface HomePageProps {
   onExplore: (query?: string) => void;
@@ -192,6 +193,7 @@ const mapApiListing = (item: Record<string, unknown>): ListingCardData => {
 };
 
 const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onListingClick }) => {
+  const { isDark } = useTheme();
   const [query, setQuery] = useState('');
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -265,7 +267,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
   };
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#05070b]">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden transition-colors duration-300" style={{ background: 'var(--color-bg-deep)' }}>
       {/* ━━━ 01 — CINEMATIC FULL-BLEED HERO BACKGROUND CAROUSEL ━━━ */}
       <section 
         className="relative isolate min-h-[86svh] sm:min-h-screen flex flex-col justify-between px-3.5 pt-5 pb-4 sm:px-8 sm:pt-8 sm:pb-6 lg:px-12 lg:pt-12 lg:pb-10 overflow-hidden w-full select-none sm:select-auto"
@@ -524,12 +526,13 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
       <section className="mx-auto max-w-7xl px-4 py-12 sm:py-20 lg:px-12">
         <div className="mb-8 sm:mb-12 flex items-end justify-between">
           <div className="space-y-2 sm:space-y-3">
-            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-400">Discover</p>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Browse by Category</h2>
+            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-500">Discover</p>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Browse by Category</h2>
           </div>
           <button
             onClick={() => onExplore('')}
-            className="flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-emerald-400 transition-colors"
+            className="flex items-center gap-1.5 text-xs sm:text-sm transition-colors hover:text-emerald-500"
+            style={{ color: 'var(--color-text-muted)' }}
           >
             View all <ArrowRight size={14} />
           </button>
@@ -543,13 +546,18 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
                 key={cat.label}
                 type="button"
                 onClick={() => onExplore(cat.query)}
-                className="group rounded-2xl border border-white/10 bg-white/[0.02] p-3.5 sm:p-5 text-left transition-all duration-300 hover:border-emerald-500/40 hover:bg-emerald-500/[0.04] cursor-pointer"
+                className="group rounded-2xl border p-3.5 sm:p-5 text-left transition-all duration-300 hover:border-emerald-500/40 oneui-card cursor-pointer"
+                style={{
+                  borderColor: 'var(--color-border)',
+                  background: 'var(--color-bg-card)',
+                  boxShadow: 'var(--shadow-depth-1)',
+                }}
               >
-                <div className="mb-3 sm:mb-4 inline-flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 transition-all group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-emerald-500/25">
+                <div className="mb-3 sm:mb-4 inline-flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 transition-all group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-emerald-500/25">
                   <Icon size={18} />
                 </div>
-                <span className="block text-xs sm:text-sm font-semibold text-white leading-tight">{cat.label}</span>
-                <span className="mt-1 block text-[10px] sm:text-[11px] text-zinc-500 group-hover:text-zinc-400 transition-colors line-clamp-2">{cat.desc}</span>
+                <span className="block text-xs sm:text-sm font-semibold leading-tight" style={{ color: 'var(--color-text-main)' }}>{cat.label}</span>
+                <span className="mt-1 block text-[10px] sm:text-[11px] group-hover:text-zinc-400 transition-colors line-clamp-2" style={{ color: 'var(--color-text-dim)' }}>{cat.desc}</span>
               </button>
             );
           })}
@@ -557,17 +565,19 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
       </section>
 
       {/* ━━━ 03 — FEATURED LISTINGS ━━━ */}
-      <section className="border-y border-white/[0.06] bg-white/[0.01] px-4 py-12 sm:py-20 lg:px-12">
+      <section className="px-4 py-12 sm:py-20 lg:px-12 transition-colors duration-300"
+        style={{ background: 'var(--color-section-alt)', borderTop: '1px solid var(--color-section-alt-border)', borderBottom: '1px solid var(--color-section-alt-border)' }}>
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 sm:mb-12 flex items-end justify-between">
             <div className="space-y-2 sm:space-y-3">
-              <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-400">Curated</p>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Exclusive Listings</h2>
-              <p className="mt-1 text-xs sm:text-sm text-zinc-500 max-w-xl">Hand-picked properties with verified cadastral boundaries and titles.</p>
+              <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-500">Curated</p>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Exclusive Listings</h2>
+              <p className="mt-1 text-xs sm:text-sm max-w-xl" style={{ color: 'var(--color-text-dim)' }}>Hand-picked properties with verified cadastral boundaries and titles.</p>
             </div>
             <button
               onClick={() => onExplore('')}
-              className="flex items-center gap-1.5 text-xs sm:text-sm text-zinc-400 hover:text-emerald-400 transition-colors"
+              className="flex items-center gap-1.5 text-xs sm:text-sm transition-colors hover:text-emerald-500"
+              style={{ color: 'var(--color-text-muted)' }}
             >
               Explore all <ArrowRight size={14} />
             </button>
@@ -582,13 +592,13 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
           ) : (
             <div className="grid gap-4 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="aspect-[4/5] animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]" />
+                <div key={i} className="aspect-[4/5] animate-pulse rounded-2xl" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }} />
               ))}
             </div>
           )}
 
           <div className="mt-8 text-center md:hidden">
-            <Button variant="ghost" onClick={() => onExplore('')} className="text-xs text-zinc-400 hover:text-emerald-400 py-2.5">
+            <Button variant="ghost" onClick={() => onExplore('')} className="text-xs py-2.5 hover:text-emerald-500 transition-colors" style={{ color: 'var(--color-text-muted)' }}>
               View all listings <ArrowRight size={14} className="ml-1.5 inline" />
             </Button>
           </div>
@@ -598,43 +608,54 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
       {/* ━━━ 04 — WHY URUGWIRO (TRUST PILLARS) ━━━ */}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:py-20 lg:px-12">
         <div className="mb-10 sm:mb-16 text-center space-y-2.5 sm:space-y-3 max-w-2xl mx-auto">
-          <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-400">The Urugwiro Standard</p>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white">Beyond simple classifieds</h2>
-          <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed">We built a marketplace where every transaction is backed by verification, protection, and spatial intelligence.</p>
+          <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-500">The Urugwiro Standard</p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Beyond simple classifieds</h2>
+          <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>We built a marketplace where every transaction is backed by verification, protection, and spatial intelligence.</p>
         </div>
 
         <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
           {pillars.map((prop) => (
-            <div key={prop.title} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:p-8 transition-all duration-300 hover:border-emerald-500/30 hover:bg-white/[0.04] group">
-              <div className="mb-4 sm:mb-6 inline-flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-all group-hover:shadow-lg group-hover:shadow-emerald-500/20">
+            <div key={prop.title}
+              className="rounded-2xl border p-5 sm:p-8 transition-all duration-300 hover:border-emerald-500/30 group oneui-card"
+              style={{
+                borderColor: 'var(--color-border)',
+                background: 'var(--color-bg-card)',
+                boxShadow: 'var(--shadow-depth-2)',
+              }}
+            >
+              <div className="mb-4 sm:mb-6 inline-flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all group-hover:shadow-lg group-hover:shadow-emerald-500/20">
                 <prop.icon size={22} />
               </div>
-              <h3 className="mb-2 text-base sm:text-xl font-bold text-white">{prop.title}</h3>
-              <p className="leading-relaxed text-xs sm:text-sm text-zinc-400">{prop.description}</p>
+              <h3 className="mb-2 text-base sm:text-xl font-bold" style={{ color: 'var(--color-text-main)' }}>{prop.title}</h3>
+              <p className="leading-relaxed text-xs sm:text-sm" style={{ color: 'var(--color-text-muted)' }}>{prop.description}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ━━━ 05 — HOW IT WORKS ━━━ */}
-      <section className="border-y border-white/[0.06] bg-white/[0.01] px-4 py-12 sm:py-20 lg:px-12">
+      <section className="px-4 py-12 sm:py-20 lg:px-12 transition-colors duration-300"
+        style={{ background: 'var(--color-section-alt)', borderTop: '1px solid var(--color-section-alt-border)', borderBottom: '1px solid var(--color-section-alt-border)' }}>
         <div className="mx-auto max-w-7xl">
           <div className="mb-10 sm:mb-16 text-center space-y-2.5 sm:space-y-3">
-            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-400">Process</p>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">How it Works</h2>
+            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-500">Process</p>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>How it Works</h2>
           </div>
 
           <div className="grid gap-6 sm:gap-8 md:grid-cols-3">
             {steps.map((s, i) => (
-              <div key={s.step} className="relative text-left p-4 sm:p-0 rounded-2xl sm:rounded-none bg-white/[0.01] sm:bg-transparent border border-white/5 sm:border-none">
-                <div className="mb-3 sm:mb-5 inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-emerald-500/10 text-emerald-400 font-mono text-xs sm:text-sm font-bold">
+              <div key={s.step} className="relative text-left p-5 sm:p-6 rounded-2xl border oneui-card"
+                style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)', boxShadow: 'var(--shadow-depth-1)' }}>
+                <div className="mb-3 sm:mb-5 inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 font-mono text-xs sm:text-sm font-bold">
                   {s.step}
                 </div>
-                <h3 className="mb-1.5 sm:mb-3 text-base sm:text-xl font-bold text-white">{s.title}</h3>
-                <p className="text-xs sm:text-sm leading-relaxed text-zinc-400">{s.desc}</p>
+                <h3 className="mb-1.5 sm:mb-3 text-base sm:text-xl font-bold" style={{ color: 'var(--color-text-main)' }}>{s.title}</h3>
+                <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>{s.desc}</p>
                 {i < 2 && (
-                  <div className="hidden md:block absolute top-6 right-0 translate-x-1/2 text-zinc-700">
-                    <ArrowRight size={20} />
+                  <div className="hidden md:block absolute -right-4 top-8 z-10">
+                    <div className="h-8 w-8 flex items-center justify-center rounded-full" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
+                      <ArrowRight size={14} style={{ color: 'var(--color-text-dim)' }} />
+                    </div>
                   </div>
                 )}
               </div>
@@ -645,7 +666,8 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
 
       {/* ━━━ 06 — MARKET STATISTICS (LIVE DATABASE AUDIT) ━━━ */}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:py-20 lg:px-12">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 sm:p-10 md:p-14 backdrop-blur-xl">
+        <div className="rounded-3xl border p-6 sm:p-10 md:p-14 transition-colors duration-300"
+          style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)', boxShadow: 'var(--shadow-depth-2)' }}>
           <div className="grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-4 text-center">
             {[
               { icon: Building2, value: Number(liveStats.properties_listed || totalListings || 0).toLocaleString(), label: 'Live Catalog Properties' },
@@ -654,9 +676,9 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
               { icon: Globe, value: `${liveStats.districts_covered || 30}`, label: 'Districts Across Rwanda' },
             ].map(({ icon: Icon, value, label }) => (
               <div key={label}>
-                <Icon size={20} className="mx-auto mb-2 text-emerald-400" />
-                <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white font-mono">{value}</p>
-                <p className="mt-1 text-[11px] sm:text-xs text-zinc-400 font-medium">{label}</p>
+                <Icon size={20} className="mx-auto mb-2 text-emerald-500" />
+                <p className="text-2xl sm:text-3xl md:text-4xl font-bold font-mono" style={{ color: 'var(--color-text-main)' }}>{value}</p>
+                <p className="mt-1 text-[11px] sm:text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
               </div>
             ))}
           </div>
@@ -664,12 +686,19 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
       </section>
 
       {/* ━━━ 08 — SELLER CTA ━━━ */}
-      <section className="mx-auto max-w-5xl px-4 pb-20 pt-12 sm:py-20 lg:px-12 overflow-hidden w-full">
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-emerald-600/10 via-white/[0.02] to-transparent p-6 sm:p-10 md:p-14 text-center backdrop-blur-sm">
-          <div className="absolute top-0 right-0 h-48 w-48 sm:h-64 sm:w-64 rounded-full bg-emerald-500/[0.06] blur-[80px]" />
+      <section className="mx-auto max-w-5xl px-4 pb-20 pt-4 sm:py-20 lg:px-12 overflow-hidden w-full">
+        <div className="relative overflow-hidden rounded-3xl border p-6 sm:p-10 md:p-14 text-center"
+          style={{
+            background: isDark
+              ? 'linear-gradient(135deg, rgba(8,126,57,0.1) 0%, rgba(255,255,255,0.02) 60%, transparent 100%)'
+              : 'linear-gradient(135deg, rgba(8,126,57,0.06) 0%, #ffffff 60%, #f0fdf4 100%)',
+            borderColor: 'var(--color-border)',
+            boxShadow: 'var(--shadow-depth-2)',
+          }}>
+          <div className="absolute top-0 right-0 h-48 w-48 sm:h-64 sm:w-64 rounded-full bg-emerald-500/[0.07] blur-[80px]" />
           <div className="relative z-10">
-            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight text-white">Have a property to sell?</h2>
-            <p className="mx-auto mt-3 sm:mt-5 max-w-xl text-zinc-400 text-xs sm:text-base leading-relaxed">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Have a property to sell?</h2>
+            <p className="mx-auto mt-3 sm:mt-5 max-w-xl text-xs sm:text-base leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
               Join Rwanda's most trusted marketplace. Submit your property proposal for physical cadastre inspection and connect with serious, verified investors.
             </p>
             <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -682,7 +711,8 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
               </Button>
               <button
                 onClick={() => onNavigate('about')}
-                className="text-xs sm:text-sm text-zinc-400 hover:text-white flex items-center justify-center gap-1.5 py-2 transition-colors cursor-pointer"
+                className="text-xs sm:text-sm flex items-center justify-center gap-1.5 py-2 transition-colors cursor-pointer hover:text-emerald-500"
+                style={{ color: 'var(--color-text-muted)' }}
               >
                 Learn how it works <ArrowRight size={14} />
               </button>
