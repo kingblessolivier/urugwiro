@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
@@ -166,6 +166,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
   const [query, setQuery] = useState('');
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const touchStartXRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (isPaused) return;
@@ -174,6 +175,26 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
     }, 6500);
     return () => clearInterval(interval);
   }, [isPaused]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsPaused(true);
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    setIsPaused(false);
+    if (touchStartXRef.current === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const deltaX = touchStartXRef.current - touchEndX;
+    if (Math.abs(deltaX) > 40) {
+      if (deltaX > 0) {
+        setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+      } else {
+        setActiveSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+      }
+    }
+    touchStartXRef.current = null;
+  };
 
   const currentSlide = HERO_SLIDES[activeSlide];
 
@@ -200,9 +221,11 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#05070b]">
       {/* ━━━ 01 — CINEMATIC FULL-BLEED HERO BACKGROUND CAROUSEL ━━━ */}
       <section 
-        className="relative isolate min-h-[92vh] sm:min-h-screen flex flex-col justify-between px-4 pt-8 pb-6 sm:px-8 lg:px-12 lg:pt-12 lg:pb-10 overflow-hidden w-full"
+        className="relative isolate min-h-[86svh] sm:min-h-screen flex flex-col justify-between px-3.5 pt-5 pb-4 sm:px-8 sm:pt-8 sm:pb-6 lg:px-12 lg:pt-12 lg:pb-10 overflow-hidden w-full select-none sm:select-auto"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Full-bleed edge-to-edge background images for entire hero */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -228,61 +251,62 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
 
           {/* Subtle shaded architectural watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
-            <span className="text-[14vw] sm:text-[16vw] font-black uppercase tracking-[0.25em] text-white/[0.035] leading-none whitespace-nowrap drop-shadow-2xl">
+            <span className="text-[17vw] sm:text-[16vw] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-white/[0.035] leading-none whitespace-nowrap drop-shadow-2xl">
               {currentSlide.watermark}
             </span>
           </div>
 
           {/* Balanced cinematic overlays - image stays clearly visible & stunning across the entire hero */}
           <div className="absolute inset-0 bg-black/35" />
-          <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-[#05070b]/80 to-transparent pointer-events-none" />
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#05070b] via-[#05070b]/60 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 top-0 h-28 sm:h-36 bg-gradient-to-b from-[#05070b]/80 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-36 sm:h-48 bg-gradient-to-t from-[#05070b] via-[#05070b]/60 to-transparent pointer-events-none" />
 
           {/* Brand ambient glows */}
-          <div className="absolute top-1/4 left-1/4 h-[350px] w-[350px] sm:h-[500px] sm:w-[500px] rounded-full bg-emerald-500/[0.08] blur-[150px] pointer-events-none" />
-          <div className="absolute bottom-1/4 right-1/4 h-[300px] w-[300px] sm:h-[450px] sm:w-[450px] rounded-full bg-[#f98604]/[0.06] blur-[140px] pointer-events-none" />
+          <div className="absolute top-1/4 left-1/4 h-[250px] w-[250px] sm:h-[500px] sm:w-[500px] rounded-full bg-emerald-500/[0.08] blur-[120px] sm:blur-[150px] pointer-events-none" />
+          <div className="absolute bottom-1/4 right-1/4 h-[220px] w-[220px] sm:h-[450px] sm:w-[450px] rounded-full bg-[#f98604]/[0.06] blur-[110px] sm:blur-[140px] pointer-events-none" />
         </div>
 
         {/* CENTER: Clean Headline, Shaded Link Capsule & Search Bar */}
-        <div className="relative z-10 mx-auto w-full max-w-3xl text-center space-y-4 sm:space-y-5 my-auto py-6">
+        <div className="relative z-10 mx-auto w-full max-w-3xl text-center space-y-3.5 sm:space-y-5 my-auto py-3 sm:py-6">
           {/* Shaded Link Capsule */}
-          <div>
+          <div className="px-2">
             <button
               type="button"
               onClick={() => onExplore(currentSlide.query)}
-              className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium text-zinc-200 bg-black/45 hover:bg-black/70 border border-white/20 backdrop-blur-xl transition-all shadow-lg hover:border-emerald-400/50 cursor-pointer group"
+              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full px-3.5 py-1.5 text-[11px] sm:text-xs font-medium text-zinc-200 bg-black/50 hover:bg-black/75 border border-white/20 backdrop-blur-xl transition-all shadow-lg hover:border-emerald-400/50 cursor-pointer group max-w-full"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Explore verified {currentSlide.title.toLowerCase()} in Rwanda</span>
-              <ArrowRight size={13} className="text-zinc-400 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span className="truncate">Explore verified {currentSlide.title.toLowerCase()} in Rwanda</span>
+              <ArrowRight size={12} className="text-zinc-400 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
             </button>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)]">
+          <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)] leading-[1.15]">
             {currentSlide.title}
           </h1>
 
-          <p className="text-sm sm:text-base text-zinc-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] font-medium">
+          <p className="text-xs sm:text-base text-zinc-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] font-medium max-w-xl mx-auto px-3">
             {currentSlide.subtitle}
           </p>
 
-          {/* Clean Floating Search Bar */}
-          <form onSubmit={submitSearch} className="pt-2 max-w-2xl mx-auto">
-            <div className="flex flex-col sm:flex-row gap-2 rounded-2xl border border-white/20 bg-black/60 p-2 backdrop-blur-2xl shadow-2xl hover:border-emerald-400/40 transition-all">
-              <div className="flex flex-1 items-center gap-3 px-3 sm:px-4">
-                <Search size={18} className="text-zinc-400 shrink-0" />
+          {/* Clean Floating Search Bar (Single sleek inline bar on all screens) */}
+          <form onSubmit={submitSearch} className="pt-1 sm:pt-2 max-w-2xl mx-auto w-full">
+            <div className="flex items-center gap-1.5 sm:gap-2 rounded-2xl border border-white/20 bg-black/60 p-1.5 sm:p-2 backdrop-blur-2xl shadow-2xl hover:border-emerald-400/40 transition-all">
+              <div className="flex flex-1 items-center gap-2 sm:gap-3 px-2 sm:px-4 min-w-0">
+                <Search size={16} className="text-zinc-400 shrink-0 sm:hidden" />
+                <Search size={18} className="text-zinc-400 shrink-0 hidden sm:block" />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onFocus={() => setIsPaused(true)}
                   onBlur={() => setIsPaused(false)}
                   placeholder={currentSlide.searchPlaceholder}
-                  className="w-full bg-transparent py-2.5 sm:py-3 text-white outline-none placeholder:text-zinc-400 text-base sm:text-sm"
+                  className="w-full bg-transparent py-2 sm:py-3 text-white outline-none placeholder:text-zinc-400 text-xs sm:text-sm min-w-0"
                 />
               </div>
               <Button
                 variant="primary"
-                className="w-full sm:w-auto rounded-xl px-7 py-3 font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95 shadow-md text-sm cursor-pointer"
+                className="shrink-0 rounded-xl px-4 sm:px-7 py-2 sm:py-3 font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95 shadow-md text-xs sm:text-sm cursor-pointer"
               >
                 Search
               </Button>
@@ -290,8 +314,8 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
           </form>
 
           {/* Shaded Quick Link Pills */}
-          <div className="pt-1 flex items-center justify-center gap-2 flex-wrap text-xs">
-            <span className="text-zinc-400 text-[11px] uppercase tracking-wider font-semibold mr-1">Trending:</span>
+          <div className="pt-1 flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap text-xs">
+            <span className="text-zinc-400 text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold mr-0.5">Trending:</span>
             {[
               { label: 'Nyarutarama', q: 'Nyarutarama' },
               { label: 'Gasabo Plots', q: 'Gasabo land' },
@@ -302,50 +326,51 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
                 key={item.label}
                 type="button"
                 onClick={() => onExplore(item.q)}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 hover:bg-white/10 border border-white/15 text-zinc-300 hover:text-white backdrop-blur-md transition-all shadow-sm cursor-pointer group"
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-black/45 hover:bg-white/10 border border-white/15 text-zinc-300 hover:text-white text-[11px] sm:text-xs backdrop-blur-md transition-all shadow-sm cursor-pointer group"
               >
                 <span>{item.label}</span>
-                <ArrowUpRight size={11} className="text-zinc-500 group-hover:text-emerald-400 transition-colors" />
+                <ArrowUpRight size={10} className="text-zinc-500 group-hover:text-emerald-400 transition-colors" />
               </button>
             ))}
           </div>
         </div>
 
         {/* BOTTOM ROW: Minimal Caption & Slide Controls */}
-        <div className="relative z-10 mx-auto max-w-7xl w-full flex items-center justify-between gap-4 text-xs">
+        <div className="relative z-10 mx-auto max-w-7xl w-full flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4 text-xs">
           {/* Active slide caption */}
-          <div className="flex items-center gap-2 text-zinc-300 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10">
-            <span className="font-semibold text-white">{currentSlide.caption}</span>
+          <div className="flex items-center justify-center gap-2 text-zinc-300 bg-black/50 backdrop-blur-md px-3 sm:px-3.5 py-1.5 rounded-full border border-white/10 text-[11px] sm:text-xs max-w-full">
+            <span className="font-semibold text-white truncate max-w-[140px] xs:max-w-[200px] sm:max-w-none">{currentSlide.caption}</span>
             <span className="text-zinc-500">•</span>
-            <span className="text-emerald-400 font-mono font-medium">{currentSlide.price}</span>
+            <span className="text-emerald-400 font-mono font-medium whitespace-nowrap">{currentSlide.price}</span>
             <button
               type="button"
               onClick={() => onExplore(currentSlide.query)}
-              className="ml-1 text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
+              className="ml-1 text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap"
             >
               <span>Explore</span>
-              <ArrowRight size={12} />
+              <ArrowRight size={11} />
             </button>
           </div>
 
-          {/* Clean Controls */}
-          <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+          {/* Clean Controls with finger-friendly touch targets */}
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-black/50 backdrop-blur-md px-2.5 sm:px-3 py-1.5 rounded-full border border-white/10">
             <button
               type="button"
               onClick={() => setActiveSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
-              aria-label="Previous"
-              className="h-6 w-6 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center cursor-pointer transition-all"
+              aria-label="Previous slide"
+              className="h-7 w-7 sm:h-6 sm:w-6 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center cursor-pointer transition-all active:scale-90"
             >
-              <ChevronLeft size={14} />
+              <ChevronLeft size={15} />
             </button>
 
             {/* Slide dots */}
-            <div className="flex items-center gap-1.5 px-1">
+            <div className="flex items-center gap-1.5 px-1.5">
               {HERO_SLIDES.map((_, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setActiveSlide(idx)}
+                  aria-label={`Go to slide ${idx + 1}`}
                   className={cn(
                     "h-1.5 rounded-full transition-all cursor-pointer",
                     activeSlide === idx ? "w-5 bg-emerald-400" : "w-1.5 bg-white/30 hover:bg-white/60"
@@ -357,10 +382,10 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
             <button
               type="button"
               onClick={() => setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
-              aria-label="Next"
-              className="h-6 w-6 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center cursor-pointer transition-all"
+              aria-label="Next slide"
+              className="h-7 w-7 sm:h-6 sm:w-6 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center cursor-pointer transition-all active:scale-90"
             >
-              <ChevronRight size={14} />
+              <ChevronRight size={15} />
             </button>
           </div>
         </div>
