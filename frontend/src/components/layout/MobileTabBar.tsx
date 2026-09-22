@@ -43,7 +43,14 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({ view, onNavigate }) 
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#05070b]/90 backdrop-blur-xl px-2 py-2 md:hidden">
+    <nav
+      className="fixed inset-x-0 bottom-0 z-50 border-t backdrop-blur-2xl px-2 py-2 md:hidden transition-colors duration-300"
+      style={{
+        background: 'var(--color-header-bg)',
+        borderTop: '1px solid var(--color-header-border)',
+        boxShadow: 'var(--shadow-depth-2)',
+      }}
+    >
       <div className="grid grid-cols-5">
         {tabs.map((tab) => {
           const active = view === tab.view || (tab.view === 'login' && view === 'register');
@@ -53,9 +60,10 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({ view, onNavigate }) 
               type="button"
               onClick={() => onNavigate(tab.view)}
               className={cn(
-                'flex flex-col items-center gap-1 rounded-lg py-1 text-[11px] font-medium transition-colors cursor-pointer',
-                active ? 'text-emerald-400 font-semibold' : 'text-zinc-500 hover:text-zinc-300'
+                'flex flex-col items-center gap-1 rounded-xl py-1 text-[11px] font-medium transition-all cursor-pointer oneui-press',
+                active ? 'text-emerald-500 font-bold scale-[1.03]' : 'hover:text-emerald-500'
               )}
+              style={!active ? { color: 'var(--color-text-dim)' } : undefined}
             >
               {tab.icon}
               <span className="truncate max-w-[56px]">{tab.label}</span>

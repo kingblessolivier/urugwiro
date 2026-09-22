@@ -48,7 +48,7 @@ const UpdatesPage: React.FC<UpdatesPageProps> = ({ onNavigate }) => {
   }, [filter, updates]);
 
   return (
-    <div className="min-h-screen">
+    <div style={{ background: 'var(--color-bg-deep)', color: 'var(--color-text-main)' }} className="min-h-screen transition-colors duration-300">
       <PageHero
         eyebrow="Marketplace Dispatch"
         title="Official Bulletins, Market Dispatches & Platform Releases."
@@ -64,11 +64,20 @@ const UpdatesPage: React.FC<UpdatesPageProps> = ({ onNavigate }) => {
               type="button"
               onClick={() => setFilter(item.id)}
               className={cn(
-                'rounded-xl px-4 py-2.5 text-xs font-semibold transition-all duration-200',
+                'rounded-xl px-4 py-2.5 text-xs font-semibold transition-all duration-200 oneui-press cursor-pointer',
                 filter === item.id
                   ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                  : 'border border-white/10 bg-white/[0.03] text-zinc-400 hover:border-white/20 hover:text-white'
+                  : 'border hover:border-emerald-500/30 hover:text-emerald-500'
               )}
+              style={
+                filter !== item.id
+                  ? {
+                      borderColor: 'var(--color-border)',
+                      background: 'var(--color-bg-card)',
+                      color: 'var(--color-text-muted)',
+                    }
+                  : undefined
+              }
             >
               {item.label}
             </button>
@@ -79,16 +88,29 @@ const UpdatesPage: React.FC<UpdatesPageProps> = ({ onNavigate }) => {
         {updatesQuery.isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((key) => (
-              <div key={key} className="h-40 animate-pulse rounded-2xl border border-white/10 bg-white/[0.02]" />
+              <div
+                key={key}
+                className="h-40 animate-pulse rounded-2xl border"
+                style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' }}
+              />
             ))}
           </div>
         ) : visible.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-6 py-20 text-center backdrop-blur-xl">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
-              <Bell size={22} />
+          <div
+            className="rounded-3xl border border-dashed px-6 py-20 text-center transition-all"
+            style={{
+              borderColor: 'var(--color-border)',
+              background: 'var(--color-bg-card)',
+              boxShadow: 'var(--shadow-depth-1)',
+            }}
+          >
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500">
+              <Bell size={24} />
             </div>
-            <h2 className="text-xl font-bold text-white">No active dispatches in this category</h2>
-            <p className="mt-2 text-sm text-zinc-400 max-w-md mx-auto">
+            <h2 className="text-xl font-bold" style={{ color: 'var(--color-text-main)' }}>
+              No active dispatches in this category
+            </h2>
+            <p className="mt-2 text-sm max-w-md mx-auto" style={{ color: 'var(--color-text-muted)' }}>
               Our engineering and editorial teams publish weekly briefs. Check back shortly or return to catalog exploration.
             </p>
             <Button
@@ -103,30 +125,43 @@ const UpdatesPage: React.FC<UpdatesPageProps> = ({ onNavigate }) => {
             {visible.map((update) => (
               <article
                 key={update.id}
-                className="group rounded-2xl border border-white/10 bg-white/[0.03] p-7 backdrop-blur-xl transition-all duration-300 hover:border-emerald-500/40 hover:bg-white/[0.05]"
+                className="group rounded-2xl border p-7 transition-all duration-300 hover:border-emerald-500/40 oneui-card"
+                style={{
+                  borderColor: 'var(--color-border)',
+                  background: 'var(--color-bg-card)',
+                  boxShadow: 'var(--shadow-depth-1)',
+                }}
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500">
                       <Tag size={10} /> {update.category || 'Executive'}
                     </span>
                     {update.created_at && (
-                      <span className="flex items-center gap-1 text-xs text-zinc-500">
-                        <Calendar size={12} /> {new Date(update.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                      <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--color-text-dim)' }}>
+                        <Calendar size={12} />{' '}
+                        {new Date(update.created_at).toLocaleDateString(undefined, {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
                       </span>
                     )}
                   </div>
                   {update.end_date && (
-                    <span className="text-[11px] text-zinc-500">
+                    <span className="text-[11px]" style={{ color: 'var(--color-text-dim)' }}>
                       Active until {new Date(update.end_date).toLocaleDateString()}
                     </span>
                   )}
                 </div>
 
-                <h2 className="mt-4 text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">
+                <h2
+                  className="mt-4 text-xl font-bold transition-colors group-hover:text-emerald-500"
+                  style={{ color: 'var(--color-text-main)' }}
+                >
                   {update.title}
                 </h2>
-                <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+                <p className="mt-3 text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
                   {update.description}
                 </p>
               </article>

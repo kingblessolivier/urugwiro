@@ -324,7 +324,10 @@ export const AssetProposalPage: React.FC<AssetProposalPageProps> = ({ onNavigate
   };
 
   return (
-    <div className="min-h-screen bg-[#05070b] text-white pt-24 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div
+      className="min-h-screen pt-24 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden transition-colors duration-300"
+      style={{ background: 'var(--color-bg-deep)', color: 'var(--color-text-main)' }}
+    >
       {/* Background Ambient Lights */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-emerald-500/5 rounded-full blur-[140px]" />
@@ -334,14 +337,14 @@ export const AssetProposalPage: React.FC<AssetProposalPageProps> = ({ onNavigate
       <div className="max-w-4xl mx-auto relative z-10">
         {/* Header Title */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-xs font-semibold mb-4 tracking-wider uppercase">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 text-xs font-semibold mb-4 tracking-wider uppercase">
             <ShieldCheck size={14} />
             <span>Official Urugwiro Asset Intake & Verification</span>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black font-display tracking-tight text-white mb-3">
+          <h1 className="text-3xl sm:text-5xl font-black font-display tracking-tight mb-3" style={{ color: 'var(--color-text-main)' }}>
             List Your Property on Urugwiro
           </h1>
-          <p className="text-zinc-400 text-sm sm:text-base max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base max-w-2xl mx-auto" style={{ color: 'var(--color-text-muted)' }}>
             Submit your asset specifications below. Our certified surveyors inspect and verify cadastral data before publication to guarantee buyers maximum authenticity and prestige.
           </p>
         </div>
@@ -351,7 +354,7 @@ export const AssetProposalPage: React.FC<AssetProposalPageProps> = ({ onNavigate
           <div className="mb-10">
             <div className="flex items-center justify-between relative max-w-2xl mx-auto">
               {/* Connector line */}
-              <div className="absolute top-1/2 left-0 w-full -translate-y-1/2 h-0.5 bg-white/10 z-0" />
+              <div className="absolute top-1/2 left-0 w-full -translate-y-1/2 h-0.5 z-0" style={{ background: 'var(--color-border)' }} />
               <div
                 className="absolute top-1/2 left-0 -translate-y-1/2 h-0.5 bg-emerald-500 transition-all duration-500 z-0"
                 style={{ width: step === 1 ? '0%' : step === 2 ? '50%' : '100%' }}
@@ -363,12 +366,13 @@ export const AssetProposalPage: React.FC<AssetProposalPageProps> = ({ onNavigate
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
                     step >= 1
                       ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-                      : 'bg-[#0f1422] border border-white/20 text-zinc-400'
+                      : 'border text-zinc-400'
                   }`}
+                  style={step < 1 ? { borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' } : undefined}
                 >
                   {step > 1 ? <Check size={16} /> : '1'}
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider mt-2 text-zinc-300">Identity & Role</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider mt-2" style={{ color: 'var(--color-text-muted)' }}>Identity & Role</span>
               </div>
 
               {/* Step 2 Pill */}
@@ -377,12 +381,13 @@ export const AssetProposalPage: React.FC<AssetProposalPageProps> = ({ onNavigate
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
                     step >= 2
                       ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-                      : 'bg-[#0f1422] border border-white/20 text-zinc-400'
+                      : 'border text-zinc-400'
                   }`}
+                  style={step < 2 ? { borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' } : undefined}
                 >
                   {step > 2 ? <Check size={16} /> : '2'}
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider mt-2 text-zinc-300">Asset Specifications</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider mt-2" style={{ color: 'var(--color-text-muted)' }}>Asset Specifications</span>
               </div>
 
               {/* Step 3 Pill */}
@@ -391,12 +396,13 @@ export const AssetProposalPage: React.FC<AssetProposalPageProps> = ({ onNavigate
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
                     step === 3
                       ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-                      : 'bg-[#0f1422] border border-white/20 text-zinc-400'
+                      : 'border text-zinc-400'
                   }`}
+                  style={step < 3 ? { borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' } : undefined}
                 >
                   3
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider mt-2 text-zinc-300">Surveyor Visit</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider mt-2" style={{ color: 'var(--color-text-muted)' }}>Surveyor Visit</span>
               </div>
             </div>
           </div>
@@ -404,7 +410,7 @@ export const AssetProposalPage: React.FC<AssetProposalPageProps> = ({ onNavigate
 
         {/* Error Banner */}
         {error && (
-          <div className="mb-6 p-4 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-300 flex items-start gap-3 text-sm animate-fade-in">
+          <div className="mb-6 p-4 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-400 flex items-start gap-3 text-sm animate-fade-in">
             <AlertCircle size={18} className="text-red-400 shrink-0 mt-0.5" />
             <p>{error}</p>
           </div>
@@ -412,13 +418,21 @@ export const AssetProposalPage: React.FC<AssetProposalPageProps> = ({ onNavigate
 
         {/* ━━━ STEP 1: OWNER IDENTITY & RELATIONSHIP ━━━ */}
         {step === 1 && (
-          <form onSubmit={handleNext} className="space-y-6 rounded-3xl border border-white/10 bg-[#080c14]/90 p-6 sm:p-10 backdrop-blur-2xl shadow-2xl">
-            <div className="border-b border-white/[0.08] pb-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 flex items-center gap-2.5">
-                <User size={20} className="text-emerald-400" />
+          <form
+            onSubmit={handleNext}
+            className="space-y-6 rounded-3xl border p-6 sm:p-10 backdrop-blur-2xl transition-colors duration-300"
+            style={{
+              borderColor: 'var(--color-border)',
+              background: 'var(--color-bg-card)',
+              boxShadow: 'var(--shadow-depth-2)',
+            }}
+          >
+            <div className="pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <h2 className="text-xl sm:text-2xl font-bold mb-1 flex items-center gap-2.5" style={{ color: 'var(--color-text-main)' }}>
+                <User size={20} className="text-emerald-500" />
                 <span>1. Submitter Identity & Legal Relationship</span>
               </h2>
-              <p className="text-zinc-400 text-xs sm:text-sm">
+              <p className="text-xs sm:text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 We verify ownership and mandate credentials to prevent fraudulent listings and preserve title trust.
               </p>
             </div>
@@ -538,13 +552,21 @@ export const AssetProposalPage: React.FC<AssetProposalPageProps> = ({ onNavigate
 
         {/* ━━━ STEP 2: ASSET SPECIFICATIONS (DYNAMIC ACCORDING TO MODEL) ━━━ */}
         {step === 2 && (
-          <form onSubmit={handleNext} className="space-y-6 rounded-3xl border border-white/10 bg-[#080c14]/90 p-6 sm:p-10 backdrop-blur-2xl shadow-2xl">
-            <div className="border-b border-white/[0.08] pb-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 flex items-center gap-2.5">
-                <Building2 size={20} className="text-emerald-400" />
+          <form
+            onSubmit={handleNext}
+            className="space-y-6 rounded-3xl border p-6 sm:p-10 backdrop-blur-2xl transition-colors duration-300"
+            style={{
+              borderColor: 'var(--color-border)',
+              background: 'var(--color-bg-card)',
+              boxShadow: 'var(--shadow-depth-2)',
+            }}
+          >
+            <div className="pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <h2 className="text-xl sm:text-2xl font-bold mb-1 flex items-center gap-2.5" style={{ color: 'var(--color-text-main)' }}>
+                <Building2 size={20} className="text-emerald-500" />
                 <span>2. Asset Information & Technical Specifications</span>
               </h2>
-              <p className="text-zinc-400 text-xs sm:text-sm">
+              <p className="text-xs sm:text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 Inputs dynamically adjust according to the physical asset model ({formData.asset_type.toUpperCase()}).
               </p>
             </div>
@@ -1673,17 +1695,25 @@ export const AssetProposalPage: React.FC<AssetProposalPageProps> = ({ onNavigate
 
         {/* ━━━ STEP 3: SCHEDULE PHYSICAL INSPECTION VISIT ━━━ */}
         {step === 3 && (
-          <form onSubmit={handleSubmit} className="space-y-6 rounded-3xl border border-white/10 bg-[#080c14]/90 p-6 sm:p-10 backdrop-blur-2xl shadow-2xl">
-            <div className="border-b border-white/[0.08] pb-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 flex items-center gap-2.5">
-                <Calendar size={20} className="text-emerald-400" />
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-6 rounded-3xl border p-6 sm:p-10 backdrop-blur-2xl transition-colors duration-300"
+            style={{
+              borderColor: 'var(--color-border)',
+              background: 'var(--color-bg-card)',
+              boxShadow: 'var(--shadow-depth-2)',
+            }}
+          >
+            <div className="pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <h2 className="text-xl sm:text-2xl font-bold mb-1 flex items-center gap-2.5" style={{ color: 'var(--color-text-main)' }}>
+                <Calendar size={20} className="text-emerald-500" />
                 <span>
                   {formData.asset_type === 'vehicle'
                     ? '3. Schedule Automotive Mechanical Inspection'
                     : '3. Schedule Physical Surveyor Visit'}
                 </span>
               </h2>
-              <p className="text-zinc-400 text-xs sm:text-sm">
+              <p className="text-xs sm:text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 {formData.asset_type === 'vehicle'
                   ? 'Choose when our certified automotive technician can visit the garage to perform diagnostic scanning and verify title documentation.'
                   : 'Choose when our certified surveyor and drone photographer can visit the asset for cadastral boundary and quality verification.'}
@@ -1833,27 +1863,40 @@ export const AssetProposalPage: React.FC<AssetProposalPageProps> = ({ onNavigate
 
         {/* ━━━ STEP 4: SUCCESS CONFIRMATION & TRACKING CODE ━━━ */}
         {step === 4 && submittedProposal && (
-          <div className="rounded-3xl border border-emerald-500/30 bg-[#080c14]/95 p-6 sm:p-12 backdrop-blur-2xl text-center shadow-2xl space-y-6 animate-fade-in">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
+          <div
+            className="rounded-3xl border p-6 sm:p-12 backdrop-blur-2xl text-center shadow-2xl space-y-6 animate-fade-in transition-colors duration-300"
+            style={{
+              borderColor: 'rgba(16, 185, 129, 0.3)',
+              background: 'var(--color-bg-card)',
+              boxShadow: 'var(--shadow-depth-3)',
+            }}
+          >
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
               <CheckCircle2 size={36} />
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-white font-display">
+              <h2 className="text-2xl sm:text-3xl font-extrabold font-display" style={{ color: 'var(--color-text-main)' }}>
                 Asset Proposal Received!
               </h2>
-              <p className="text-zinc-400 text-xs sm:text-sm max-w-lg mx-auto">
-                Thank you, <span className="text-white font-semibold">{submittedProposal.full_name}</span>. Your {submittedProposal.asset_type_label || submittedProposal.asset_type} proposal has entered our cadastral verification queue.
+              <p className="text-xs sm:text-sm max-w-lg mx-auto" style={{ color: 'var(--color-text-muted)' }}>
+                Thank you, <span className="font-semibold" style={{ color: 'var(--color-text-main)' }}>{submittedProposal.full_name}</span>. Your {submittedProposal.asset_type_label || submittedProposal.asset_type} proposal has entered our cadastral verification queue.
               </p>
             </div>
 
             {/* Tracking Code Box */}
-            <div className="max-w-md mx-auto p-4 rounded-2xl border border-white/10 bg-white/[0.03] space-y-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block">
+            <div
+              className="max-w-md mx-auto p-4 rounded-2xl border space-y-2"
+              style={{
+                borderColor: 'var(--color-border)',
+                background: 'var(--color-input-bg)',
+              }}
+            >
+              <span className="text-[11px] font-bold uppercase tracking-wider block" style={{ color: 'var(--color-text-muted)' }}>
                 Your Proposal Tracking Code
               </span>
               <div className="flex items-center justify-center gap-3">
-                <span className="font-mono text-2xl sm:text-3xl font-black text-emerald-400 tracking-wider">
+                <span className="font-mono text-2xl sm:text-3xl font-black text-emerald-500 tracking-wider">
                   {submittedProposal.proposal_code}
                 </span>
                 <button
