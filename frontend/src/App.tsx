@@ -56,7 +56,7 @@ function App() {
       case 'listing-detail':
         return <ListingDetail listingId={selectedListingId || ''} onBack={() => setView('discovery')} />;
       case 'seller-dashboard':
-        return <SellerDashboard />;
+        return <SellerDashboard onNavigate={setView} />;
       case 'seller-wizard':
         return <ListingWizard />;
       case 'admin':

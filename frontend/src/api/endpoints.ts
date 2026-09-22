@@ -119,6 +119,8 @@ export const api = {
             apiClient.post('/ai/analyze-offer/', { listing_id: listingId, amount }),
         verifyMilestone: (dealId: string, docType: string, extractedText: string) =>
             apiClient.post('/ai/verify-milestone/', { deal_id: dealId, document_type: docType, extracted_text: extractedText }),
+        chat: (messages: Array<{ role: string; content: string }>, context = 'public', propertyContext?: any) =>
+            apiClient.post('/ai/chat/', { messages, context, property_context: propertyContext }),
     },
 
     // Settings

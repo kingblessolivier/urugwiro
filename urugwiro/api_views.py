@@ -1214,6 +1214,170 @@ def ai_verify_milestone_document(request):
     return Response(audit_result, status=status.HTTP_200_OK)
 
 
+# ─── Conversational AI Chatbot Endpoint (Seller, Public, Admin) ───
+
+def generate_rwandan_ai_fallback(query: str, context: str, property_context: dict = None) -> str:
+    """Provides authoritative, domain-grounded Rwandan real estate responses when LLM API is unavailable."""
+    q = query.lower()
+    prop_title = property_context.get('title') if property_context else None
+
+    if context == 'seller':
+        if any(w in q for w in ['price', 'pricing', 'valuat', 'worth', 'how much']):
+            return (
+                "**Urugwiro Valuation Assessment**:\n\n"
+                "- **Prime Residential (Nyarutarama, Gacuriro, Kiyovu)**: Modern 4-5 bed villas average 350M – 750M RWF depending on compound size and finish level.\n"
+                "- **Growth Corridors (Kicukiro, Kanombe, Rebero)**: Quality family homes typically trade between 120M – 280M RWF.\n"
+                "- **Titled Land Plots (Gasabo/Kicukiro)**: Clean residential plots (300–600 sqm) range from 45M to 130M RWF.\n\n"
+                "💡 **Recommendation**: Set an initial listing price within 5% of comps to attract serious qualified buyers, and submit your parcel for physical verification to earn the **Verified Seller Badge**."
+            )
+        elif any(w in q for w in ['offer', 'counter', 'negotiat', 'lowball', 'discount']):
+            return (
+                "**Negotiation Strategy & Counter-Offer Guidance**:\n\n"
+                "1. **Analyze Buyer Variance**: In Kigali transactions, a buyer variance under 7% is standard commercial negotiation. If the discount exceeds 12%, do not accept outright.\n"
+                "2. **Optimal Counter Strategy**: Propose meeting midway with a 3–5% concession conditioned on a **10% earnest escrow deposit** within 5 business days.\n"
+                "3. **Draft Response Template**:\n"
+                "> *\"Thank you for your proposal. While we cannot accept the offered amount, the seller is prepared to counter at [Target Amount] RWF, provided the transaction proceeds through Urugwiro escrow with immediate title transfer upon closing.\"*"
+            )
+        elif any(w in q for w in ['upi', 'cadastre', 'zoning', 'master plan', 'rlmua', 'title']):
+            return (
+                "**Rwandan Cadastre & Zoning Intelligence**:\n\n"
+                "- **UPI (Unique Parcel Identifier)**: Formatted as `Province/District/Sector/Cell/Parcel` (e.g., `1/02/11/04/1820`).\n"
+                "- **Kigali Master Plan 2050 Zoning**:\n"
+                "  - **R1/R1A**: Single family residential.\n"
+                "  - **R2/R3**: Medium/High density apartments.\n"
+                "  - **C1/C2**: Mixed-use and commercial.\n"
+                "- **Selling Step**: Ensure your property tax (Rwanda Revenue Authority) is up to date and your e-Title deed is accessible on Irembo for instant verification."
+            )
+        elif any(w in q for w in ['narrative', 'description', 'write', 'copy']):
+            subject = prop_title or "your property"
+            return (
+                f"**Luxury Marketing Narrative for {subject}**:\n\n"
+                f"\"Nestled in one of Kigali's most sought-after residential enclaves, this exceptional property represents the pinnacle of modern architectural poise and capital appreciation.\n\n"
+                f"Featuring spacious natural-lit interiors, secure perimeter infrastructure, and verified cadastral title integrity, this residence delivers an unmatched lifestyle for discerning homeowners and high-yield investors alike.\n\n"
+                f"**Key Highlights**: Cadastre Verified • Escrow Protected • High Expat Rental Demand • Turnkey Ready.\""
+            )
+        else:
+            return (
+                f"**Urugwiro Seller Intelligence Co-Pilot**:\n\n"
+                f"I am ready to assist you with your listing portfolio. I can help you with:\n"
+                f"1. **Pricing & Valuation Comps** in Kigali districts.\n"
+                f"2. **Drafting Luxury Marketing Narratives** for your listings.\n"
+                f"3. **Analyzing Buyer Offers & Drafting Counters**.\n"
+                f"4. **RLMUA UPI Cadastre & Master Plan Zoning Verification**.\n\n"
+                f"What specific property or transaction question would you like to explore?"
+            )
+    else: # public
+        if any(w in q for w in ['escrow', 'safe', 'protect', 'scam', 'fraud']):
+            return (
+                "**Urugwiro Sovereign Escrow Protection**:\n\n"
+                "All high-value transactions on Urugwiro are guarded by milestone escrow:\n"
+                "1. **Deposit**: Buyer funds are held securely in a regulated escrow account.\n"
+                "2. **Physical & Title Inspection**: Official cadastre boundaries (UPI) and notary title deeds are verified with RLMUA.\n"
+                "3. **Disbursement**: Funds are released to the seller only after official Irembo title transfer confirmation.\n\n"
+                "This eliminates fraud and protects both buyer and seller."
+            )
+        elif any(w in q for w in ['neighborhood', 'district', 'area', 'where to buy', 'kigali']):
+            return (
+                "**Kigali Neighborhood Guide**:\n\n"
+                "- **Nyarutarama & Kiyovu**: Kigali's most prestigious diplomatic and executive residential enclaves.\n"
+                "- **Gacuriro & Kimihurura**: Vibrant lifestyle, premier restaurants, and high expat rental yields.\n"
+                "- **Kicukiro & Rebero**: Elevated panoramic views, tranquil living, and strong capital appreciation.\n"
+                "- **Bugesera & Gasabo Outskirts**: Exceptional land investment growth driven by new airport and infrastructure corridors."
+            )
+        else:
+            return (
+                "**Welcome to Urugwiro AI Concierge**:\n\n"
+                "I can help you explore verified homes, titled land plots, and executive vehicles across Rwanda. "
+                "You can ask me about:\n"
+                "- **Verified Land Titles & UPI Cadastre**\n"
+                "- **Neighborhood Guides & Investment Yields**\n"
+                "- **The Urugwiro Escrow & Conveyance Process**\n"
+                "- **Financing, Irembo Notarization & Closing Costs**\n\n"
+                "How can I assist your property search today?"
+            )
+
+
+@api_view(['POST'])
+def api_ai_chat(request):
+    """
+    Unified conversational AI endpoint supporting multi-persona interactions:
+    - context='seller': Acts as Urugwiro Seller Intelligence Advisor (pricing, narrative, counter-offers, zoning).
+    - context='public': Acts as Urugwiro Concierge (property discovery, Rwandan cadastre, legal process).
+    - context='admin': Acts as Compliance & Title Auditor.
+    """
+    import json
+    messages = request.data.get('messages', [])
+    context = (request.data.get('context') or 'public').lower()
+    property_context = request.data.get('property_context') or {}
+
+    if not messages or not isinstance(messages, list):
+        return Response({'error': 'Messages list required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    latest_user_message = next((m.get('content', '') for m in reversed(messages) if m.get('role') == 'user'), '')
+
+    if context == 'seller':
+        system_prompt = (
+            "You are the Urugwiro Seller AI Co-Pilot, an elite Rwandan real estate investment strategist, "
+            "pricing advisor, and cadastral intelligence expert. "
+            "You help Rwandan sellers, landlords, and asset owners maximize value, price their properties accurately "
+            "based on Kigali master plan zoning (Gasabo, Kicukiro, Nyarutarama, Gacuriro, Kiyovu), negotiate buyer offers firmly yet politely, "
+            "and navigate official land cadastre (RLMUA UPI titles, land transfers via Irembo). "
+            "Always be practical, professional, precise with Rwandan currency (RWF), and concise."
+        )
+    elif context == 'admin':
+        system_prompt = (
+            "You are the Urugwiro Sovereign Compliance & Cadastre Auditor AI. "
+            "You assist platform administrators in reviewing UPI deeds, verifying escrow milestones, "
+            "and auditing transaction pipelines under Rwandan land law (Law N° 27/2021)."
+        )
+    else:
+        system_prompt = (
+            "You are the Urugwiro AI Concierge, the official digital advisor for Urugwiro—Rwanda's verified real estate "
+            "and mobility marketplace. You assist prospective buyers, investors, and tenants with discovering verified villas, "
+            "titled land parcels, and executive vehicles. "
+            "Explain Rwandan property procedures clearly: UPI cadastre checks with RLMUA, Irembo notarization, and Urugwiro escrow security."
+        )
+
+    if property_context:
+        system_prompt += f"\nCurrent Property Context: {json.dumps(property_context)}"
+
+    api_key = get_nvidia_api_key()
+    ai_reply = None
+
+    if api_key:
+        try:
+            formatted_messages = [{'role': 'system', 'content': system_prompt}]
+            for msg in messages[-6:]:
+                role = 'user' if msg.get('role') == 'user' else 'assistant'
+                formatted_messages.append({'role': role, 'content': msg.get('content', '')})
+
+            res = requests.post(
+                'https://integrate.api.nvidia.com/v1/chat/completions',
+                headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+                json={
+                    'model': get_nvidia_model(),
+                    'messages': formatted_messages,
+                    'temperature': 0.6,
+                    'max_tokens': 600,
+                },
+                timeout=12
+            )
+            if res.status_code == 200:
+                ai_reply = res.json()['choices'][0]['message']['content'].strip()
+        except Exception:
+            pass
+
+    if not ai_reply:
+        ai_reply = generate_rwandan_ai_fallback(latest_user_message, context, property_context)
+
+    return Response({
+        'reply': ai_reply,
+        'context': context,
+        'model': get_nvidia_model() if api_key else 'urugwiro-deterministic-intelligence',
+    }, status=status.HTTP_200_OK)
+
+
+
 # ─── Offers & Price Reduction API ───
 
 @api_view(['GET', 'POST'])

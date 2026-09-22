@@ -2,6 +2,7 @@ import React from 'react';
 import { PublicHeader } from './PublicHeader';
 import { PublicFooter } from './PublicFooter';
 import { MobileTabBar } from './MobileTabBar';
+import { AiChatWidget } from '../ai/AiChatWidget';
 import { isAuthView, type AppView } from '../../types/navigation';
 import { cn } from '../../lib/utils';
 
@@ -28,6 +29,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
       <main className={cn("flex-1 w-full max-w-full overflow-x-hidden", !isAuth && "pb-20 md:pb-0")}>{children}</main>
       {showFooter && !isAuth ? <PublicFooter onNavigate={onNavigate} /> : null}
       {!isAuth && <MobileTabBar view={view} onNavigate={onNavigate} />}
+      {!isAuth && <AiChatWidget />}
     </div>
   );
 };

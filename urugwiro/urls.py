@@ -9,7 +9,7 @@ from .api_views import (
     api_about, api_contact_submit, api_public_updates,
     list_verification_requests, get_verification_request_detail,
     seller_create_listing, generate_ai_narrative,
-    test_nvidia_connection, ai_analyze_offer, ai_verify_milestone_document,
+    test_nvidia_connection, ai_analyze_offer, ai_verify_milestone_document, api_ai_chat,
     list_create_offers, update_offer_status,
     list_create_site_visits, update_site_visit_status,
     list_create_deals, get_deal_detail, advance_deal_stage, upload_deal_document,
@@ -67,6 +67,7 @@ urlpatterns = [
     path('api/ai/test-connection/', test_nvidia_connection, name='api_ai_test_nvidia'),
     path('api/ai/analyze-offer/', ai_analyze_offer, name='api_ai_analyze_offer'),
     path('api/ai/verify-milestone/', ai_verify_milestone_document, name='api_ai_verify_milestone'),
+    path('api/ai/chat/', api_ai_chat, name='api_ai_chat'),
 
     path('api/properties', views.properties, name='properties'),
     path('api/properties/<pk>', views.property_details, name='property_details'),
