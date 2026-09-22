@@ -29,16 +29,16 @@ export const api = {
     // Admin
     admin: {
         users: Object.assign(
-            (params?: any) => apiClient.get('/api/admin/users/', { params }),
+            (params?: any) => apiClient.get('/admin/users/', { params }),
             {
-                list: (params?: any) => apiClient.get('/api/admin/users/', { params }),
-                create: (data: any) => apiClient.post('/api/admin/users/', data),
-                detail: (id: number | string) => apiClient.get(`/api/admin/users/${id}/`),
-                update: (id: number | string, data: any) => apiClient.patch(`/api/admin/users/${id}/`, data),
-                setRole: (id: number | string, role: string) => apiClient.post(`/api/admin/users/${id}/set-role/`, { role }),
-                toggleStatus: (id: number | string, is_active?: boolean) => apiClient.post(`/api/admin/users/${id}/toggle-status/`, { is_active }),
-                resetPassword: (id: number | string, new_password: string) => apiClient.post(`/api/admin/users/${id}/reset-password/`, { new_password }),
-                delete: (id: number | string) => apiClient.delete(`/api/admin/users/${id}/`),
+                list: (params?: any) => apiClient.get('/admin/users/', { params }),
+                create: (data: any) => apiClient.post('/admin/users/', data),
+                detail: (id: number | string) => apiClient.get(`/admin/users/${id}/`),
+                update: (id: number | string, data: any) => apiClient.patch(`/admin/users/${id}/`, data),
+                setRole: (id: number | string, role: string) => apiClient.post(`/admin/users/${id}/set-role/`, { role }),
+                toggleStatus: (id: number | string, is_active?: boolean) => apiClient.post(`/admin/users/${id}/toggle-status/`, { is_active }),
+                resetPassword: (id: number | string, new_password: string) => apiClient.post(`/admin/users/${id}/reset-password/`, { new_password }),
+                delete: (id: number | string) => apiClient.delete(`/admin/users/${id}/`),
             }
         ),
         properties: () => apiClient.get('/admin/properties/'),
@@ -54,10 +54,10 @@ export const api = {
         maintenance: () => apiClient.get('/admin/maintenance/'),
         inbox: () => apiClient.get('/admin/inbox/'),
         verification: {
-            list: () => apiClient.get('/api/verification/'),
-            detail: (id: string) => apiClient.get(`/api/verification/${id}/`),
+            list: () => apiClient.get('/verification/'),
+            detail: (id: string) => apiClient.get(`/verification/${id}/`),
             review: (id: string, decision: string, notes: string) =>
-                apiClient.post(`/api/verification/review/${id}/`, { status: decision, notes }),
+                apiClient.post(`/verification/review/${id}/`, { status: decision, notes }),
         },
     },
 

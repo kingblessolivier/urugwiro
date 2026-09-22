@@ -100,12 +100,19 @@ urlpatterns = [
     # Sovereign Reports Export
     path('api/reports/export/<str:report_type>/', views.admin_reports_export, name='api_reports_export'),
 
-    # Admin User Management APIs
+    # Admin User Management APIs (Primary and fallback paths)
     path('api/admin/users/', admin_users_list_create, name='api_admin_users_list_create'),
     path('api/admin/users/<int:pk>/', admin_user_detail_update_delete, name='api_admin_user_detail_update_delete'),
     path('api/admin/users/<int:pk>/set-role/', admin_user_set_role, name='api_admin_user_set_role'),
     path('api/admin/users/<int:pk>/toggle-status/', admin_user_toggle_status, name='api_admin_user_toggle_status'),
     path('api/admin/users/<int:pk>/reset-password/', admin_user_reset_password, name='api_admin_user_reset_password'),
+
+    # Double-prefix fallback guardrail (ensures requests succeed even if client or proxy appends /api twice)
+    path('api/api/admin/users/', admin_users_list_create, name='api_api_admin_users_list_create_fallback'),
+    path('api/api/admin/users/<int:pk>/', admin_user_detail_update_delete, name='api_api_admin_user_detail_fallback'),
+    path('api/api/admin/users/<int:pk>/set-role/', admin_user_set_role, name='api_api_admin_user_role_fallback'),
+    path('api/api/admin/users/<int:pk>/toggle-status/', admin_user_toggle_status, name='api_api_admin_user_status_fallback'),
+    path('api/api/admin/users/<int:pk>/reset-password/', admin_user_reset_password, name='api_api_admin_user_pwd_fallback'),
 ]
 
 

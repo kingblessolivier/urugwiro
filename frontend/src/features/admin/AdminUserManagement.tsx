@@ -89,7 +89,7 @@ export const AdminUserManagement: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   // 1. Fetch Users Query
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['admin-users', searchQuery, roleFilter, statusFilter],
     queryFn: async () => {
       const params: any = {};
@@ -99,12 +99,20 @@ export const AdminUserManagement: React.FC = () => {
       const res = await api.admin.users.list(params);
       return res.data;
     },
+    retry: 2,
   });
 
-  const users: UserItem[] = data?.users || [];
+  const users: UserItem[] = Array.isArray(data) ? data : (data?.users || []);
   const stats: UserStats = data?.stats || {
-    total: 0, active: 0, inactive: 0, admins: 0,
-    agents: 0, sellers: 0, owners: 0, tenants: 0, buyers: 0
+    total: users.length,
+    active: users.filter(u => u.is_active).length,
+    inactive: users.filter(u => !u.is_active).length,
+    admins: users.filter(u => u.role === 'Admin').length,
+    agents: users.filter(u => u.role === 'Agent').length,
+    sellers: users.filter(u => u.role === 'Seller').length,
+    owners: users.filter(u => u.role === 'Owner').length,
+    tenants: users.filter(u => u.role === 'Tenant').length,
+    buyers: users.filter(u => u.role === 'Buyer').length,
   };
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
@@ -378,7 +386,23 @@ export const AdminUserManagement: React.FC = () => {
                   </tr>
                 )}
 
-                {!isLoading && users.map((user) => {
+                {isError && (
+                  <tr>
+                    <td colSpan={6} className="p-12 text-center text-red-400">
+                      <AlertCircle size={30} className="mx-auto text-red-400 mb-2" />
+                      <p className="text-sm font-semibold">Unable to fetch users from server.</p>
+                      <p className="text-xs text-zinc-400 mt-1">{(error as any)?.message || 'Database connection error'}</p>
+                      <button
+                        onClick={() => refetch()}
+                        className="mt-4 px-4 py-1.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 text-xs hover:bg-red-500/20 transition-colors inline-flex items-center gap-2 cursor-pointer"
+                      >
+                        <RefreshCw size={12} /> Retry Connection
+                      </button>
+                    </td>
+                  </tr>
+                )}
+
+                {!isLoading && !isError && users.map((user) => {
                   const fullName = `${user.first_name} ${user.last_name}`.trim();
                   const roleConfig = ROLES_LIST.find(r => r.role === user.role) || ROLES_LIST[4];
 
@@ -518,7 +542,7 @@ export const AdminUserManagement: React.FC = () => {
                   );
                 })}
 
-                {!isLoading && users.length === 0 && (
+                {!isLoading && !isError && users.length === 0 && (
                   <tr>
                     <td colSpan={6} className="p-16 text-center text-zinc-500">
                       <User size={36} className="mx-auto text-zinc-600 mb-2" />

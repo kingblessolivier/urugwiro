@@ -214,7 +214,9 @@ PAYPAL_CLIENT_ID = 'FLD2Q3S3QCFLU'
 PAYPAL_CLIENT_SECRET = 'Olivier@12'
 SITE_URL = 'http://127.0.0.1:8000'
 
-# Local React development origins. Keep production origins environment-specific.
+# CORS configuration
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
