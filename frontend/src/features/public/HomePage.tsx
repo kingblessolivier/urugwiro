@@ -49,6 +49,8 @@ interface HeroSlide {
   caption: string;
   price: string;
   watermark: string;
+  coordinates: string;
+  cadastreRef: string;
   aiAdvice: {
     tag: string;
     text: string;
@@ -64,11 +66,13 @@ const HERO_SLIDES: HeroSlide[] = [
     query: 'house',
     image: '/images/hero/house.jpg',
     title: 'Luxury Homes & Villas',
-    subtitle: 'Kigali, Rwanda',
+    subtitle: 'Nyarutarama & Gacuriro, Kigali',
     searchPlaceholder: 'Search villas in Nyarutarama, Gacuriro, Kiyovu...',
     caption: 'Modern Villa, Nyarutarama',
     price: '480,000,000 RWF',
     watermark: 'ESTATES',
+    coordinates: '1°56\'22"S 30°05\'48"E',
+    cadastreRef: 'UPI 1/02/11/04/1820',
     aiAdvice: {
       tag: 'AI Investment Analysis',
       text: 'Prime Nyarutarama Expat Corridor • Projected 11.4% Annual Rental Yield',
@@ -82,11 +86,13 @@ const HERO_SLIDES: HeroSlide[] = [
     query: 'land',
     image: '/images/hero/land.jpg',
     title: 'Prime Titled Land',
-    subtitle: 'RLMUA Cadastre Verified',
+    subtitle: 'RLMUA Cadastre Verified, Gasabo',
     searchPlaceholder: 'Search titled plots in Gasabo, Kicukiro, Bugesera...',
     caption: 'Titled Hillside Parcel, Gasabo',
     price: '95,000,000 RWF',
     watermark: 'CADASTRE',
+    coordinates: '1°54\'10"S 30°07\'15"E',
+    cadastreRef: 'UPI 1/02/08/03/4921',
     aiAdvice: {
       tag: 'AI Cadastre & Zoning Engine',
       text: 'RLMUA Master Plan R2 Medium Density • Clean Title Deed • Zero Encumbrance',
@@ -100,11 +106,13 @@ const HERO_SLIDES: HeroSlide[] = [
     query: 'vehicle',
     image: '/images/hero/car.jpg',
     title: 'Executive SUVs',
-    subtitle: 'Certified & Inspected',
+    subtitle: 'Certified & Inspected, Kigali',
     searchPlaceholder: 'Search Toyota Land Cruiser, RAV4, Defender...',
     caption: 'Land Cruiser LC300 GR-Sport',
     price: '165,000,000 RWF',
     watermark: 'EXECUTIVE',
+    coordinates: '1°57\'05"S 30°03\'55"E',
+    cadastreRef: 'VIN-RW-2024-8891',
     aiAdvice: {
       tag: 'AI Price & Fleet Audit',
       text: '4.2% Below Kigali Market Median • Verified Rwanda Customs Dossier & Tech Health',
@@ -118,11 +126,13 @@ const HERO_SLIDES: HeroSlide[] = [
     query: 'vehicle',
     image: '/images/hero/motorbike.jpg',
     title: 'Bikes & Fleet Mobility',
-    subtitle: 'Urban & Adventure',
+    subtitle: 'Urban & Adventure Touring',
     searchPlaceholder: 'Search BMW GS, electric bikes, TVS...',
     caption: 'Adventure Touring Machine',
     price: '18,500,000 RWF',
     watermark: 'MOBILITY',
+    coordinates: '1°57\'44"S 30°04\'12"E',
+    cadastreRef: 'FLEET-KGL-0419',
     aiAdvice: {
       tag: 'AI Fleet ROI Forecast',
       text: 'High Urban Courier & Tourism Demand • Fast 14-Month Payback Velocity',
@@ -274,6 +284,12 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
             </div>
           ))}
 
+          {/* Architectural Spatial Micro-Grid */}
+          <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:28px_28px] opacity-35 pointer-events-none" />
+
+          {/* Deep Cinematic Radial Vignette */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(5,7,11,0.45)_65%,#05070b_100%)] pointer-events-none" />
+
           {/* Subtle shaded architectural watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
             <span className="text-[17vw] sm:text-[16vw] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-white/[0.035] leading-none whitespace-nowrap drop-shadow-2xl">
@@ -281,32 +297,41 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
             </span>
           </div>
 
-          {/* Balanced cinematic overlays - image stays clearly visible & stunning across the entire hero */}
-          <div className="absolute inset-0 bg-black/35" />
-          <div className="absolute inset-x-0 top-0 h-28 sm:h-36 bg-gradient-to-b from-[#05070b]/80 to-transparent pointer-events-none" />
-          <div className="absolute inset-x-0 bottom-0 h-36 sm:h-48 bg-gradient-to-t from-[#05070b] via-[#05070b]/60 to-transparent pointer-events-none" />
+          {/* Balanced cinematic overlays */}
+          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute inset-x-0 top-0 h-32 sm:h-44 bg-gradient-to-b from-[#05070b] via-[#05070b]/70 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-44 sm:h-60 bg-gradient-to-t from-[#05070b] via-[#05070b]/80 to-transparent pointer-events-none" />
 
           {/* Brand ambient glows */}
-          <div className="absolute top-1/4 left-1/4 h-[250px] w-[250px] sm:h-[500px] sm:w-[500px] rounded-full bg-emerald-500/[0.08] blur-[120px] sm:blur-[150px] pointer-events-none" />
-          <div className="absolute bottom-1/4 right-1/4 h-[220px] w-[220px] sm:h-[450px] sm:w-[450px] rounded-full bg-[#f98604]/[0.06] blur-[110px] sm:blur-[140px] pointer-events-none" />
+          <div className="absolute top-1/4 left-1/4 h-[300px] w-[300px] sm:h-[600px] sm:w-[600px] rounded-full bg-emerald-500/[0.10] blur-[150px] pointer-events-none" />
+          <div className="absolute bottom-1/4 right-1/4 h-[260px] w-[260px] sm:h-[500px] sm:w-[500px] rounded-full bg-[#f98604]/[0.07] blur-[150px] pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[220px] w-[220px] sm:h-[400px] sm:w-[400px] rounded-full bg-white/[0.03] blur-[130px] pointer-events-none" />
+        </div>
+
+        {/* Spatial Telemetry Pill (Desktop Cadastral & GPS Coordinates) */}
+        <div className="hidden md:flex absolute top-8 left-8 xl:top-12 xl:left-12 z-10 items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/55 border border-white/15 backdrop-blur-xl text-[10px] font-mono text-zinc-300 shadow-xl transition-all pointer-events-auto">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+          <span className="text-emerald-400 font-bold uppercase tracking-wider">CADASTRE // {currentSlide.cadastreRef}</span>
+          <span className="text-zinc-600">•</span>
+          <span className="text-zinc-400">{currentSlide.coordinates}</span>
         </div>
 
         {/* Floating Shaded AI Advisory Intelligence Card (Desktop / Tablet Background) */}
-        <div className="hidden lg:flex absolute top-8 right-8 xl:top-12 xl:right-12 z-10 max-w-xs flex-col gap-1.5 rounded-2xl border border-white/15 bg-black/45 p-3.5 backdrop-blur-xl shadow-2xl transition-all duration-700 hover:border-emerald-500/40 hover:bg-black/65 pointer-events-auto">
+        <div className="hidden lg:flex absolute top-8 right-8 xl:top-12 xl:right-12 z-10 max-w-xs flex-col gap-1.5 rounded-2xl border border-emerald-500/25 bg-black/55 p-3.5 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] transition-all duration-700 hover:border-emerald-500/50 hover:bg-black/75 pointer-events-auto">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 text-emerald-400 text-[11px] font-bold uppercase tracking-wider">
               <Sparkles size={13} className="animate-pulse text-emerald-400" />
               <span>{currentSlide.aiAdvice.tag}</span>
             </div>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
               {currentSlide.aiAdvice.metric}
             </span>
           </div>
-          <p className="text-xs text-zinc-300 leading-snug font-normal">
+          <p className="text-xs text-zinc-200 leading-snug font-medium">
             "{currentSlide.aiAdvice.text}"
           </p>
-          <div className="pt-1 flex items-center justify-between text-[10px] text-zinc-400 border-t border-white/10 mt-0.5">
-            <span className="text-zinc-500">Autonomous Valuation & Cadastre</span>
+          <div className="pt-1.5 flex items-center justify-between text-[10px] text-zinc-400 border-t border-white/10 mt-0.5">
+            <span className="text-zinc-500 font-mono">Autonomous Engine</span>
             <span className="text-emerald-400 font-semibold flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
               Live Advice
@@ -321,37 +346,40 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
             <button
               type="button"
               onClick={() => onExplore(currentSlide.query)}
-              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full px-3.5 py-1.5 text-[11px] sm:text-xs font-medium text-zinc-200 bg-black/50 hover:bg-black/75 border border-white/20 backdrop-blur-xl transition-all shadow-lg hover:border-emerald-400/50 cursor-pointer group max-w-full"
+              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full px-3.5 sm:px-4 py-1.5 text-[11px] sm:text-xs font-medium text-zinc-200 bg-black/60 hover:bg-black/85 border border-emerald-500/30 hover:border-emerald-400/60 backdrop-blur-2xl transition-all shadow-[0_4px_20px_rgba(0,0,0,0.6)] cursor-pointer group max-w-full"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
               <span className="truncate">Explore verified {currentSlide.title.toLowerCase()} in Rwanda</span>
               <ArrowRight size={12} className="text-zinc-400 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
             </button>
           </div>
 
-          <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)] leading-[1.15]">
+          <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight bg-gradient-to-b from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent drop-shadow-[0_8px_32px_rgba(0,0,0,0.9)] leading-[1.1]">
             {currentSlide.title}
           </h1>
 
-          <p className="text-xs sm:text-base text-zinc-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] font-medium max-w-xl mx-auto px-3">
-            {currentSlide.subtitle}
-          </p>
+          <div className="flex items-center justify-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] border border-white/15 text-zinc-200 text-xs sm:text-sm font-medium backdrop-blur-md shadow-md">
+              <MapPin size={12} className="text-emerald-400" />
+              <span>{currentSlide.subtitle}</span>
+            </span>
+          </div>
 
           {/* Shaded AI Property Advice Capsule */}
           <div className="flex justify-center px-2">
-            <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 bg-black/50 hover:bg-black/70 border border-emerald-500/30 backdrop-blur-xl text-zinc-300 shadow-xl transition-all max-w-full group">
-              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 shrink-0 border border-emerald-500/30">
+            <div className="inline-flex items-center gap-2 sm:gap-2.5 rounded-full px-3.5 sm:px-4 py-1.5 bg-gradient-to-r from-emerald-950/40 via-black/65 to-emerald-950/40 hover:from-emerald-950/60 hover:to-emerald-950/60 border border-emerald-500/40 backdrop-blur-2xl text-zinc-200 shadow-[0_4px_24px_rgba(16,185,129,0.18)] transition-all max-w-full group">
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/25 text-emerald-400 shrink-0 border border-emerald-500/40 shadow-[0_0_8px_rgba(52,211,153,0.5)]">
                 <Sparkles size={11} className="animate-pulse text-emerald-400" />
               </div>
               <div className="flex items-center gap-1.5 text-left min-w-0">
                 <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-400 shrink-0">
                   AI Advice:
                 </span>
-                <span className="text-zinc-200 text-[11px] sm:text-xs font-medium truncate max-w-[210px] xs:max-w-[300px] sm:max-w-md">
+                <span className="text-zinc-100 text-[11px] sm:text-xs font-medium truncate max-w-[200px] xs:max-w-[280px] sm:max-w-md">
                   {currentSlide.aiAdvice.text}
                 </span>
               </div>
-              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/25 shrink-0">
+              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 shrink-0">
                 {currentSlide.aiAdvice.metric}
               </span>
             </div>
@@ -359,22 +387,31 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
 
           {/* Clean Floating Search Bar (Single sleek inline bar on all screens) */}
           <form onSubmit={submitSearch} className="pt-1 sm:pt-2 max-w-2xl mx-auto w-full">
-            <div className="flex items-center gap-1.5 sm:gap-2 rounded-2xl border border-white/20 bg-black/60 p-1.5 sm:p-2 backdrop-blur-2xl shadow-2xl hover:border-emerald-400/40 transition-all">
+            <div className="flex items-center gap-1.5 sm:gap-2 rounded-2xl border border-white/25 hover:border-emerald-400/60 focus-within:border-emerald-400/80 bg-black/75 p-1.5 sm:p-2 backdrop-blur-2xl shadow-[0_16px_48px_rgba(0,0,0,0.75)] transition-all">
               <div className="flex flex-1 items-center gap-2 sm:gap-3 px-2 sm:px-4 min-w-0">
-                <Search size={16} className="text-zinc-400 shrink-0 sm:hidden" />
-                <Search size={18} className="text-zinc-400 shrink-0 hidden sm:block" />
+                <Search size={16} className="text-emerald-400 shrink-0 sm:hidden" />
+                <Search size={18} className="text-emerald-400 shrink-0 hidden sm:block" />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onFocus={() => setIsPaused(true)}
                   onBlur={() => setIsPaused(false)}
                   placeholder={currentSlide.searchPlaceholder}
-                  className="w-full bg-transparent py-2 sm:py-3 text-white outline-none placeholder:text-zinc-400 text-xs sm:text-sm min-w-0"
+                  className="w-full bg-transparent py-2 sm:py-3 text-white outline-none placeholder:text-zinc-400 text-xs sm:text-sm min-w-0 font-medium"
                 />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery('')}
+                    className="text-zinc-400 hover:text-white p-1 text-xs shrink-0"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
               <Button
                 variant="primary"
-                className="shrink-0 rounded-xl px-4 sm:px-7 py-2 sm:py-3 font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95 shadow-md text-xs sm:text-sm cursor-pointer"
+                className="shrink-0 rounded-xl px-4 sm:px-7 py-2 sm:py-3 font-bold bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white transition-all active:scale-[0.97] shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 text-xs sm:text-sm cursor-pointer border border-emerald-400/20"
               >
                 Search
               </Button>
@@ -394,10 +431,10 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
                 key={item.label}
                 type="button"
                 onClick={() => onExplore(item.q)}
-                className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-black/45 hover:bg-white/10 border border-white/15 text-zinc-300 hover:text-white text-[11px] sm:text-xs backdrop-blur-md transition-all shadow-sm cursor-pointer group"
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] hover:bg-white/[0.12] border border-white/15 hover:border-emerald-400/40 text-zinc-200 hover:text-white text-[11px] sm:text-xs backdrop-blur-xl transition-all shadow-sm cursor-pointer group"
               >
                 <span>{item.label}</span>
-                <ArrowUpRight size={10} className="text-zinc-500 group-hover:text-emerald-400 transition-colors" />
+                <ArrowUpRight size={10} className="text-zinc-400 group-hover:text-emerald-400 transition-colors" />
               </button>
             ))}
           </div>
@@ -406,27 +443,27 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
         {/* BOTTOM ROW: Minimal Caption & Slide Controls */}
         <div className="relative z-10 mx-auto max-w-7xl w-full flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4 text-xs">
           {/* Active slide caption */}
-          <div className="flex items-center justify-center gap-2 text-zinc-300 bg-black/50 backdrop-blur-md px-3 sm:px-3.5 py-1.5 rounded-full border border-white/10 text-[11px] sm:text-xs max-w-full">
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 shrink-0">
-              <Sparkles size={11} className="text-emerald-400" />
+          <div className="flex items-center justify-center gap-2 text-zinc-200 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/15 text-[11px] sm:text-xs max-w-full shadow-2xl">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 shrink-0 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+              <Sparkles size={10} className="text-emerald-400" />
               <span>AI Verified</span>
             </span>
             <span className="text-zinc-600">•</span>
             <span className="font-semibold text-white truncate max-w-[120px] xs:max-w-[180px] sm:max-w-none">{currentSlide.caption}</span>
             <span className="text-zinc-500">•</span>
-            <span className="text-emerald-400 font-mono font-medium whitespace-nowrap">{currentSlide.price}</span>
+            <span className="text-emerald-400 font-mono font-bold whitespace-nowrap">{currentSlide.price}</span>
             <button
               type="button"
               onClick={() => onExplore(currentSlide.query)}
-              className="ml-1 text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap"
+              className="ml-1 text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap group"
             >
               <span>Explore</span>
-              <ArrowRight size={11} />
+              <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
             </button>
           </div>
 
-          {/* Clean Controls with finger-friendly touch targets */}
-          <div className="flex items-center gap-1.5 sm:gap-2 bg-black/50 backdrop-blur-md px-2.5 sm:px-3 py-1.5 rounded-full border border-white/10">
+          {/* Clean Controls with finger-friendly touch targets and glowing active pill */}
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-black/60 backdrop-blur-xl px-2.5 sm:px-3 py-1.5 rounded-full border border-white/15 shadow-2xl">
             <button
               type="button"
               onClick={() => setActiveSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
@@ -436,8 +473,8 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
               <ChevronLeft size={15} />
             </button>
 
-            {/* Slide dots */}
-            <div className="flex items-center gap-1.5 px-1.5">
+            {/* Slide dots with glowing active pill */}
+            <div className="flex items-center gap-1.5 px-2">
               {HERO_SLIDES.map((_, idx) => (
                 <button
                   key={idx}
@@ -445,8 +482,10 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
                   onClick={() => setActiveSlide(idx)}
                   aria-label={`Go to slide ${idx + 1}`}
                   className={cn(
-                    "h-1.5 rounded-full transition-all cursor-pointer",
-                    activeSlide === idx ? "w-5 bg-emerald-400" : "w-1.5 bg-white/30 hover:bg-white/60"
+                    "h-1.5 rounded-full transition-all duration-300 cursor-pointer",
+                    activeSlide === idx 
+                      ? "w-7 bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]" 
+                      : "w-2 bg-white/25 hover:bg-white/60 hover:w-3"
                   )}
                 />
               ))}
