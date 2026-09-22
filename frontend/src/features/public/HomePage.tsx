@@ -49,6 +49,11 @@ interface HeroSlide {
   caption: string;
   price: string;
   watermark: string;
+  aiAdvice: {
+    tag: string;
+    text: string;
+    metric: string;
+  };
 }
 
 const HERO_SLIDES: HeroSlide[] = [
@@ -64,6 +69,11 @@ const HERO_SLIDES: HeroSlide[] = [
     caption: 'Modern Villa, Nyarutarama',
     price: '480,000,000 RWF',
     watermark: 'ESTATES',
+    aiAdvice: {
+      tag: 'AI Investment Analysis',
+      text: 'Prime Nyarutarama Expat Corridor • Projected 11.4% Annual Rental Yield',
+      metric: '98.5% Valuation Match',
+    },
   },
   {
     id: 'land',
@@ -77,6 +87,11 @@ const HERO_SLIDES: HeroSlide[] = [
     caption: 'Titled Hillside Parcel, Gasabo',
     price: '95,000,000 RWF',
     watermark: 'CADASTRE',
+    aiAdvice: {
+      tag: 'AI Cadastre & Zoning Engine',
+      text: 'RLMUA Master Plan R2 Medium Density • Clean Title Deed • Zero Encumbrance',
+      metric: '100% Title Verified',
+    },
   },
   {
     id: 'car',
@@ -90,6 +105,11 @@ const HERO_SLIDES: HeroSlide[] = [
     caption: 'Land Cruiser LC300 GR-Sport',
     price: '165,000,000 RWF',
     watermark: 'EXECUTIVE',
+    aiAdvice: {
+      tag: 'AI Price & Fleet Audit',
+      text: '4.2% Below Kigali Market Median • Verified Rwanda Customs Dossier & Tech Health',
+      metric: 'Grade A Inspected',
+    },
   },
   {
     id: 'motorbike',
@@ -103,6 +123,11 @@ const HERO_SLIDES: HeroSlide[] = [
     caption: 'Adventure Touring Machine',
     price: '18,500,000 RWF',
     watermark: 'MOBILITY',
+    aiAdvice: {
+      tag: 'AI Fleet ROI Forecast',
+      text: 'High Urban Courier & Tourism Demand • Fast 14-Month Payback Velocity',
+      metric: 'Optimal Fleet ROI',
+    },
   },
 ];
 
@@ -266,8 +291,31 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
           <div className="absolute bottom-1/4 right-1/4 h-[220px] w-[220px] sm:h-[450px] sm:w-[450px] rounded-full bg-[#f98604]/[0.06] blur-[110px] sm:blur-[140px] pointer-events-none" />
         </div>
 
+        {/* Floating Shaded AI Advisory Intelligence Card (Desktop / Tablet Background) */}
+        <div className="hidden lg:flex absolute top-8 right-8 xl:top-12 xl:right-12 z-10 max-w-xs flex-col gap-1.5 rounded-2xl border border-white/15 bg-black/45 p-3.5 backdrop-blur-xl shadow-2xl transition-all duration-700 hover:border-emerald-500/40 hover:bg-black/65 pointer-events-auto">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-emerald-400 text-[11px] font-bold uppercase tracking-wider">
+              <Sparkles size={13} className="animate-pulse text-emerald-400" />
+              <span>{currentSlide.aiAdvice.tag}</span>
+            </div>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+              {currentSlide.aiAdvice.metric}
+            </span>
+          </div>
+          <p className="text-xs text-zinc-300 leading-snug font-normal">
+            "{currentSlide.aiAdvice.text}"
+          </p>
+          <div className="pt-1 flex items-center justify-between text-[10px] text-zinc-400 border-t border-white/10 mt-0.5">
+            <span className="text-zinc-500">Autonomous Valuation & Cadastre</span>
+            <span className="text-emerald-400 font-semibold flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+              Live Advice
+            </span>
+          </div>
+        </div>
+
         {/* CENTER: Clean Headline, Shaded Link Capsule & Search Bar */}
-        <div className="relative z-10 mx-auto w-full max-w-3xl text-center space-y-3.5 sm:space-y-5 my-auto py-3 sm:py-6">
+        <div className="relative z-10 mx-auto w-full max-w-3xl text-center space-y-3.5 sm:space-y-4 my-auto py-3 sm:py-6">
           {/* Shaded Link Capsule */}
           <div className="px-2">
             <button
@@ -288,6 +336,26 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
           <p className="text-xs sm:text-base text-zinc-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] font-medium max-w-xl mx-auto px-3">
             {currentSlide.subtitle}
           </p>
+
+          {/* Shaded AI Property Advice Capsule */}
+          <div className="flex justify-center px-2">
+            <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 bg-black/50 hover:bg-black/70 border border-emerald-500/30 backdrop-blur-xl text-zinc-300 shadow-xl transition-all max-w-full group">
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 shrink-0 border border-emerald-500/30">
+                <Sparkles size={11} className="animate-pulse text-emerald-400" />
+              </div>
+              <div className="flex items-center gap-1.5 text-left min-w-0">
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-400 shrink-0">
+                  AI Advice:
+                </span>
+                <span className="text-zinc-200 text-[11px] sm:text-xs font-medium truncate max-w-[210px] xs:max-w-[300px] sm:max-w-md">
+                  {currentSlide.aiAdvice.text}
+                </span>
+              </div>
+              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/25 shrink-0">
+                {currentSlide.aiAdvice.metric}
+              </span>
+            </div>
+          </div>
 
           {/* Clean Floating Search Bar (Single sleek inline bar on all screens) */}
           <form onSubmit={submitSearch} className="pt-1 sm:pt-2 max-w-2xl mx-auto w-full">
@@ -339,7 +407,12 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
         <div className="relative z-10 mx-auto max-w-7xl w-full flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4 text-xs">
           {/* Active slide caption */}
           <div className="flex items-center justify-center gap-2 text-zinc-300 bg-black/50 backdrop-blur-md px-3 sm:px-3.5 py-1.5 rounded-full border border-white/10 text-[11px] sm:text-xs max-w-full">
-            <span className="font-semibold text-white truncate max-w-[140px] xs:max-w-[200px] sm:max-w-none">{currentSlide.caption}</span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 shrink-0">
+              <Sparkles size={11} className="text-emerald-400" />
+              <span>AI Verified</span>
+            </span>
+            <span className="text-zinc-600">•</span>
+            <span className="font-semibold text-white truncate max-w-[120px] xs:max-w-[180px] sm:max-w-none">{currentSlide.caption}</span>
             <span className="text-zinc-500">•</span>
             <span className="text-emerald-400 font-mono font-medium whitespace-nowrap">{currentSlide.price}</span>
             <button
