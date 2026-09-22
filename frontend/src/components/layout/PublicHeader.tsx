@@ -327,11 +327,11 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
                         </button>
                         <button
                           type="button"
-                          onClick={() => { onNavigate('admin-offers'); setProfileDropdownOpen(false); }}
+                          onClick={() => { onNavigate('submit-proposal'); setProfileDropdownOpen(false); }}
                           className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/[0.06] transition-colors"
                         >
                           <FileText size={14} className="text-blue-400" />
-                          <span>My Submitted Offers & Escrow</span>
+                          <span>Submit Acquisition Request</span>
                         </button>
                         <button
                           type="button"
@@ -489,6 +489,24 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
                     className="w-full py-2 px-3 rounded-xl bg-amber-500/10 text-amber-300 font-semibold text-xs border border-amber-500/20 text-center"
                   >
                     Open Seller Studio
+                  </button>
+                )}
+                {role.toLowerCase() === 'agent' && (
+                  <button
+                    type="button"
+                    onClick={() => { onNavigate('agent-dashboard'); setOpen(false); }}
+                    className="w-full py-2 px-3 rounded-xl bg-teal-500/10 text-teal-300 font-semibold text-xs border border-teal-500/20 text-center"
+                  >
+                    Open Broker Showing Desk
+                  </button>
+                )}
+                {role.toLowerCase() === 'owner' && (
+                  <button
+                    type="button"
+                    onClick={() => { onNavigate('owner-dashboard'); setOpen(false); }}
+                    className="w-full py-2 px-3 rounded-xl bg-orange-500/10 text-orange-300 font-semibold text-xs border border-orange-500/20 text-center"
+                  >
+                    Open Owner Portfolio
                   </button>
                 )}
               </div>

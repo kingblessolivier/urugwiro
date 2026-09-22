@@ -23,6 +23,26 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from .services import ValuationService
 
+
+def check_admin_permission(request):
+    """
+    Validates that the incoming request is authenticated and has administrative authority.
+    Returns None if permitted, or a Response object (401/403) if denied.
+    """
+    if not request.user or not request.user.is_authenticated:
+        return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    is_admin = (
+        request.user.is_staff or
+        request.user.is_superuser or
+        getattr(request.user, 'role', None) in ['Admin', 'admin']
+    )
+    if not is_admin:
+        return Response({'error': 'Administrative privileges required for this action'}, status=status.HTTP_403_FORBIDDEN)
+
+    return None
+
+
 class ListingListView(generics.ListAPIView):
     serializer_class = ListingSerializer
 
@@ -125,8 +145,9 @@ def list_verification_requests(request):
     """
     Retrieve all listings that have submitted documents and are awaiting review.
     """
-    if not request.user.is_staff:
-        return Response({'error': 'Admin privileges required'}, status=status.HTTP_403_FORBIDDEN)
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
 
     listings = Listing.objects.filter(verification_level='submitted').select_related('owner')
 
@@ -148,8 +169,9 @@ def get_verification_request_detail(request, pk):
     """
     Retrieve full details for a listing awaiting verification.
     """
-    if not request.user.is_staff:
-        return Response({'error': 'Admin privileges required'}, status=status.HTTP_403_FORBIDDEN)
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
 
     listing = get_object_or_404(Listing, pk=pk)
 
@@ -223,8 +245,9 @@ def submit_verification_docs(request, pk):
 @api_view(['POST'])
 def admin_review_document(request, doc_id):
     """Admin reviews a verification document."""
-    if not request.user.is_staff:
-        return Response({'error': 'Admin privileges required'}, status=status.HTTP_403_FORBIDDEN)
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
 
     doc = get_object_or_404(VerificationDocument, pk=doc_id)
     status_val = request.data.get('status')
@@ -275,15 +298,10 @@ def get_article_detail(request, slug):
 def manage_system_settings(request):
     """List and manage system settings for staff/admin users."""
     import os
-    from django.conf import settings as django_settings
 
-    user = request.user
-    is_authorized = (
-        (user and user.is_authenticated and (user.is_staff or user.is_superuser or getattr(user, 'role', None) in ['Admin', 'admin']))
-        or getattr(django_settings, 'DEBUG', False)
-    )
-    if not is_authorized:
-        return Response({'error': 'Staff or Admin authentication required'}, status=status.HTTP_403_FORBIDDEN)
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
 
     if request.method == 'GET':
         settings_list = SystemSetting.objects.all().order_by('key')
@@ -1849,6 +1867,10 @@ def api_proposals_view(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     # GET
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
+
     queryset = ListingProposal.objects.all().select_related('assigned_agent', 'converted_listing')
     status_filter = request.query_params.get('status')
     search = request.query_params.get('search')
@@ -1872,6 +1894,10 @@ def api_proposals_view(request):
 @api_view(['GET', 'PATCH'])
 def api_proposal_detail_view(request, pk):
     """View or update a specific proposal (status, assigned surveyor, admin notes)."""
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
+
     proposal = get_object_or_404(ListingProposal, pk=pk)
 
     if request.method == 'GET':
@@ -1898,6 +1924,10 @@ def api_proposal_detail_view(request, pk):
 @api_view(['POST'])
 def api_convert_proposal_to_listing(request, pk):
     """Converts a verified/inspected proposal into an official marketplace Listing."""
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
+
     proposal = get_object_or_404(ListingProposal, pk=pk)
 
     # Find or create a default platform owner or owner profile for the proposal author
@@ -2040,6 +2070,10 @@ def admin_users_list_create(request):
     GET: Returns a list of all users with search, role, status filtering, and metadata totals.
     POST: Creates a new user with role assignment and security settings.
     """
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
+
     from django.contrib.auth import get_user_model
     from .serializers import UserSerializer, AdminUserCreateSerializer
     from .log_service import syslog
@@ -2147,6 +2181,10 @@ def admin_user_detail_update_delete(request, pk):
     PATCH/PUT: Update user details (username, email, names, is_active, is_staff, role).
     DELETE: Permanently delete user with superuser safety safeguards.
     """
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
+
     from django.contrib.auth import get_user_model
     from .serializers import UserSerializer
     from .log_service import syslog
@@ -2204,6 +2242,10 @@ def admin_user_detail_update_delete(request, pk):
 @api_view(['POST'])
 def admin_user_set_role(request, pk):
     """Changes a user's role and synchronizes domain profile records."""
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
+
     from django.contrib.auth import get_user_model
     from .serializers import UserSerializer
     from .models import ListingOwner
@@ -2255,6 +2297,10 @@ def admin_user_set_role(request, pk):
 @api_view(['POST'])
 def admin_user_toggle_status(request, pk):
     """Toggles or sets the active/suspended status of a user."""
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
+
     from django.contrib.auth import get_user_model
     from .serializers import UserSerializer
     from .log_service import syslog
@@ -2289,6 +2335,10 @@ def admin_user_toggle_status(request, pk):
 @api_view(['POST'])
 def admin_user_reset_password(request, pk):
     """Sets a new password for a user account."""
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
+
     from django.contrib.auth import get_user_model
     from .log_service import syslog
 
@@ -2315,6 +2365,10 @@ def admin_enquiries_list(request):
     """
     Returns real customer inquiries and contact submissions from the database (CustRequest model).
     """
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
+
     from .models import CustRequest
     from django.db.models import Q
 
@@ -2370,6 +2424,10 @@ def admin_enquiry_detail_update(request, pk):
     """
     Updates or deletes a CustRequest enquiry record.
     """
+    denial = check_admin_permission(request)
+    if denial:
+        return denial
+
     from .models import CustRequest
     enq = get_object_or_404(CustRequest, pk=pk)
 

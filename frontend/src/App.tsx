@@ -27,12 +27,15 @@ import ServicesPage from './features/public/ServicesPage';
 import AssetProposalPage from './features/public/AssetProposalPage';
 import { PublicLayout } from './components/layout/PublicLayout';
 import { AdminLayout } from './components/layout/AdminLayout';
+import { AccessRestricted } from './components/auth/AccessRestricted';
 import { Button } from './components/ui/Button';
-import { isAuthView, isPublicView, isAdminView, type AppView } from './types/navigation';
+import { useAuth } from './context/AuthContext';
+import { isAuthView, isPublicView, isAdminView, isViewAllowedForUser, type AppView } from './types/navigation';
 import { cn } from './lib/utils';
 
 
 function App() {
+  const { user } = useAuth();
   const [view, setView] = useState<AppView>('home');
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [discoveryQuery, setDiscoveryQuery] = useState('');
@@ -106,6 +109,17 @@ function App() {
     }
   };
 
+  // Role-Based Access Control Guard
+  const isAllowed = isViewAllowedForUser(view, user);
+
+  if (!isAllowed) {
+    return (
+      <PublicLayout view={view} onNavigate={setView} onSearch={goExplore} showFooter={false}>
+        <AccessRestricted view={view} onNavigate={setView} />
+      </PublicLayout>
+    );
+  }
+
   if (isAuthView(view)) {
     return (
       <PublicLayout view={view} onNavigate={setView} onSearch={goExplore} showFooter={false}>
@@ -122,7 +136,6 @@ function App() {
     );
   }
 
-
   if (isPublicView(view)) {
     return (
       <PublicLayout view={view} onNavigate={setView} onSearch={goExplore} showFooter={view !== 'discovery'}>
@@ -131,43 +144,14 @@ function App() {
     );
   }
 
+  // Dedicated authorized launchpads (seller-dashboard, tenant-dashboard, agent-dashboard, owner-dashboard, seller-wizard)
   return (
-    <div className="min-h-screen bg-[#05070b] text-zinc-100 font-sans antialiased w-full max-w-full overflow-x-hidden">
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0b0d12]/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <button type="button" className="flex items-center gap-2" onClick={() => setView('home')}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 font-bold text-white">U</div>
-            <span className="text-xl font-bold tracking-tight text-white">Urugwiro</span>
-          </button>
-          <div className="hidden items-center gap-1 md:flex">
-            <NavLink active={view === 'seller-dashboard'} onClick={() => setView('seller-dashboard')}>Dashboard</NavLink>
-            <NavLink active={view === 'seller-wizard'} onClick={() => setView('seller-wizard')}>List asset</NavLink>
-            <NavLink active={view === 'admin'} onClick={() => setView('admin')}>Admin</NavLink>
-            <Button
-              variant="secondary"
-              className="ml-4"
-              onClick={() => setView('home')}
-            >
-              Public site
-            </Button>
-          </div>
-        </div>
-      </nav>
-      <div className="pt-16">{renderContent()}</div>
-    </div>
+    <PublicLayout view={view} onNavigate={setView} onSearch={goExplore} showFooter={false}>
+      <div className="pt-4">
+        {renderContent()}
+      </div>
+    </PublicLayout>
   );
 }
-
-const NavLink = ({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) => (
-  <button
-    onClick={onClick}
-    className={cn(
-      'rounded-full px-4 py-2 text-sm font-medium transition-all duration-200',
-      active ? 'bg-emerald-600 text-white' : 'text-zinc-300 hover:bg-white/5 hover:text-white'
-    )}
-  >
-    {children}
-  </button>
-);
 
 export default App;

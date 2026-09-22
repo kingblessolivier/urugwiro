@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, User, Mail, Eye, EyeOff, ArrowRight, AlertCircle, Building2, KeyRound, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import type { AppView } from '../../types/navigation';
+import { type AppView, getDefaultDashboardForUser } from '../../types/navigation';
 
 interface RegisterPageProps {
     onNavigate?: (view: AppView) => void;
@@ -51,11 +51,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             });
 
             if (onNavigate) {
-                if (user.role === 'Tenant') {
-                    onNavigate('tenant-dashboard');
-                } else {
-                    onNavigate('home');
-                }
+                onNavigate(getDefaultDashboardForUser(user));
             } else {
                 window.location.href = '/';
             }

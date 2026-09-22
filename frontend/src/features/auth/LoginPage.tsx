@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, User, Eye, EyeOff, ArrowRight, AlertCircle, ShieldCheck, Sparkles, Building2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import type { AppView } from '../../types/navigation';
+import { type AppView, getDefaultDashboardForUser } from '../../types/navigation';
 
 interface LoginPageProps {
     onNavigate?: (view: AppView) => void;
@@ -29,15 +29,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
             });
 
             if (onNavigate) {
-                if (user.role === 'Admin') {
-                    onNavigate('admin');
-                } else if (user.role === 'Seller') {
-                    onNavigate('seller-dashboard');
-                } else if (user.role === 'Tenant') {
-                    onNavigate('tenant-dashboard');
-                } else {
-                    onNavigate('home');
-                }
+                onNavigate(getDefaultDashboardForUser(user));
             } else {
                 window.location.href = '/';
             }
