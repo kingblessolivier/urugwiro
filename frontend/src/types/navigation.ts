@@ -5,6 +5,7 @@ export type AppView =
   | 'seller-dashboard'
   | 'seller-wizard'
   | 'tenant-dashboard'
+  | 'buyer-dashboard'
   | 'agent-dashboard'
   | 'owner-dashboard'
   | 'admin'
@@ -87,7 +88,8 @@ export function getViewFriendlyName(view: AppView): string {
     case 'seller-wizard':
       return 'Seller Asset Wizard';
     case 'tenant-dashboard':
-      return 'Tenant Launchpad & Leases';
+    case 'buyer-dashboard':
+      return 'Resident & Buyer Studio';
     case 'agent-dashboard':
       return 'Broker Showing Desk';
     case 'owner-dashboard':
@@ -116,8 +118,8 @@ export function getRequiredRoleForView(view: AppView): string {
   if (view === 'seller-dashboard' || view === 'seller-wizard') {
     return 'Seller';
   }
-  if (view === 'tenant-dashboard') {
-    return 'Tenant';
+  if (view === 'tenant-dashboard' || view === 'buyer-dashboard') {
+    return 'Tenant / Buyer';
   }
   if (view === 'agent-dashboard') {
     return 'Agent';
@@ -157,8 +159,8 @@ export function isViewAllowedForUser(view: AppView, user: UserRoleLike | null | 
   if (view === 'seller-dashboard' || view === 'seller-wizard') {
     return role === 'seller';
   }
-  if (view === 'tenant-dashboard') {
-    return role === 'tenant';
+  if (view === 'tenant-dashboard' || view === 'buyer-dashboard') {
+    return role === 'tenant' || role === 'buyer' || role === 'consumer' || role === 'client' || role === 'resident';
   }
   if (view === 'agent-dashboard') {
     return role === 'agent';
@@ -188,6 +190,9 @@ export function getDefaultDashboardForUser(user: UserRoleLike | null | undefined
   if (role === 'tenant') {
     return 'tenant-dashboard';
   }
+  if (role === 'buyer' || role === 'consumer' || role === 'client') {
+    return 'buyer-dashboard';
+  }
   if (role === 'agent') {
     return 'agent-dashboard';
   }
@@ -195,6 +200,6 @@ export function getDefaultDashboardForUser(user: UserRoleLike | null | undefined
     return 'owner-dashboard';
   }
 
-  // Buyer or fallback
-  return 'discovery';
+  // Fallback to buyer dashboard for authenticated members
+  return 'buyer-dashboard';
 }

@@ -13,8 +13,8 @@ import AdminReports from './features/admin/AdminReports';
 import AdminUserManagement from './features/admin/AdminUserManagement';
 import AdminPropertyWizard from './features/admin/AdminPropertyWizard';
 import AdminInbox from './features/admin/AdminInbox';
-import TenantLaunchpad from './features/tenant/TenantLaunchpad';
-import AgentLaunchpad from './features/agent/AgentLaunchpad';
+import { BuyerTenantDashboard } from './features/tenant/BuyerTenantDashboard';
+import { AgentDashboard } from './features/agent/AgentDashboard';
 import OwnerLaunchpad from './features/owner/OwnerLaunchpad';
 import LoginPage from './features/auth/LoginPage';
 import RegisterPage from './features/auth/RegisterPage';
@@ -28,19 +28,28 @@ import AssetProposalPage from './features/public/AssetProposalPage';
 import { PublicLayout } from './components/layout/PublicLayout';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { AccessRestricted } from './components/auth/AccessRestricted';
-import { Button } from './components/ui/Button';
 import { useAuth } from './context/AuthContext';
 import { isAuthView, isPublicView, isAdminView, isViewAllowedForUser, type AppView } from './types/navigation';
-import { cn } from './lib/utils';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 
 function App() {
   const { user } = useAuth();
-  const [view, setView] = useState<AppView>('home');
+  const [view, setView] = useState<AppView>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const v = params.get('view') as AppView;
+      if (v) return v;
+    } catch {}
+    return 'home';
+  });
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [discoveryQuery, setDiscoveryQuery] = useState('');
 
+  const [previousView, setPreviousView] = useState<AppView>('discovery');
+
   const navigateToListing = (id: string) => {
+    setPreviousView(view);
     setSelectedListingId(id);
     setView('listing-detail');
   };
@@ -57,15 +66,19 @@ function App() {
       case 'discovery':
         return <DiscoveryPage initialQuery={discoveryQuery} onListingClick={navigateToListing} />;
       case 'listing-detail':
-        return <ListingDetail listingId={selectedListingId || ''} onBack={() => setView('discovery')} />;
+        return (
+          <ErrorBoundary onReset={() => setView(previousView || 'discovery')}>
+            <ListingDetail listingId={selectedListingId || ''} onBack={() => setView(previousView || 'discovery')} />
+          </ErrorBoundary>
+        );
       case 'seller-dashboard':
-        return <SellerDashboard onNavigate={setView} />;
+        return <SellerDashboard onNavigate={setView} onListingClick={navigateToListing} />;
       case 'seller-wizard':
         return <ListingWizard />;
       case 'admin':
         return <AdminHub setView={setView} />;
       case 'admin-listings':
-        return <AdminListingsPage />;
+        return <AdminListingsPage onListingClick={navigateToListing} />;
       case 'admin-verification':
         return <VerificationWorkspace />;
       case 'admin-settings':
@@ -83,11 +96,12 @@ function App() {
       case 'admin-inbox':
         return <AdminInbox />;
       case 'tenant-dashboard':
-        return <TenantLaunchpad />;
+      case 'buyer-dashboard':
+        return <BuyerTenantDashboard onNavigate={setView} onListingClick={navigateToListing} />;
       case 'agent-dashboard':
-        return <AgentLaunchpad />;
+        return <AgentDashboard onNavigate={setView} />;
       case 'owner-dashboard':
-        return <OwnerLaunchpad />;
+        return <OwnerLaunchpad onListingClick={navigateToListing} />;
       case 'login':
         return <LoginPage onNavigate={setView} />;
       case 'register':
@@ -144,10 +158,22 @@ function App() {
     );
   }
 
-  // Dedicated authorized launchpads (seller-dashboard, tenant-dashboard, agent-dashboard, owner-dashboard)
+  // Dedicated authorized launchpads (seller-dashboard, tenant-dashboard, buyer-dashboard, agent-dashboard, owner-dashboard)
   // Render full-screen workspace without public consumer marketplace navbar
   if (view === 'seller-dashboard') {
-    return <SellerDashboard onNavigate={setView} />;
+    return <SellerDashboard onNavigate={setView} onListingClick={navigateToListing} />;
+  }
+
+  if (view === 'agent-dashboard') {
+    return <AgentDashboard onNavigate={setView} />;
+  }
+
+  if (view === 'tenant-dashboard' || view === 'buyer-dashboard') {
+    return <BuyerTenantDashboard onNavigate={setView} onListingClick={navigateToListing} />;
+  }
+
+  if (view === 'owner-dashboard') {
+    return <OwnerLaunchpad onListingClick={navigateToListing} />;
   }
 
   return (

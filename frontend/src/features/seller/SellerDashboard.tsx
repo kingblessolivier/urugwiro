@@ -2,13 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Package, MessageSquare, HandCoins,
-  ShieldCheck, TrendingUp, Eye, Bell, User, LogOut, Plus,
-  ArrowUpRight, Filter, Search, Sparkles, CheckCircle2,
-  Clock, AlertCircle, ChevronRight, MapPin, Building,
-  Car, FileText, ArrowRight, ExternalLink, Bot, Menu, X,
-  UserCheck, DollarSign, Edit3
+  ShieldCheck, TrendingUp, Eye, Bell, LogOut, Plus,
+  ArrowUpRight, Search, Sparkles, CheckCircle2,
+  Clock, MapPin, Building,
+  ArrowRight, ExternalLink, Bot, Menu, X,
+  UserCheck, DollarSign, Edit3, Phone, Heart, Calendar, Users, Mail
 } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { cn } from '../../lib/utils';
 import { SellerOfferManager } from './SellerOfferManager';
@@ -19,13 +18,16 @@ import { PropertyInspectionDrawer } from './components/PropertyInspectionDrawer'
 import { PropertyEditModal } from './components/PropertyEditModal';
 import { SellerEarningsAndDeals } from './components/SellerEarningsAndDeals';
 import { SellerAgentNetwork } from './components/SellerAgentNetwork';
+import { CustomerLeadsManager, type LeadChannel } from '../../components/crm/CustomerLeadsManager';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/endpoints';
+import { Pagination } from '../../components/ui/Pagination';
 
-export type SellerTab = 'overview' | 'listings' | 'offers' | 'deals' | 'agents' | 'messages' | 'copilot' | 'verification' | 'new-listing';
+export type SellerTab = 'overview' | 'listings' | 'leads' | 'visits' | 'inquiries' | 'likes' | 'offers' | 'deals' | 'agents' | 'messages' | 'copilot' | 'verification' | 'new-listing';
 
 interface SellerDashboardProps {
   onNavigate?: (view: any) => void;
+  onListingClick?: (id: string) => void;
   initialTab?: SellerTab;
 }
 
@@ -46,7 +48,7 @@ interface ListingItem {
   updatedAt: string;
 }
 
-export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, initialTab = 'overview' }) => {
+export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, onListingClick, initialTab = 'overview' }) => {
   const { user, logout } = useAuth();
   const displayName = user?.full_name || (user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user?.username) || 'Seller';
   const displayRole = user?.role || 'Seller';
@@ -55,13 +57,15 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'house' | 'land' | 'car'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [inventoryPage, setInventoryPage] = useState(1);
+  const [inventoryPageSize, setInventoryPageSize] = useState(6);
 
   // Selected property for deep inspection drawer & edit modal
   const [inspectingPropertyId, setInspectingPropertyId] = useState<string | null>(null);
   const [editingListing, setEditingListing] = useState<any | null>(null);
 
   // 1. Live database listings strictly owned by this authenticated seller
-  const { data: rawListings = [], isLoading: loadingListings, refetch: refetchListings } = useQuery({
+  const { data: rawListings = [], isLoading: _loadingListings, refetch: refetchListings } = useQuery({
     queryKey: ['seller-database-listings', user?.id],
     queryFn: async () => {
       try {
@@ -141,20 +145,106 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
     return matchesCat && matchesQuery;
   });
 
+  const paginatedListings = filteredListings.slice(
+    (inventoryPage - 1) * inventoryPageSize,
+    inventoryPage * inventoryPageSize
+  );
+
   const totalValue = listings.reduce((acc, curr) => acc + curr.price, 0);
   const totalViews = listings.reduce((acc, curr) => acc + curr.views, 0);
   const totalInquiries = listings.reduce((acc, curr) => acc + curr.inquiries, 0);
   const totalOffers = rawOffers.length;
 
+  // 4. Live database showing visits for seller
+  const { data: rawVisits = [] } = useQuery({
+    queryKey: ['seller-database-visits'],
+    queryFn: async () => {
+      try {
+        const res = await api.seller.visits();
+        return Array.isArray(res.data) ? res.data : [];
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  // 5. Live database likes / wishlist prospects for seller
+  const { data: rawLikes = [] } = useQuery({
+    queryKey: ['seller-database-likes'],
+    queryFn: async () => {
+      try {
+        const res = await api.seller.likes();
+        return Array.isArray(res.data) ? res.data : [];
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  // 6. Live database inquiries for seller
+  const { data: rawInquiries = [] } = useQuery({
+    queryKey: ['seller-database-inquiries'],
+    queryFn: async () => {
+      try {
+        const res = await api.seller.inquiries();
+        return Array.isArray(res.data) ? res.data : [];
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const totalVisits = rawVisits.length;
+  const totalLikes = rawLikes.length;
+  const totalLeads = (rawInquiries.length || totalInquiries) + totalVisits + totalLikes;
+
+  const recentFollowUps = useMemo(() => {
+    const list: any[] = [];
+    (rawVisits || []).slice(0, 3).forEach((v: any) => {
+      list.push({
+        id: `visit-${v.id}`,
+        type: 'visit',
+        title: v.listing?.title || 'Property Showing',
+        listingId: v.listing?.id,
+        image: v.listing?.image,
+        customerName: v.visitor_name || v.user?.name || 'Prospective Buyer',
+        phone: v.visitor_phone || v.user?.phone || '',
+        email: v.visitor_email || v.user?.email || '',
+        date: v.date,
+        timeSlot: v.time_slot,
+        detail: v.visitor_notes || `Showing appointment requested (${v.time_slot || 'standard'})`,
+        status: v.status || 'scheduled',
+      });
+    });
+    (rawInquiries || []).slice(0, 3).forEach((inq: any) => {
+      list.push({
+        id: `inq-${inq.id}`,
+        type: 'inquiry',
+        title: inq.property_title || inq.listing_title || 'Property Inquiry',
+        listingId: inq.listing_id || inq.property_id,
+        customerName: inq.client_name || inq.name || 'Interested Buyer',
+        phone: inq.client_phone || inq.phone || '',
+        email: inq.client_email || inq.email || '',
+        detail: inq.message || 'Customer requested information about this property.',
+        status: inq.status || 'new',
+      });
+    });
+    return list;
+  }, [rawVisits, rawInquiries]);
+
   const navItems = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'listings', label: 'My Listings', icon: Package, badge: listings.length > 0 ? listings.length.toString() : undefined },
-    { id: 'offers', label: 'Offers & Negotiations', icon: HandCoins, badge: totalOffers > 0 ? `${totalOffers} Active` : undefined },
-    { id: 'deals', label: 'Sales & Earnings', icon: DollarSign },
-    { id: 'agents', label: 'Verified Agents', icon: UserCheck },
-    { id: 'messages', label: 'Messages', icon: MessageSquare, badge: unreadMessagesCount > 0 ? `${unreadMessagesCount} New` : undefined },
-    { id: 'copilot', label: 'AI Co-Pilot', icon: Sparkles, highlight: true },
-    { id: 'verification', label: 'Trust & Verification', icon: ShieldCheck },
+    { id: 'overview', label: 'Command Center', icon: LayoutDashboard },
+    { id: 'listings', label: 'Asset Portfolio', icon: Package, badge: listings.length > 0 ? listings.length.toString() : undefined },
+    { id: 'leads', label: 'Prospect Intelligence', icon: Users, badge: totalLeads > 0 ? `${totalLeads} Active` : undefined, highlight: true },
+    { id: 'visits', label: 'Inspection Log', icon: Calendar, badge: totalVisits > 0 ? `${totalVisits}` : undefined },
+    { id: 'inquiries', label: 'Client Inquiries', icon: MessageSquare, badge: totalInquiries > 0 ? `${totalInquiries}` : undefined },
+    { id: 'likes', label: 'Interest Registry', icon: Heart, badge: totalLikes > 0 ? `${totalLikes}` : undefined },
+    { id: 'offers', label: 'Negotiation Suite', icon: HandCoins, badge: totalOffers > 0 ? `${totalOffers} Active` : undefined },
+    { id: 'deals', label: 'Fiscal Ledger', icon: DollarSign },
+    { id: 'agents', label: 'Verified Network', icon: UserCheck },
+    { id: 'messages', label: 'Private Correspondence', icon: MessageSquare, badge: unreadMessagesCount > 0 ? `${unreadMessagesCount} New` : undefined },
+    { id: 'copilot', label: 'Strategic Intelligence', icon: Sparkles },
+    { id: 'verification', label: 'Compliance & Trust', icon: ShieldCheck },
   ];
 
   return (
@@ -460,34 +550,29 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
             <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
               
               {/* Hero Banner with AI Valuation Insight */}
-              <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-r from-emerald-950/40 via-black/60 to-black/80 p-6 lg:p-8">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-r from-emerald-950/30 via-black/60 to-black/80 p-6 lg:p-10">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                  <div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-3">
+                  <div className="space-y-2">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest">
                       <Sparkles size={12} />
                       AI Market Intelligence Active
                     </div>
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white font-display">
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white font-display leading-tight">
                       Welcome Back, <span className="text-emerald-400">{displayName}</span>
                     </h1>
-                    <p className="text-zinc-400 text-sm sm:text-base mt-1 max-w-2xl">
-                      {listings.length > 0
-                        ? `Your ${listings.length} verified ${listings.length === 1 ? 'asset has' : 'assets have'} captured ${totalViews.toLocaleString()} views and ${totalOffers} active buyer ${totalOffers === 1 ? 'offer' : 'offers'}.`
-                        : 'Welcome to your sovereign seller workspace. List your first home, titled land parcel, or vehicle to reach verified buyers.'}
-                    </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <button
                       onClick={() => setActiveTab('new-listing')}
-                      className="flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-lg shadow-emerald-900/40 transition-all hover:scale-105 cursor-pointer"
+                      className="flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-b from-emerald-600 to-emerald-800 hover:from-emerald-500 hover:to-emerald-700 text-white font-semibold text-sm shadow-lg shadow-emerald-950/50 transition-all hover:scale-[1.01] active:scale-[0.99] border-t border-white/10 cursor-pointer"
                     >
                       <Plus size={16} />
                       List New Asset
                     </button>
                     <button
                       onClick={() => setActiveTab('copilot')}
-                      className="flex items-center gap-2 px-4 py-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold text-sm transition-all cursor-pointer"
+                      className="flex items-center gap-2 px-5 py-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold text-sm transition-all duration-300 cursor-pointer"
                     >
                       <Bot size={16} />
                       Consult AI Copilot
@@ -505,7 +590,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                       <Building size={16} />
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-bold font-mono text-white">
+                  <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
                     {totalValue > 0 ? `${(totalValue / 1000000).toLocaleString(undefined, { maximumFractionDigits: 1 })}M` : '0'} <span className="text-xs text-zinc-400 font-sans">RWF</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 mt-2 font-medium">
@@ -514,46 +599,55 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-emerald-500/30 transition-all group">
+                <div 
+                  onClick={() => setActiveTab('leads')}
+                  className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-emerald-500/30 transition-all group cursor-pointer"
+                >
                   <div className="flex items-center justify-between text-zinc-500 mb-3">
-                    <span className="text-xs uppercase tracking-wider font-semibold">Live Traffic</span>
-                    <span className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                      <Eye size={16} />
+                    <span className="text-xs uppercase tracking-wider font-semibold">Customer Leads CRM</span>
+                    <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                      <Users size={16} />
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-bold font-mono text-white">
-                    {totalViews.toLocaleString()}
+                  <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
+                    {totalLeads}
                   </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-blue-400 mt-2 font-medium">
-                    <TrendingUp size={12} />
-                    <span>Verified impressions</span>
+                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 mt-2 font-medium">
+                    <Sparkles size={12} />
+                    <span>{totalVisits} visits • {rawInquiries.length || totalInquiries} inq • {totalLikes} saves</span>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-emerald-500/30 transition-all group">
+                <div 
+                  onClick={() => setActiveTab('visits')}
+                  className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-emerald-500/30 transition-all group cursor-pointer"
+                >
                   <div className="flex items-center justify-between text-zinc-500 mb-3">
-                    <span className="text-xs uppercase tracking-wider font-semibold">Buyer Inquiries</span>
+                    <span className="text-xs uppercase tracking-wider font-semibold">Showing Visits</span>
                     <span className="p-2 rounded-lg bg-purple-500/10 text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors">
-                      <MessageSquare size={16} />
+                      <Calendar size={16} />
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-bold font-mono text-white">
-                    {totalInquiries}
+                  <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
+                    {totalVisits}
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-purple-400 mt-2 font-medium">
                     <Clock size={12} />
-                    <span>{unreadMessagesCount > 0 ? `${unreadMessagesCount} unread message(s)` : 'Direct communication'}</span>
+                    <span>Scheduled Inspections</span>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-emerald-500/30 transition-all group">
+                <div 
+                  onClick={() => setActiveTab('offers')}
+                  className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-emerald-500/30 transition-all group cursor-pointer"
+                >
                   <div className="flex items-center justify-between text-zinc-500 mb-3">
                     <span className="text-xs uppercase tracking-wider font-semibold">Active Offers</span>
                     <span className="p-2 rounded-lg bg-amber-500/10 text-amber-400 group-hover:bg-amber-500 group-hover:text-white transition-colors">
                       <HandCoins size={16} />
                     </span>
                   </div>
-                  <div className="text-xl sm:text-2xl font-bold font-mono text-white">
+                  <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
                     {totalOffers} {totalOffers === 1 ? 'Deal' : 'Deals'}
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-amber-400 mt-2 font-medium">
@@ -563,6 +657,124 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                 </div>
               </div>
 
+              {/* RECENT CUSTOMER ACTIVITIES (TITLES & ACTIONS ONLY) */}
+              <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 space-y-5">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-bold text-white">Recent Customer Activities</h3>
+                    {recentFollowUps.length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold border border-emerald-500/30">
+                        {recentFollowUps.length} Activities
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('leads')}
+                    className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    Manage All Activities <ArrowRight size={13} />
+                  </button>
+                </div>
+
+                {recentFollowUps.length === 0 ? (
+                  <div className="p-8 text-center text-zinc-500 rounded-2xl border border-white/5 bg-black/20">
+                    <Users size={28} className="mx-auto text-zinc-600 mb-2" />
+                    <p className="text-sm font-semibold text-zinc-300">No Pending Customer Activities</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {recentFollowUps.map((lead) => {
+                      const cleanPhone = lead.phone ? String(lead.phone).replace(/[^0-9+]/g, '') : '';
+                      return (
+                        <div
+                          key={lead.id}
+                          className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-emerald-500/30 transition-all flex flex-col justify-between gap-4 group"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className={cn(
+                                "text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border",
+                                lead.type === 'visit'
+                                  ? "bg-purple-500/10 text-purple-300 border-purple-500/30"
+                                  : "bg-blue-500/10 text-blue-300 border-blue-500/30"
+                              )}>
+                                {lead.type === 'visit' ? 'Showing Tour' : 'Direct Inquiry'}
+                              </span>
+                              {lead.date && (
+                                <span className="text-[11px] font-mono text-zinc-400 flex items-center gap-1">
+                                  <Calendar size={11} className="text-zinc-500" />
+                                  {lead.date}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="space-y-0.5">
+                              <h4 className="text-sm font-semibold text-white group-hover:text-emerald-300 transition-colors">
+                                {lead.customerName}
+                              </h4>
+                              <p className="text-xs text-zinc-400 truncate font-medium">
+                                {lead.title}
+                              </p>
+                            </div>
+
+                            {/* Activity Metadata Tag (Titles & Badges Only - No Descriptions) */}
+                            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase",
+                                lead.type === 'visit'
+                                  ? "bg-purple-500/10 text-purple-300 border border-purple-500/20"
+                                  : "bg-blue-500/10 text-blue-300 border border-blue-500/20"
+                              )}>
+                                {lead.type === 'visit' ? (lead.timeSlot ? `Slot: ${lead.timeSlot}` : 'Inspection Tour') : 'Buyer Inbound Message'}
+                              </span>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/[0.03] text-zinc-400 border border-white/10 uppercase">
+                                {lead.status || 'Active'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="pt-2 border-t border-white/5 flex items-center gap-2">
+                            {cleanPhone ? (
+                              <>
+                                <a
+                                  href={`tel:${cleanPhone}`}
+                                  className="flex-1 py-1.5 px-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                                  title="Call Customer"
+                                >
+                                  <Phone size={13} />
+                                  <span>Call</span>
+                                </a>
+                                <a
+                                  href={`https://wa.me/${cleanPhone.replace('+', '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-1 py-1.5 px-2 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                                  title="Chat on WhatsApp"
+                                >
+                                  <MessageSquare size={13} />
+                                  <span>WhatsApp</span>
+                                </a>
+                              </>
+                            ) : (
+                              <span className="text-[11px] text-zinc-500 italic">No phone provided</span>
+                            )}
+                            {lead.email && (
+                              <a
+                                href={`mailto:${lead.email}`}
+                                className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/10 text-zinc-300 border border-white/10 text-xs flex items-center justify-center transition-colors"
+                                title="Send Email"
+                              >
+                                <Mail size={13} />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* TWO COLUMN WORKSPACE: RECENT LISTINGS & QUICK ACTION CENTER */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
@@ -570,8 +782,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                 <div className="lg:col-span-2 rounded-3xl border border-white/10 bg-white/[0.02] p-6 space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-bold text-white text-lg">Active Portfolio Overview</h3>
-                      <p className="text-xs text-zinc-400">Manage real-time status, cadastre verification, and inquiries.</p>
+                      <h3 className="font-bold text-white text-lg">Active Portfolio</h3>
                     </div>
                     <button
                       onClick={() => setActiveTab('listings')}
@@ -586,7 +797,6 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                       <div className="p-8 text-center text-zinc-500 rounded-2xl border border-white/5 bg-black/20">
                         <Package size={32} className="mx-auto text-zinc-600 mb-2" />
                         <p className="text-sm text-zinc-300 font-semibold">No properties listed yet</p>
-                        <p className="text-xs text-zinc-500 mt-1">Publish your first property to start receiving buyer inquiries and purchase offers.</p>
                         <button
                           onClick={() => setActiveTab('new-listing')}
                           className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
@@ -598,7 +808,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                       listings.slice(0, 5).map((item) => (
                         <div
                           key={item.id}
-                          onClick={() => setInspectingPropertyId(item.id)}
+                          onClick={() => onListingClick ? onListingClick(item.id) : setInspectingPropertyId(item.id)}
                           className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-white/5 bg-black/20 hover:bg-white/[0.04] hover:border-emerald-500/30 transition-all cursor-pointer group"
                         >
                           <div className="flex items-center gap-3.5">
@@ -659,20 +869,32 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                   
                   {/* AI Market Advisory Card */}
                   <div className="rounded-3xl border border-emerald-500/20 bg-gradient-to-b from-emerald-950/30 to-black/40 p-6 space-y-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
-                        <Bot size={18} />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+                          <Bot size={18} />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-white text-sm">AI Valuation Telemetry</h4>
+                          <span className="text-[10px] text-zinc-400 font-mono">Market Comps Active</span>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-white text-sm">AI Pricing Intelligence</h4>
-                        <span className="text-[10px] text-zinc-400">Automated Market Comps Active</span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
+                        Live
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                        <span className="text-[10px] font-mono uppercase text-zinc-500 block">Buyer Demand</span>
+                        <span className="font-bold text-emerald-400 text-xs">High Liquidity</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                        <span className="text-[10px] font-mono uppercase text-zinc-500 block">Valuation Status</span>
+                        <span className="font-bold text-white text-xs">Optimal Comps</span>
                       </div>
                     </div>
-                    <p className="text-xs text-zinc-300 leading-relaxed">
-                      {listings.length > 0
-                        ? `AI automated valuation is active for "${listings[0].title}". Current market comparables in ${listings[0].location} indicate strong buyer liquidity and competitive demand.`
-                        : "Connect your properties to Urugwiro AI to receive automated valuation bounds, buyer price sensitivity telemetry, and RLMUA cadastre verification."}
-                    </p>
+
                     <button
                       onClick={() => setActiveTab('copilot')}
                       className="w-full py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-emerald-500/15 border border-emerald-500/20 text-xs font-semibold text-emerald-400 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
@@ -736,7 +958,6 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight text-white font-display">Asset Inventory</h1>
-                  <p className="text-xs text-zinc-400 mt-0.5">Manage your verified real estate parcels, villas, and vehicle fleets.</p>
                 </div>
                 <button
                   onClick={() => setActiveTab('new-listing')}
@@ -758,7 +979,10 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                   ].map((filter) => (
                     <button
                       key={filter.id}
-                      onClick={() => setCategoryFilter(filter.id as any)}
+                      onClick={() => {
+                        setCategoryFilter(filter.id as any);
+                        setInventoryPage(1);
+                      }}
                       className={cn(
                         "px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap",
                         categoryFilter === filter.id
@@ -776,7 +1000,10 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                   <input
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setInventoryPage(1);
+                    }}
                     placeholder="Search by title or district..."
                     className="w-full bg-black/40 border border-white/10 rounded-xl py-1.5 pl-8 pr-3 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50"
                   />
@@ -788,17 +1015,13 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                 {filteredListings.length === 0 ? (
                   <div className="col-span-full p-16 text-center text-zinc-500 rounded-3xl border border-white/10 bg-white/[0.01]">
                     <Package size={40} className="mx-auto text-zinc-600 mb-3" />
-                    <h3 className="text-base font-semibold text-white">No properties found</h3>
-                    <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
-                      {searchQuery || categoryFilter !== 'all'
-                        ? "No listings match your current filters. Try resetting the filters."
-                        : "You haven't listed any properties yet. Click 'List New Asset' to create your first listing in the live database."}
-                    </p>
+                    <h3 className="text-base font-semibold text-white">No Properties Found</h3>
                     <button
                       onClick={() => {
                         if (searchQuery || categoryFilter !== 'all') {
                           setSearchQuery('');
                           setCategoryFilter('all');
+                          setInventoryPage(1);
                         } else {
                           setActiveTab('new-listing');
                         }
@@ -809,7 +1032,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                     </button>
                   </div>
                 ) : (
-                  filteredListings.map((item) => (
+                  paginatedListings.map((item) => (
                     <div
                       key={item.id}
                       className="group rounded-3xl border border-white/10 bg-white/[0.02] hover:border-emerald-500/30 overflow-hidden flex flex-col transition-all duration-300"
@@ -883,11 +1106,12 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                         {/* Actions */}
                         <div className="flex items-center gap-2 pt-1">
                           <button
-                            onClick={() => setInspectingPropertyId(item.id)}
+                            onClick={() => onListingClick ? onListingClick(item.id) : setInspectingPropertyId(item.id)}
                             className="flex-1 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-xs font-semibold text-emerald-400 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                            title="Open full property page with section editor"
                           >
                             <Eye size={13} />
-                            <span>Inspect Asset</span>
+                            <span>View Full Property</span>
                           </button>
 
                           <button
@@ -921,6 +1145,30 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                 )}
               </div>
 
+              {filteredListings.length > 0 && (
+                <div className="pt-2">
+                  <Pagination
+                    currentPage={inventoryPage}
+                    totalPages={Math.max(1, Math.ceil(filteredListings.length / inventoryPageSize))}
+                    onPageChange={setInventoryPage}
+                    pageSize={inventoryPageSize}
+                    onPageSizeChange={(sz) => { setInventoryPageSize(sz); setInventoryPage(1); }}
+                    totalItems={filteredListings.length}
+                  />
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* TAB: CUSTOMER LEADS & VISITS CRM */}
+          {(activeTab === 'leads' || activeTab === 'visits' || activeTab === 'inquiries' || activeTab === 'likes') && (
+            <div className="max-w-7xl mx-auto animate-fadeIn">
+              <CustomerLeadsManager
+                mode="seller"
+                initialChannel={activeTab === 'leads' ? 'all' : (activeTab as LeadChannel)}
+                onListingClick={onListingClick}
+              />
             </div>
           )}
 
@@ -971,7 +1219,6 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                       Urugwiro Sovereign Trust Bureau
                     </div>
                     <h2 className="text-2xl font-bold text-white font-display">Seller Legal & Cadastre Credentials</h2>
-                    <p className="text-xs text-zinc-400 mt-1">Verified Rwandan land title registration, notary authorizations, and escrow compliance.</p>
                   </div>
                   <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/30">
                     <CheckCircle2 size={20} className="text-emerald-400" />
@@ -988,9 +1235,6 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                       <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Land Title (RLMUA UPI)</span>
                       <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Verified</span>
                     </div>
-                    <p className="text-xs text-zinc-300">
-                      All land parcels in your portfolio are cross-checked with the National Land Authority registry. UPI boundaries and zoning classifications (R1, R2, C1) match the Kigali Master Plan 2050.
-                    </p>
                     <div className="text-[11px] font-mono text-zinc-400">
                       Connected Registry: <span className="text-white">RLMUA / IremboGov</span>
                     </div>
@@ -1001,9 +1245,6 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                       <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Milestone Escrow Vault</span>
                       <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Active</span>
                     </div>
-                    <p className="text-xs text-zinc-300">
-                      Buyer earnest deposits and purchase funds are secured through regulated tripartite escrow accounts with BNR-licensed banking partners in Rwanda.
-                    </p>
                     <div className="text-[11px] font-mono text-zinc-400">
                       Deposit Guarantee: <span className="text-white">100% Insured</span>
                     </div>
@@ -1014,9 +1255,6 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                       <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">National ID / Passport (KYC)</span>
                       <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Authorized</span>
                     </div>
-                    <p className="text-xs text-zinc-300">
-                      Beneficial ownership and identity verification completed via NIDA biometric lookup. You are legally qualified to sign conveyance deeds on Urugwiro.
-                    </p>
                     <div className="text-[11px] font-mono text-zinc-400">
                       Doc Expiry: <span className="text-white">October 2030</span>
                     </div>
@@ -1027,9 +1265,6 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, in
                       <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Electronic Notary Conveyance</span>
                       <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">Ready</span>
                     </div>
-                    <p className="text-xs text-zinc-300">
-                      When an offer is accepted and paid into escrow, Urugwiro automatically drafts the bilateral deed and schedules the district land notary transfer appointment.
-                    </p>
                     <div className="text-[11px] font-mono text-zinc-400">
                       District Office: <span className="text-white">Gasabo / Kicukiro Sector</span>
                     </div>

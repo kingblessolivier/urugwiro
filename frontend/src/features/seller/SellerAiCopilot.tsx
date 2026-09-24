@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
-  Sparkles, Bot, Send, ArrowRight, DollarSign,
-  FileText, ShieldAlert, BookOpen, Check, Copy,
-  RefreshCw, TrendingUp, MapPin, Building2
+  Sparkles, Bot, Send, DollarSign,
+  FileText, Check, Copy,
+  RefreshCw, TrendingUp
 } from 'lucide-react';
 import { api } from '../../api/endpoints';
 import { Button } from '../../components/ui/Button';

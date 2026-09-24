@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  X, ShieldCheck, MapPin, Eye, MessageSquare, HandCoins,
-  Calendar, UserCheck, FileText, CheckCircle2, Clock, AlertCircle,
-  TrendingUp, Edit3, Trash2, ArrowUpRight, Check, Ban
+  X, ShieldCheck, MapPin, MessageSquare, HandCoins,
+  Calendar, FileText, Clock,
+  Edit3, Check, Ban, TrendingUp
 } from 'lucide-react';
 import { Badge } from '../../../components/ui/Badge';
 import { api } from '../../../api/endpoints';

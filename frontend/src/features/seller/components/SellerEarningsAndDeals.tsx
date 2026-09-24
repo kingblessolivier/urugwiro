@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  DollarSign, TrendingUp, ShieldCheck, Clock, FileText, CheckCircle2,
-  Download, ArrowUpRight, HandCoins, Building
+  DollarSign, TrendingUp, ShieldCheck, Clock, FileText,
+  Download, HandCoins, Building
 } from 'lucide-react';
 import { Badge } from '../../../components/ui/Badge';
+import { Button } from '../../../components/ui/Button';
 import { api } from '../../../api/endpoints';
+import { ContractSigningDesk } from '../../../components/contracts/ContractSigningDesk';
 
 export const SellerEarningsAndDeals: React.FC = () => {
-  const { data, isLoading, refetch } = useQuery({
+  const [contractDeal, setContractDeal] = useState<any | null>(null);
+  const { data, isLoading: _isLoading, refetch: _refetch } = useQuery({
     queryKey: ['seller-deals-earnings'],
     queryFn: async () => {
       const res = await api.seller.deals();
@@ -129,6 +132,7 @@ export const SellerEarningsAndDeals: React.FC = () => {
                   <th className="py-3 px-4">Current Stage</th>
                   <th className="py-3 px-4">Progress</th>
                   <th className="py-3 px-4">Date</th>
+                  <th className="py-3 px-4 text-right">Contract Signing</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -176,6 +180,19 @@ export const SellerEarningsAndDeals: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 font-mono text-zinc-500">
                       {new Date(deal.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setContractDeal(deal)}
+                        className="rounded-xl text-[11px] font-bold border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+                      >
+                        <FileText size={12} className="mr-1" />
+                        {deal.contracts?.length > 0 && deal.contracts[0].status === 'fully_executed'
+                          ? 'Sealed Contract'
+                          : 'Sign Contract'}
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -245,6 +262,17 @@ export const SellerEarningsAndDeals: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Contract Signing Desk Modal */}
+      {contractDeal && (
+        <ContractSigningDesk
+          dealId={contractDeal.id}
+          contract={contractDeal.contracts?.[0]}
+          initialRole="seller"
+          onClose={() => setContractDeal(null)}
+          onContractUpdated={() => _refetch()}
+        />
+      )}
     </div>
   );
 };

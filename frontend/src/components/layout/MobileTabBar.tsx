@@ -20,6 +20,10 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({ view, onNavigate }) 
         return 'admin';
       case 'tenant':
         return 'tenant-dashboard';
+      case 'buyer':
+      case 'consumer':
+      case 'client':
+        return 'buyer-dashboard';
       case 'seller':
         return 'seller-dashboard';
       case 'agent':
@@ -27,7 +31,7 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({ view, onNavigate }) 
       case 'owner':
         return 'owner-dashboard';
       default:
-        return 'discovery';
+        return 'buyer-dashboard';
     }
   };
 

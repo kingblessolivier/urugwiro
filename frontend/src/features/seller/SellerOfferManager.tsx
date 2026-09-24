@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Sparkles, TrendingUp, CheckCircle2, XCircle, RotateCcw,
-  Search, ShieldCheck, ArrowUpRight, DollarSign, X, Check, Copy
+  Sparkles, TrendingUp,
+  Search, ShieldCheck, X, Check, Copy, Eye
 } from 'lucide-react';
 import { api } from '../../api/endpoints';
 import { Button } from '../../components/ui/Button';
+import { Pagination } from '../../components/ui/Pagination';
 import { cn } from '../../lib/utils';
 
 interface Offer {
@@ -23,6 +24,9 @@ interface Offer {
 export const SellerOfferManager: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [counterModal, setCounterModal] = useState<{ open: boolean; offer: Offer | null; amount: string }>({
     open: false,
     offer: null,
@@ -83,17 +87,16 @@ export const SellerOfferManager: React.FC = () => {
         loading: false,
         analysis: data.ai_analysis,
         discountPercent: data.discount_percent || 0,
-        recommendedCounter: Math.round(offer.amount * 1.05),
+        recommendedCounter: data.recommended_counter || Math.round(offer.amount * 1.05),
       });
-    } catch {
-      // Fallback
+    } catch (err: any) {
       setAiModal({
         open: true,
         offer,
         loading: false,
-        analysis: `The buyer's proposed offer of ${offer.amount.toLocaleString()} RWF has been recorded.\n\nIn the current Kigali market, residential asset variance within 5-8% is normal commercial negotiation.\n\nRecommended counter-offer: ${Math.round(offer.amount * 1.05).toLocaleString()} RWF with a 10% earnest escrow deposit upon Irembo title conveyance.`,
-        discountPercent: 6.5,
-        recommendedCounter: Math.round(offer.amount * 1.05),
+        analysis: `AI Market Feasibility valuation is momentarily unavailable (${err?.response?.data?.error || err?.message || 'Connection error'}). Please review the offer of ${offer.amount.toLocaleString()} RWF directly against your registered reserve pricing.`,
+        discountPercent: 0,
+        recommendedCounter: undefined,
       });
     }
   };
@@ -102,6 +105,8 @@ export const SellerOfferManager: React.FC = () => {
     (o.property_title && o.property_title.toLowerCase().includes(search.toLowerCase())) ||
     (o.buyer_username && o.buyer_username.toLowerCase().includes(search.toLowerCase()))
   );
+
+  const paginatedOffers = filteredOffers.slice((page - 1) * pageSize, page * pageSize);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -154,7 +159,10 @@ export const SellerOfferManager: React.FC = () => {
               className="w-full pl-9 pr-3 py-2 bg-white/[0.04] border border-white/10 rounded-xl text-white text-xs outline-none focus:border-emerald-400/50"
               placeholder="Search by property or buyer..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
         </div>
@@ -180,7 +188,7 @@ export const SellerOfferManager: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredOffers.map((o: any) => (
+                paginatedOffers.map((o: any) => (
                   <tr key={o.id} className="hover:bg-white/[0.02] transition-colors group">
                     <td className="px-6 py-4">
                       <span className="font-bold text-white group-hover:text-emerald-400 transition-colors block">
@@ -223,6 +231,15 @@ export const SellerOfferManager: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOffer(o)}
+                          className="p-1.5 rounded-lg border border-white/10 hover:border-white/20 text-zinc-400 hover:text-white bg-white/[0.02] transition-colors cursor-pointer"
+                          title="Inspect Offer Dossier"
+                        >
+                          <Eye size={13} />
+                        </button>
+
                         {/* AI Analyze Button */}
                         <Button
                           variant="ghost"
@@ -264,6 +281,19 @@ export const SellerOfferManager: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {filteredOffers.length > 0 && (
+          <div className="p-4 border-t border-white/10">
+            <Pagination
+              currentPage={page}
+              totalPages={Math.max(1, Math.ceil(filteredOffers.length / pageSize))}
+              onPageChange={setPage}
+              pageSize={pageSize}
+              onPageSizeChange={(sz) => { setPageSize(sz); setPage(1); }}
+              totalItems={filteredOffers.length}
+            />
+          </div>
+        )}
       </div>
 
       {/* ── COUNTER OFFER MODAL ── */}
@@ -410,6 +440,128 @@ export const SellerOfferManager: React.FC = () => {
               >
                 Close
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── OFFER DOSSIER INSPECTION MODAL ── */}
+      {selectedOffer && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#080c14] p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between border-b border-white/10 pb-4">
+              <div>
+                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider mb-2">
+                  <ShieldCheck size={12} /> Offer Dossier #{selectedOffer.id}
+                </div>
+                <h3 className="text-xl font-bold text-white">
+                  {selectedOffer.property_title}
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">Buyer: {selectedOffer.buyer_username} • {selectedOffer.date}</p>
+              </div>
+              <button
+                onClick={() => setSelectedOffer(null)}
+                className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
+                  <span className="text-zinc-500 text-[10px] block font-bold uppercase tracking-wider">Offered Price</span>
+                  <span className="text-lg font-mono font-bold text-emerald-400 mt-1 block">
+                    {selectedOffer.amount?.toLocaleString()} RWF
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
+                  <span className="text-zinc-500 text-[10px] block font-bold uppercase tracking-wider">Counter Position</span>
+                  <span className="text-lg font-mono font-bold text-amber-400 mt-1 block">
+                    {selectedOffer.counter_amount ? `${selectedOffer.counter_amount.toLocaleString()} RWF` : 'None proposed'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
+                <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider block">Buyer Submission Note & Terms</span>
+                <p className="text-sm text-zinc-200 leading-relaxed whitespace-pre-wrap">
+                  {selectedOffer.message || 'Standard offer proposal submitted under sovereign escrow rules.'}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 text-xs">
+                <span className="text-zinc-400">Offer Status:</span>
+                <span
+                  className={cn(
+                    "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                    selectedOffer.status === 'accepted' ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" :
+                    selectedOffer.status === 'pending' ? "bg-amber-500/15 text-amber-400 border-amber-500/30" :
+                    selectedOffer.status === 'countered' ? "bg-blue-500/15 text-blue-400 border-blue-500/30" :
+                    "bg-red-500/15 text-red-400 border-red-500/30"
+                  )}
+                >
+                  {selectedOffer.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    handleAiAnalyze(selectedOffer);
+                    setSelectedOffer(null);
+                  }}
+                  className="px-3 py-2 text-xs font-semibold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 flex items-center gap-1.5"
+                >
+                  <Sparkles size={13} /> AI Assess
+                </Button>
+
+                {selectedOffer.status === 'pending' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        respondMutation.mutate({ id: selectedOffer.id, action: 'accept' });
+                        setSelectedOffer(null);
+                      }}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCounterModal({ open: true, offer: selectedOffer, amount: selectedOffer.amount.toString() });
+                        setSelectedOffer(null);
+                      }}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/30 cursor-pointer"
+                    >
+                      Counter
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        respondMutation.mutate({ id: selectedOffer.id, action: 'reject' });
+                        setSelectedOffer(null);
+                      }}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 cursor-pointer"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedOffer(null)}
+                className="px-4 py-2 rounded-xl border border-white/10 text-xs font-semibold text-zinc-400 hover:text-white cursor-pointer"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

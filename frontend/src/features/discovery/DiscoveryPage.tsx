@@ -3,7 +3,7 @@ import FilterPane from './components/FilterPane';
 import ResultsGrid from './components/ResultsGrid';
 import DiscoveryMap from './components/DiscoveryMap';
 import { api } from '../../api/endpoints';
-import { Sparkles, Image as ImageIcon, Search, SlidersHorizontal, Map, Grid, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Image as ImageIcon, SlidersHorizontal, Map, Grid } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 
 interface DiscoveryPageProps {
@@ -35,8 +35,17 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (initialQuery) {
-            setFilters((prev) => ({ ...prev, search: initialQuery }));
+        if (initialQuery !== undefined) {
+            const q = initialQuery.toLowerCase().trim();
+            if (['house', 'apartment', 'land', 'car', 'motorbike', 'hotel'].includes(q)) {
+                setFilters((prev) => ({ ...prev, category: q, search: '' }));
+            } else if (q === 'vehicle') {
+                setFilters((prev) => ({ ...prev, category: 'car', search: '' }));
+            } else if (['sale', 'rent'].includes(q)) {
+                setFilters((prev) => ({ ...prev, purpose: q, search: '' }));
+            } else {
+                setFilters((prev) => ({ ...prev, search: initialQuery }));
+            }
         }
     }, [initialQuery]);
 
@@ -44,7 +53,20 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
         const fetchListings = async () => {
             setLoading(true);
             try {
-                const response = await api.listings.list(filters);
+                // Sanitize parameters so empty values or 'All' are not sent as literal search terms
+                const cleanedParams: Record<string, any> = {};
+                if (filters.search?.trim()) cleanedParams.search = filters.search.trim();
+                if (filters.category && filters.category !== 'All') cleanedParams.category = filters.category;
+                if (filters.purpose && filters.purpose !== 'All') cleanedParams.purpose = filters.purpose;
+                if (filters.type && filters.type !== 'All') cleanedParams.type = filters.type;
+                if (filters.province && filters.province !== 'All') cleanedParams.province = filters.province;
+                if (filters.district && filters.district !== 'All') cleanedParams.district = filters.district;
+                if (filters.sector && filters.sector !== 'All') cleanedParams.sector = filters.sector;
+                if (filters.minPrice) cleanedParams.min_price = filters.minPrice;
+                if (filters.maxPrice) cleanedParams.max_price = filters.maxPrice;
+                if (filters.sort) cleanedParams.sort = filters.sort;
+
+                const response = await api.listings.list(cleanedParams);
                 const data = response.data;
                 setListings(Array.isArray(data) ? data : data?.results || []);
             } catch (error) {
@@ -129,7 +151,7 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
 
     return (
         <div
-            className="flex h-[calc(100vh-4rem)] overflow-hidden w-full max-w-full transition-colors duration-300"
+            className="flex h-[calc(100vh-4.5rem)] sm:h-[calc(100vh-5rem)] overflow-hidden w-full max-w-full transition-colors duration-300"
             style={{ background: 'var(--color-bg-deep)', color: 'var(--color-text-main)' }}
         >
             {/* Desktop Filter Sidebar */}
@@ -284,7 +306,7 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                             className="relative flex-1 md:w-1/2 xl:w-[42%] border-l"
                             style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)' }}
                         >
-                            <DiscoveryMap listings={listings} />
+                            <DiscoveryMap listings={listings} onListingClick={onListingClick} />
                         </section>
                     )}
                 </div>

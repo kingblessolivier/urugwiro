@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, User, Eye, EyeOff, ArrowRight, AlertCircle, ShieldCheck, Sparkles, Building2 } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, ArrowRight, AlertCircle, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { type AppView, getDefaultDashboardForUser } from '../../types/navigation';
 
@@ -50,7 +50,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
     };
 
     return (
-        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:p-6 lg:p-10 selection:bg-emerald-500/30 relative overflow-hidden w-full max-w-full transition-colors duration-300"
+        <div className="flex min-h-[calc(100vh-4.5rem)] sm:min-h-[calc(100vh-5rem)] items-center justify-center p-4 sm:p-6 lg:p-10 selection:bg-emerald-500/30 relative overflow-hidden w-full max-w-full transition-colors duration-300"
           style={{ background: 'var(--color-bg-deep)', color: 'var(--color-text-main)' }}>
             {/* Ambient Background Glows */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden">

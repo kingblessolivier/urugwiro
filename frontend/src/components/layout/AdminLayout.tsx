@@ -300,12 +300,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
 
             {/* Breadcrumb Info */}
             <div className="hidden sm:flex flex-col min-w-0">
-              <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 uppercase tracking-widest font-mono font-medium">
+              <div className="flex items-center gap-1.5 text-xs text-zinc-400 uppercase tracking-wider font-mono font-medium">
                 <span>{pageMeta.category}</span>
-                <ChevronRight size={11} className="text-zinc-500" />
+                <ChevronRight size={12} className="text-zinc-500" />
                 <span className="text-emerald-400 font-bold">{currentView}</span>
               </div>
-              <h2 className="text-base font-bold text-white tracking-tight truncate font-display">
+              <h2 className="text-lg font-bold text-white tracking-tight truncate font-display">
                 {pageMeta.title}
               </h2>
             </div>
@@ -314,13 +314,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
           {/* Center: Command Search Input */}
           <div className="hidden lg:flex items-center flex-1 max-w-md mx-6">
             <div className="relative w-full">
-              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
                 placeholder="Search deals, parcels, UPI deeds, or buyers..."
-                className="w-full bg-white/[0.04] border border-white/10 rounded-2xl py-2 pl-10 pr-12 text-xs text-white placeholder-zinc-400 outline-none focus:border-emerald-500/50 transition-all font-sans"
+                className="w-full bg-white/[0.04] border border-white/10 rounded-2xl py-2.5 pl-10 pr-12 text-sm text-white placeholder-zinc-400 outline-none focus:border-emerald-500/50 transition-all font-sans"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-zinc-400 bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/10">
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-mono text-zinc-400 bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/10">
                 ⌘K
               </span>
             </div>

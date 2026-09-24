@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Save, Building, MapPin, DollarSign, Layers } from 'lucide-react';
+import { X, Save, Building } from 'lucide-react';
 import { api } from '../../../api/endpoints';
 
 interface PropertyEditModalProps {

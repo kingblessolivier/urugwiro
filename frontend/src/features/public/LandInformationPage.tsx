@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileCheck2, MapPinned, ShieldCheck, AlertTriangle, ArrowRight, BookOpen, Layers, CheckCircle2 } from 'lucide-react';
+import { FileCheck2, MapPinned, ShieldCheck, AlertTriangle, ArrowRight } from 'lucide-react';
 import { PageHero } from '../../components/layout/PageHero';
 import type { AppView } from '../../types/navigation';
 import { Button } from '../../components/ui/Button';

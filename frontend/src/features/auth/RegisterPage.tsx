@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, User, Mail, Eye, EyeOff, ArrowRight, AlertCircle, Building2, KeyRound, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Lock, User, Mail, Eye, EyeOff, ArrowRight, AlertCircle, Building2, KeyRound } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { type AppView, getDefaultDashboardForUser } from '../../types/navigation';
 
@@ -73,7 +73,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
 
     return (
         <div
-            className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4 sm:p-6 lg:p-10 selection:bg-emerald-500/30 relative overflow-hidden w-full max-w-full transition-colors duration-300"
+            className="flex min-h-[calc(100vh-4.5rem)] sm:min-h-[calc(100vh-5rem)] items-center justify-center p-4 sm:p-6 lg:p-10 selection:bg-emerald-500/30 relative overflow-hidden w-full max-w-full transition-colors duration-300"
             style={{ background: 'var(--color-bg-deep)', color: 'var(--color-text-main)' }}
         >
             {/* Ambient Background Glows */}

@@ -7,22 +7,16 @@ import {
   Home,
   Map as MapIcon,
   Search,
-  ShieldCheck,
   CheckCircle2,
-  ArrowUpRight,
-  Lock,
-  Sparkles,
   ChevronDown,
   Users,
-  TrendingUp,
   Globe,
   Key,
   Bike,
   ChevronLeft,
   ChevronRight,
-  MapPin,
-  BadgeCheck,
 } from 'lucide-react';
+
 import { ListingCard } from '../../components/ui/ListingCard';
 import type { ListingCardData } from '../../components/ui/ListingCard';
 import { Button } from '../../components/ui/Button';
@@ -45,18 +39,9 @@ interface HeroSlide {
   query: string;
   image: string;
   title: string;
-  subtitle: string;
-  searchPlaceholder: string;
-  caption: string;
-  price: string;
+  cornerBadge: string;
+  systemExplanation: string;
   watermark: string;
-  coordinates: string;
-  cadastreRef: string;
-  aiAdvice: {
-    tag: string;
-    text: string;
-    metric: string;
-  };
 }
 
 const HERO_SLIDES: HeroSlide[] = [
@@ -66,19 +51,10 @@ const HERO_SLIDES: HeroSlide[] = [
     icon: Home,
     query: 'house',
     image: '/images/hero/house.jpg',
-    title: 'Luxury Homes & Villas',
-    subtitle: 'Nyarutarama & Gacuriro, Kigali',
-    searchPlaceholder: 'Search villas in Nyarutarama, Gacuriro, Kiyovu...',
-    caption: 'Modern Villa, Nyarutarama',
-    price: '480,000,000 RWF',
+    title: 'Homes & Villas in Kigali',
+    cornerBadge: 'Registry Title Verified',
+    systemExplanation: 'Every residential property is cross-checked with official land registry records to guarantee authentic ownership.',
     watermark: 'ESTATES',
-    coordinates: '1°56\'22"S 30°05\'48"E',
-    cadastreRef: 'UPI 1/02/11/04/1820',
-    aiAdvice: {
-      tag: 'AI Investment Analysis',
-      text: 'Prime Nyarutarama Expat Corridor • Projected 11.4% Annual Rental Yield',
-      metric: '98.5% Valuation Match',
-    },
   },
   {
     id: 'land',
@@ -86,19 +62,10 @@ const HERO_SLIDES: HeroSlide[] = [
     icon: MapIcon,
     query: 'land',
     image: '/images/hero/land.jpg',
-    title: 'Prime Titled Land',
-    subtitle: 'RLMUA Cadastre Verified, Gasabo',
-    searchPlaceholder: 'Search titled plots in Gasabo, Kicukiro, Bugesera...',
-    caption: 'Titled Hillside Parcel, Gasabo',
-    price: '95,000,000 RWF',
+    title: 'Titled Plots Across Rwanda',
+    cornerBadge: 'Official Cadastre Verified',
+    systemExplanation: 'Every parcel is verified against the official national cadastre before being listed for sale.',
     watermark: 'CADASTRE',
-    coordinates: '1°54\'10"S 30°07\'15"E',
-    cadastreRef: 'UPI 1/02/08/03/4921',
-    aiAdvice: {
-      tag: 'AI Cadastre & Zoning Engine',
-      text: 'RLMUA Master Plan R2 Medium Density • Clean Title Deed • Zero Encumbrance',
-      metric: '100% Title Verified',
-    },
   },
   {
     id: 'car',
@@ -106,19 +73,10 @@ const HERO_SLIDES: HeroSlide[] = [
     icon: Car,
     query: 'vehicle',
     image: '/images/hero/car.jpg',
-    title: 'Executive SUVs',
-    subtitle: 'Certified & Inspected, Kigali',
-    searchPlaceholder: 'Search Toyota Land Cruiser, RAV4, Defender...',
-    caption: 'Land Cruiser LC300 GR-Sport',
-    price: '165,000,000 RWF',
+    title: 'Certified Vehicles, Full Dossier',
+    cornerBadge: 'RRA Customs Cleared',
+    systemExplanation: 'Physical mechanical inspection and cleared registration dossier with Rwanda Revenue Authority.',
     watermark: 'EXECUTIVE',
-    coordinates: '1°57\'05"S 30°03\'55"E',
-    cadastreRef: 'VIN-RW-2024-8891',
-    aiAdvice: {
-      tag: 'AI Price & Fleet Audit',
-      text: '4.2% Below Kigali Market Median • Verified Rwanda Customs Dossier & Tech Health',
-      metric: 'Grade A Inspected',
-    },
   },
   {
     id: 'motorbike',
@@ -126,21 +84,16 @@ const HERO_SLIDES: HeroSlide[] = [
     icon: Bike,
     query: 'vehicle',
     image: '/images/hero/motorbike.jpg',
-    title: 'Bikes & Fleet Mobility',
-    subtitle: 'Urban & Adventure Touring',
-    searchPlaceholder: 'Search BMW GS, electric bikes, TVS...',
-    caption: 'Adventure Touring Machine',
-    price: '18,500,000 RWF',
+    title: 'Bikes & Fleet Vehicles',
+    cornerBadge: 'Fleet Mobility Certified',
+    systemExplanation: 'Inspected commercial fleets and personal mobility ready for verified ownership transfer.',
     watermark: 'MOBILITY',
-    coordinates: '1°57\'44"S 30°04\'12"E',
-    cadastreRef: 'FLEET-KGL-0419',
-    aiAdvice: {
-      tag: 'AI Fleet ROI Forecast',
-      text: 'High Urban Courier & Tourism Demand • Fast 14-Month Payback Velocity',
-      metric: 'Optimal Fleet ROI',
-    },
   },
 ];
+
+
+
+
 
 const categories = [
   { label: 'Homes & Villas', icon: Home, query: 'sale', desc: 'Luxury residences & family homes' },
@@ -151,29 +104,12 @@ const categories = [
   { label: 'Rentals', icon: Key, query: 'rental', desc: 'Short & long-term rentals' },
 ];
 
-const pillars = [
-  {
-    title: 'RLMUA Verified',
-    description: 'Every land parcel cross-referenced with Rwanda\'s official cadastre registry for authentic ownership verification.',
-    icon: ShieldCheck,
-  },
-  {
-    title: 'Escrow Protected',
-    description: 'Your deposit is secured in regulated escrow custody until the conveyance closes — protecting both buyer and seller.',
-    icon: Lock,
-  },
-  {
-    title: 'AI-Powered Insights',
-    description: 'Market valuation models, document verification, and intelligent matching powered by advanced AI infrastructure.',
-    icon: Sparkles,
-  },
+const steps = [
+  { step: '01', title: 'Discover', desc: 'Search verified listings by location, category, or price. Browse homes, land, apartments, and vehicles across Rwanda.' },
+  { step: '02', title: 'Verify', desc: 'Review title documents, cadastral records, and inspection reports. Every listing includes its verification status upfront.' },
+  { step: '03', title: 'Transact', desc: 'Make offers, schedule visits, and close deals. Deposits are held in regulated escrow until the transaction is complete.' },
 ];
 
-const steps = [
-  { step: '01', title: 'Discover', desc: 'Search verified listings with intelligent filters, AI intent search, or browse curated collections.' },
-  { step: '02', title: 'Verify', desc: 'Review documentation, verification status, and get AI-powered market valuations before committing.' },
-  { step: '03', title: 'Transact', desc: 'Make offers, schedule visits, and close deals through our secure escrow-protected pipeline.' },
-];
 
 const mapApiListing = (item: Record<string, unknown>): ListingCardData => {
   const media = Array.isArray(item.media) ? item.media : [];
@@ -252,14 +188,24 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
   const featured = useMemo(() => (listingsQuery.data || []).slice(0, 6), [listingsQuery.data]);
   const totalListings = listingsQuery.data?.length || 0;
 
+  // Pick a real listing from the DB that matches the active slide's category, for the hero caption
+  const heroListing = useMemo(() => {
+    const all = listingsQuery.data || [];
+    return all.find((l) =>
+      l.listing_type?.toLowerCase().includes(currentSlide.query) ||
+      l.title?.toLowerCase().includes(currentSlide.query)
+    ) || all[0] || null;
+  }, [listingsQuery.data, currentSlide.query]);
+
   const liveStats = statsQuery.data || {
     properties_listed: totalListings,
     verified_listings: 0,
     completed_deals: 0,
     active_deals: 0,
     active_users: 0,
-    districts_covered: 30,
+    districts_covered: null,
   };
+
 
   const submitSearch = (event: React.FormEvent) => {
     event.preventDefault();
@@ -319,85 +265,34 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
           {/* Brand ambient glows */}
           <div className="absolute top-1/4 left-1/4 h-[300px] w-[300px] sm:h-[600px] sm:w-[600px] rounded-full bg-emerald-500/[0.10] blur-[150px] pointer-events-none" />
           <div className="absolute bottom-1/4 right-1/4 h-[260px] w-[260px] sm:h-[500px] sm:w-[500px] rounded-full bg-[#f98604]/[0.07] blur-[150px] pointer-events-none" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[220px] w-[220px] sm:h-[400px] sm:w-[400px] rounded-full bg-white/[0.03] blur-[130px] pointer-events-none" />
         </div>
 
-        {/* Spatial Telemetry Pill (Desktop Cadastral & GPS Coordinates) */}
-        <div className="hidden md:flex absolute top-8 left-8 xl:top-12 xl:left-12 z-10 items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/55 border border-white/15 backdrop-blur-xl text-[10px] font-mono text-zinc-300 shadow-xl transition-all pointer-events-auto">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-          <span className="text-emerald-400 font-bold uppercase tracking-wider">CADASTRE // {currentSlide.cadastreRef}</span>
-          <span className="text-zinc-600">•</span>
-          <span className="text-zinc-400">{currentSlide.coordinates}</span>
-        </div>
-
-        {/* Floating Shaded AI Advisory Intelligence Card (Desktop / Tablet Background) */}
-        <div className="hidden lg:flex absolute top-8 right-8 xl:top-12 xl:right-12 z-10 max-w-xs flex-col gap-1.5 rounded-2xl border border-emerald-500/25 bg-black/55 p-3.5 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] transition-all duration-700 hover:border-emerald-500/50 hover:bg-black/75 pointer-events-auto">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 text-emerald-400 text-[11px] font-bold uppercase tracking-wider">
-              <Sparkles size={13} className="animate-pulse text-emerald-400" />
-              <span>{currentSlide.aiAdvice.tag}</span>
-            </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
-              {currentSlide.aiAdvice.metric}
-            </span>
-          </div>
-          <p className="text-xs text-zinc-200 leading-snug font-medium">
-            "{currentSlide.aiAdvice.text}"
-          </p>
-          <div className="pt-1.5 flex items-center justify-between text-[10px] text-zinc-400 border-t border-white/10 mt-0.5">
-            <span className="text-zinc-500 font-mono">Autonomous Engine</span>
-            <span className="text-emerald-400 font-semibold flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-              Live Advice
+        {/* ━━━ 40-DEGREE GREEN CORNER SYSTEM SASH (Spanning Banner) ━━━ */}
+        <div className="absolute top-0 right-0 w-44 h-44 sm:w-60 sm:h-60 overflow-hidden pointer-events-none z-20">
+          <div className="absolute top-8 sm:top-12 -right-12 sm:-right-16 w-56 sm:w-72 bg-gradient-to-r from-emerald-800 via-emerald-600 to-emerald-800 text-white font-extrabold text-[10px] sm:text-xs uppercase tracking-wider py-1.5 sm:py-2 text-center rotate-[40deg] shadow-[0_8px_24px_rgba(0,0,0,0.65)] border-y border-emerald-400/40 select-none">
+            <span className="flex items-center justify-center gap-1.5 drop-shadow-md">
+              <CheckCircle2 size={12} className="text-emerald-300 shrink-0 inline" />
+              <span>{currentSlide.cornerBadge}</span>
             </span>
           </div>
         </div>
 
-        {/* CENTER: Clean Headline, Shaded Link Capsule & Search Bar */}
-        <div className="relative z-10 mx-auto w-full max-w-3xl text-center space-y-3.5 sm:space-y-4 my-auto py-3 sm:py-6">
-          {/* Shaded Link Capsule */}
-          <div className="px-2">
-            <button
-              type="button"
-              onClick={() => onExplore(currentSlide.query)}
-              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full px-3.5 sm:px-4 py-1.5 text-[11px] sm:text-xs font-medium text-zinc-200 bg-black/60 hover:bg-black/85 border border-emerald-500/30 hover:border-emerald-400/60 backdrop-blur-2xl transition-all shadow-[0_4px_20px_rgba(0,0,0,0.6)] cursor-pointer group max-w-full"
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-              <span className="truncate">Explore verified {currentSlide.title.toLowerCase()} in Rwanda</span>
-              <ArrowRight size={12} className="text-zinc-400 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-            </button>
-          </div>
+        <div className="relative z-10 mx-auto w-full max-w-4xl text-center space-y-3.5 sm:space-y-4 my-auto py-3 sm:py-6">
 
-          <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight bg-gradient-to-b from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent drop-shadow-[0_8px_32px_rgba(0,0,0,0.9)] leading-[1.1]">
+          <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white drop-shadow-[0_8px_32px_rgba(0,0,0,0.9)] leading-[1.1]">
             {currentSlide.title}
           </h1>
 
-          <div className="flex items-center justify-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] border border-white/15 text-zinc-200 text-xs sm:text-sm font-medium backdrop-blur-md shadow-md">
-              <MapPin size={12} className="text-emerald-400" />
-              <span>{currentSlide.subtitle}</span>
-            </span>
-          </div>
-
-          {/* Shaded AI Property Advice Capsule */}
+          {/* System Explanation: Green background spanning entire text */}
           <div className="flex justify-center px-2">
-            <div className="inline-flex items-center gap-2 sm:gap-2.5 rounded-full px-3.5 sm:px-4 py-1.5 bg-gradient-to-r from-emerald-950/40 via-black/65 to-emerald-950/40 hover:from-emerald-950/60 hover:to-emerald-950/60 border border-emerald-500/40 backdrop-blur-2xl text-zinc-200 shadow-[0_4px_24px_rgba(16,185,129,0.18)] transition-all max-w-full group">
-              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/25 text-emerald-400 shrink-0 border border-emerald-500/40 shadow-[0_0_8px_rgba(52,211,153,0.5)]">
-                <Sparkles size={11} className="animate-pulse text-emerald-400" />
-              </div>
-              <div className="flex items-center gap-1.5 text-left min-w-0">
-                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-400 shrink-0">
-                  AI Advice:
-                </span>
-                <span className="text-zinc-100 text-[11px] sm:text-xs font-medium truncate max-w-[200px] xs:max-w-[280px] sm:max-w-md">
-                  {currentSlide.aiAdvice.text}
-                </span>
-              </div>
-              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 shrink-0">
-                {currentSlide.aiAdvice.metric}
-              </span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-100 text-xs sm:text-sm font-medium backdrop-blur-xl shadow-[0_4px_24px_rgba(16,185,129,0.25)] max-w-2xl text-center">
+              <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
+              <span className="leading-snug">{currentSlide.systemExplanation}</span>
             </div>
           </div>
+
+
+
 
           {/* Clean Floating Search Bar (Single sleek inline bar on all screens) */}
           <form onSubmit={submitSearch} className="pt-1 sm:pt-2 max-w-2xl mx-auto w-full">
@@ -410,7 +305,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
                   onChange={(e) => setQuery(e.target.value)}
                   onFocus={() => setIsPaused(true)}
                   onBlur={() => setIsPaused(false)}
-                  placeholder={currentSlide.searchPlaceholder}
+                  placeholder="Search listings — location, type, keyword..."
                   className="w-full bg-transparent py-2 sm:py-3 text-white outline-none placeholder:text-zinc-400 text-xs sm:text-sm min-w-0 font-medium"
                 />
                 {query && (
@@ -431,50 +326,55 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
               </Button>
             </div>
           </form>
-
-          {/* Shaded Quick Link Pills */}
-          <div className="pt-1 flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap text-xs">
-            <span className="text-zinc-400 text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold mr-0.5">Trending:</span>
-            {[
-              { label: 'Nyarutarama', q: 'Nyarutarama' },
-              { label: 'Gasabo Plots', q: 'Gasabo land' },
-              { label: 'Gacuriro', q: 'Gacuriro' },
-              { label: 'Executive SUVs', q: 'SUV' },
-            ].map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => onExplore(item.q)}
-                className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] hover:bg-white/[0.12] border border-white/15 hover:border-emerald-400/40 text-zinc-200 hover:text-white text-[11px] sm:text-xs backdrop-blur-xl transition-all shadow-sm cursor-pointer group"
-              >
-                <span>{item.label}</span>
-                <ArrowUpRight size={10} className="text-zinc-400 group-hover:text-emerald-400 transition-colors" />
-              </button>
-            ))}
-          </div>
         </div>
+
 
         {/* BOTTOM ROW: Minimal Caption & Slide Controls */}
         <div className="relative z-10 mx-auto max-w-7xl w-full flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4 text-xs">
-          {/* Active slide caption */}
-          <div className="flex items-center justify-center gap-2 text-zinc-200 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/15 text-[11px] sm:text-xs max-w-full shadow-2xl">
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 shrink-0 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-              <Sparkles size={10} className="text-emerald-400" />
-              <span>AI Verified</span>
-            </span>
-            <span className="text-zinc-600">•</span>
-            <span className="font-semibold text-white truncate max-w-[120px] xs:max-w-[180px] sm:max-w-none">{currentSlide.caption}</span>
-            <span className="text-zinc-500">•</span>
-            <span className="text-emerald-400 font-mono font-bold whitespace-nowrap">{currentSlide.price}</span>
-            <button
-              type="button"
-              onClick={() => onExplore(currentSlide.query)}
-              className="ml-1 text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap group"
-            >
-              <span>Explore</span>
-              <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
-            </button>
-          </div>
+          {/* Active slide caption — real listing from DB */}
+          {heroListing ? (
+            <div className="flex items-center justify-center gap-2 text-zinc-200 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/15 text-[11px] sm:text-xs max-w-full shadow-2xl">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 shrink-0 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                <CheckCircle2 size={10} className="text-emerald-400" />
+                <span>Verified</span>
+              </span>
+              <span className="text-zinc-600">•</span>
+              <span className="font-semibold text-white truncate max-w-[120px] xs:max-w-[180px] sm:max-w-[320px]">{heroListing.title}</span>
+              {heroListing.price > 0 && (
+                <>
+                  <span className="text-zinc-500">•</span>
+                  <span className="text-emerald-400 font-mono font-bold whitespace-nowrap">
+                    {heroListing.price.toLocaleString()} {heroListing.currency}
+                  </span>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => onListingClick?.(heroListing.id)}
+                className="ml-1 text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap group"
+              >
+                <span>View</span>
+                <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2 text-zinc-200 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/15 text-[11px] sm:text-xs max-w-full shadow-2xl">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 shrink-0 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                <CheckCircle2 size={10} className="text-emerald-400" />
+                <span>Live</span>
+              </span>
+              <span className="text-zinc-400">{currentSlide.pillLabel}</span>
+              <button
+                type="button"
+                onClick={() => onExplore(currentSlide.query)}
+                className="ml-1 text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap group"
+              >
+                <span>Explore</span>
+                <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+          )}
+
 
           {/* Clean Controls with finger-friendly touch targets and glowing active pill */}
           <div className="flex items-center gap-1.5 sm:gap-2 bg-black/60 backdrop-blur-xl px-2.5 sm:px-3 py-1.5 rounded-full border border-white/15 shadow-2xl">
@@ -605,34 +505,6 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
         </div>
       </section>
 
-      {/* ━━━ 04 — WHY URUGWIRO (TRUST PILLARS) ━━━ */}
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:py-20 lg:px-12">
-        <div className="mb-10 sm:mb-16 text-center space-y-2.5 sm:space-y-3 max-w-2xl mx-auto">
-          <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-500">The Urugwiro Standard</p>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Beyond simple classifieds</h2>
-          <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>We built a marketplace where every transaction is backed by verification, protection, and spatial intelligence.</p>
-        </div>
-
-        <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
-          {pillars.map((prop) => (
-            <div key={prop.title}
-              className="rounded-2xl border p-5 sm:p-8 transition-all duration-300 hover:border-emerald-500/30 group oneui-card"
-              style={{
-                borderColor: 'var(--color-border)',
-                background: 'var(--color-bg-card)',
-                boxShadow: 'var(--shadow-depth-2)',
-              }}
-            >
-              <div className="mb-4 sm:mb-6 inline-flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all group-hover:shadow-lg group-hover:shadow-emerald-500/20">
-                <prop.icon size={22} />
-              </div>
-              <h3 className="mb-2 text-base sm:text-xl font-bold" style={{ color: 'var(--color-text-main)' }}>{prop.title}</h3>
-              <p className="leading-relaxed text-xs sm:text-sm" style={{ color: 'var(--color-text-muted)' }}>{prop.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ━━━ 05 — HOW IT WORKS ━━━ */}
       <section className="px-4 py-12 sm:py-20 lg:px-12 transition-colors duration-300"
         style={{ background: 'var(--color-section-alt)', borderTop: '1px solid var(--color-section-alt-border)', borderBottom: '1px solid var(--color-section-alt-border)' }}>
@@ -669,12 +541,14 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
         <div className="rounded-3xl border p-6 sm:p-10 md:p-14 transition-colors duration-300"
           style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)', boxShadow: 'var(--shadow-depth-2)' }}>
           <div className="grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-4 text-center">
-            {[
-              { icon: Building2, value: Number(liveStats.properties_listed || totalListings || 0).toLocaleString(), label: 'Live Catalog Properties' },
-              { icon: CheckCircle2, value: Number(liveStats.verified_listings || 0).toLocaleString(), label: 'RLMUA Cadastre Verified' },
+            {([
+              { icon: Building2, value: Number(liveStats.properties_listed || totalListings || 0).toLocaleString(), label: 'Active Listings' },
+              { icon: CheckCircle2, value: Number(liveStats.verified_listings || 0).toLocaleString(), label: 'Verified' },
               { icon: Users, value: Number(liveStats.active_users || 0).toLocaleString(), label: 'Platform Members' },
-              { icon: Globe, value: `${liveStats.districts_covered || 30}`, label: 'Districts Across Rwanda' },
-            ].map(({ icon: Icon, value, label }) => (
+              liveStats.districts_covered ? { icon: Globe, value: `${liveStats.districts_covered}`, label: 'Districts Covered' } : null,
+            ] as ({ icon: React.ElementType; value: string; label: string } | null)[])
+              .filter((s): s is { icon: React.ElementType; value: string; label: string } => s !== null)
+              .map(({ icon: Icon, value, label }) => (
               <div key={label}>
                 <Icon size={20} className="mx-auto mb-2 text-emerald-500" />
                 <p className="text-2xl sm:text-3xl md:text-4xl font-bold font-mono" style={{ color: 'var(--color-text-main)' }}>{value}</p>
@@ -682,6 +556,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
               </div>
             ))}
           </div>
+
         </div>
       </section>
 
@@ -697,9 +572,9 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
           }}>
           <div className="absolute top-0 right-0 h-48 w-48 sm:h-64 sm:w-64 rounded-full bg-emerald-500/[0.07] blur-[80px]" />
           <div className="relative z-10">
-            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Have a property to sell?</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Have a property to sell or rent?</h2>
             <p className="mx-auto mt-3 sm:mt-5 max-w-xl text-xs sm:text-base leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-              Join Rwanda's most trusted marketplace. Submit your property proposal for physical cadastre inspection and connect with serious, verified investors.
+              Join Rwanda's most trusted marketplace. Submit your property details for physical inspection and connect directly with verified buyers and tenants.
             </p>
             <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button
@@ -707,8 +582,9 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
                 onClick={onSell}
                 className="w-full sm:w-auto rounded-xl px-8 py-3.5 text-sm sm:text-base font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-500/20 transition-all active:scale-95 cursor-pointer"
               >
-                Submit Property Proposal
+                List Your Property (Sale or Rent)
               </Button>
+
               <button
                 onClick={() => onNavigate('about')}
                 className="text-xs sm:text-sm flex items-center justify-center gap-1.5 py-2 transition-colors cursor-pointer hover:text-emerald-500"

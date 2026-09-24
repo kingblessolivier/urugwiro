@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ListingCard, type ListingCardData } from '../../../components/ui/ListingCard';
 import { SearchX, RotateCcw } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
+import { Pagination } from '../../../components/ui/Pagination';
 
 interface Listing {
     id: string;
@@ -27,6 +28,13 @@ interface ResultsGridProps {
 }
 
 const ResultsGrid: React.FC<ResultsGridProps> = ({ listings, loading, onListingClick, columns = 3 }) => {
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(9);
+
+    useEffect(() => {
+        setPage(1);
+    }, [listings.length]);
+
     const gridClass = columns === 3
         ? 'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'
         : 'grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-2';
@@ -64,24 +72,41 @@ const ResultsGrid: React.FC<ResultsGridProps> = ({ listings, loading, onListingC
         );
     }
 
+    const paginatedListings = listings.slice((page - 1) * pageSize, page * pageSize);
+
     return (
-        <div className={gridClass}>
-            {listings.map((listing) => (
-                <ListingCard
-                    key={listing.id}
-                    listing={{
-                        id: listing.id,
-                        title: listing.title,
-                        price: Number(listing.price) || 0,
-                        currency: listing.currency || 'RWF',
-                        location: listing.location || [listing.asset?.district, listing.asset?.province].filter(Boolean).join(', ') || 'Rwanda',
-                        listing_type: listing.listing_type,
-                        verification_level: listing.verification_level,
-                        media: listing.media,
-                    }}
-                    onClick={onListingClick}
-                />
-            ))}
+        <div className="space-y-8">
+            <div className={gridClass}>
+                {paginatedListings.map((listing) => (
+                    <ListingCard
+                        key={listing.id}
+                        listing={{
+                            id: listing.id,
+                            title: listing.title,
+                            price: Number(listing.price) || 0,
+                            currency: listing.currency || 'RWF',
+                            location: listing.location || [listing.asset?.district, listing.asset?.province].filter(Boolean).join(', ') || 'Rwanda',
+                            listing_type: listing.listing_type,
+                            verification_level: listing.verification_level,
+                            media: listing.media,
+                        }}
+                        onClick={onListingClick}
+                    />
+                ))}
+            </div>
+
+            {listings.length > 0 && (
+                <div className="pt-2">
+                    <Pagination
+                        currentPage={page}
+                        totalPages={Math.max(1, Math.ceil(listings.length / pageSize))}
+                        onPageChange={setPage}
+                        pageSize={pageSize}
+                        onPageSizeChange={(sz) => { setPageSize(sz); setPage(1); }}
+                        totalItems={listings.length}
+                    />
+                </div>
+            )}
         </div>
     );
 };

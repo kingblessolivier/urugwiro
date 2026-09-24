@@ -81,6 +81,12 @@ class ResidentialSpec(models.Model):
         ('ModestHouse', 'Modest / Small House'),
         ('Duplex', 'Duplex'),
         ('Studio', 'Studio'),
+        ('Penthouse', 'Penthouse'),
+    )
+    APARTMENT_SELLING_MODE = (
+        ('whole_building', 'Entire Building'),
+        ('per_floor', 'Per Floor'),
+        ('per_unit', 'Per Unit / Room'),
     )
     asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name='residential_spec')
     sub_type = models.CharField(max_length=50, choices=SUB_TYPES, default='SingleFamily')
@@ -98,8 +104,15 @@ class ResidentialSpec(models.Model):
     has_staff_quarters = models.BooleanField(default=False)
     has_garden = models.BooleanField(default=False)
     has_water_tank = models.BooleanField(default=False)
+    water_tank_capacity_liters = models.IntegerField(null=True, blank=True, help_text="Reserve water capacity e.g. 5000L")
     has_solar_water_heater = models.BooleanField(default=False)
     has_backup_generator = models.BooleanField(default=False)
+    backup_generator_kva = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, help_text="Generator capacity in KVA")
+    has_three_phase_power = models.BooleanField(default=False, help_text="3-Phase electricity connection")
+    has_fiber_internet = models.BooleanField(default=False, help_text="Optical fiber internet installed")
+    has_cctv = models.BooleanField(default=False)
+    parking_spaces = models.IntegerField(default=1, null=True, blank=True)
+    master_plan_zoning = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. R1, R1A, R2, R3")
     security_type = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. Gated, Electric Fence, Perimeter Wall")
 
     # Modest House & Utility Specs
@@ -110,6 +123,21 @@ class ResidentialSpec(models.Model):
     floor_number = models.IntegerField(null=True, blank=True)
     has_elevator = models.BooleanField(default=False)
     monthly_service_charge = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    # Apartment Building & Unit Structure
+    apartment_selling_mode = models.CharField(
+        max_length=20, choices=APARTMENT_SELLING_MODE, blank=True, null=True,
+        help_text="How the apartment is being sold/rented: entire building, per floor, or per unit"
+    )
+    total_building_floors = models.IntegerField(null=True, blank=True, help_text="Total floors in the apartment building")
+    unit_number = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. Suite 302, Unit A4")
+    unit_orientation = models.CharField(max_length=100, blank=True, null=True, help_text="e.g. North-East Skyline, Golf Course View, Courtyard")
+    balcony_area_sqm = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    parking_slot_number = models.CharField(max_length=30, blank=True, null=True, help_text="e.g. B1-14, P2-07")
+    apartment_floor_plan = models.JSONField(
+        null=True, blank=True,
+        help_text="JSON: floor-by-floor breakdown [{floor: 1, units: [{unit: '101', beds: 2, baths: 1, sqm: 80, view: 'Garden', price: 500000, status: 'available'}]}]"
+    )
 
     def __str__(self):
         return f"{self.sub_type} Spec ({self.bedrooms} Beds, {self.bathrooms} Baths)"
@@ -129,21 +157,42 @@ class CommercialSpec(models.Model):
 
 class LandSpec(models.Model):
     TERRAIN_CHOICES = [('Flat', 'Flat'), ('Gentle Slope', 'Gentle Slope'), ('Sloped', 'Sloped'), ('Hilly', 'Hilly'), ('Rocky', 'Rocky'), ('Valley', 'Valley')]
+    LAND_USE_CHOICES = [
+        ('Residential', 'Residential Building Land'),
+        ('Commercial', 'Commercial / Mixed-Use Land'),
+        ('Agricultural', 'Agricultural / Farming Land'),
+        ('Industrial', 'Industrial / Logistics Land'),
+        ('Forestry', 'Forestry / Conservation'),
+        ('WetlandBuffer', 'Wetland Buffer / Environmental Protection'),
+    ]
+    TENURE_CHOICES = [
+        ('EmphyteuticLease', 'Emphyteutic Lease (State 99-Year Leasehold)'),
+        ('Freehold', 'Freehold (Ubukonde)'),
+    ]
     asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name='land_spec')
+    land_use_category = models.CharField(max_length=50, choices=LAND_USE_CHOICES, default='Residential')
+    tenure_type = models.CharField(max_length=50, choices=TENURE_CHOICES, default='EmphyteuticLease')
+    lease_years_remaining = models.IntegerField(null=True, blank=True, help_text="Years remaining on state leasehold (e.g. 85)")
     upi_number = models.CharField(max_length=100, blank=True, null=True, help_text="Unique Parcel Identifier (UPI) e.g. 1/03/05/02/1234")
-    zoning_code = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. R1, R2, R3, C1, Commercial, Industrial, Agricultural")
+    zoning_code = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. R1, R1A, R2, R3, C1, C2, A1, Industrial, Agricultural")
+    max_permitted_floors = models.CharField(max_length=20, blank=True, null=True, help_text="e.g. G+1, G+2, G+4 under Master Plan")
+    floor_area_ratio = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="FAR index")
+    building_coverage_ratio = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Max BCR percentage e.g. 50%")
     terrain = models.CharField(max_length=50, choices=TERRAIN_CHOICES, null=True, blank=True)
+    slope_gradient_percent = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Gradient slope percentage")
     road_access = models.BooleanField(default=False)
     road_type = models.CharField(max_length=50, blank=True, null=True, help_text="Asphalt/Tarmac, Cobblestone, Murram/Dirt, Footpath")
     soil_type = models.CharField(max_length=100, blank=True, null=True)
     topography = models.TextField(blank=True, null=True)
     title_deed_number = models.CharField(max_length=100, blank=True, null=True, help_text="UPI / Title Deed Number")
+    is_encumbrance_free = models.BooleanField(default=True, help_text="Free of bank mortgages, caveats, or court disputes")
 
     # Utilities & Infrastructure Proximity
     water_onsite = models.BooleanField(default=False)
     water_line_distance_meters = models.IntegerField(null=True, blank=True)
     electricity_onsite = models.BooleanField(default=False)
     power_pole_distance_meters = models.IntegerField(null=True, blank=True)
+    has_fiber_conduit = models.BooleanField(default=False)
     drainage_system = models.CharField(max_length=50, blank=True, null=True, help_text="Covered, Open, Natural")
     is_in_wetland_buffer_zone = models.BooleanField(default=False)
     cadastral_sketch = models.ImageField(upload_to='cadastral_sketches/', blank=True, null=True)
@@ -170,6 +219,17 @@ class VehicleSpec(models.Model):
         ('Car', 'Car'),
         ('Motorcycle', 'Motorcycle'),
     )
+    DRIVETRAIN_CHOICES = (
+        ('4WD', '4WD / 4x4'),
+        ('AWD', 'All-Wheel Drive (AWD)'),
+        ('FWD', 'Front-Wheel Drive (FWD)'),
+        ('RWD', 'Rear-Wheel Drive (RWD)'),
+    )
+    CUSTOMS_STATUS_CHOICES = (
+        ('DutyPaid', 'RRA Customs Duty Paid (Rwanda Cleared)'),
+        ('InBond', 'In-Bond / Transit (Customs Duty Unpaid)'),
+        ('Exempt', 'Diplomatic / NGO Duty-Free Exemption'),
+    )
     asset = models.OneToOneField(Asset, on_delete=models.CASCADE, related_name='vehicle_spec')
     vehicle_type = models.CharField(max_length=20, choices=VEHICLE_TYPES, default='Car')
     make = models.CharField(max_length=100)
@@ -178,13 +238,27 @@ class VehicleSpec(models.Model):
     mileage = models.IntegerField(default=0)
     fuel_type = models.CharField(max_length=50, default='Petrol')
     transmission = models.CharField(max_length=50, default='Automatic')
+    drivetrain = models.CharField(max_length=20, choices=DRIVETRAIN_CHOICES, default='FWD')
     engine_capacity = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. 2000cc or 150cc")
+    horsepower = models.IntegerField(null=True, blank=True, help_text="Engine Horsepower (HP)")
     condition = models.CharField(max_length=50, blank=True, null=True, help_text="Brand New, Used Foreign, Used Local")
     body_type = models.CharField(max_length=50, blank=True, null=True, help_text="SUV, Sedan, Pickup, Minibus, Sportbike, Cruiser")
     seating_capacity = models.IntegerField(null=True, blank=True)
+
+    # Rwandan Legal & Customs Status
+    plate_number = models.CharField(max_length=50, blank=True, null=True, help_text="e.g. RAC 456 D or IT Yellow Plate")
     plate_type = models.CharField(max_length=50, blank=True, null=True, help_text="Private (RAx), Commercial Yellow Plate, Temporary")
+    vin_chassis_number = models.CharField(max_length=100, blank=True, null=True, help_text="Chassis / VIN number")
+    rra_customs_status = models.CharField(max_length=30, choices=CUSTOMS_STATUS_CHOICES, default='DutyPaid')
     controle_technique_expiry = models.DateField(null=True, blank=True)
     insurance_expiry = models.DateField(null=True, blank=True)
+
+    # Features & Equipment
+    has_air_conditioning = models.BooleanField(default=True)
+    has_leather_seats = models.BooleanField(default=False)
+    has_sunroof = models.BooleanField(default=False)
+    has_reverse_camera = models.BooleanField(default=False)
+    has_service_history = models.BooleanField(default=False)
 
     # Rental / Usage flags
     includes_driver = models.BooleanField(default=False)
@@ -258,6 +332,12 @@ class Listing(models.Model):
     status = models.CharField(max_length=20, choices=listing_status, default='listed')
     verification_level = models.CharField(max_length=20, choices=verification_levels, default='none')
     is_featured = models.BooleanField(default=False)
+    listed_by_role = models.CharField(
+        max_length=20,
+        choices=[('admin', 'Admin'), ('seller', 'Seller'), ('agent', 'Agent')],
+        default='seller',
+        help_text="Which dashboard role created this listing"
+    )
     views_count = models.IntegerField(default=0)
 
     date_listed = models.DateTimeField(auto_now_add=True)
@@ -661,6 +741,61 @@ class DealDocument(models.Model):
         return f"Document: {self.title} ({self.get_document_type_display()}) for Deal {self.deal.id}"
 
 
+class ContractAgreement(models.Model):
+    """Digital Contract & Legal Agreement for a Transaction Deal."""
+    CONTRACT_TYPE_CHOICES = (
+        ('property_sale', 'Bilateral Property Sale Agreement (Compromis de Vente)'),
+        ('apartment_unit_sale', 'Condominium Unit Purchase Agreement'),
+        ('land_sale', 'Bilateral Land Conveyance Agreement'),
+        ('residential_lease', 'Residential Tenancy Agreement'),
+        ('commercial_lease', 'Commercial Lease Agreement'),
+        ('vehicle_sale', 'Motor Vehicle Bill of Sale'),
+        ('spousal_consent', 'Spousal Consent Affidavit'),
+        ('handover_protocol', 'Inspection & Key Handover Protocol'),
+    )
+    STATUS_CHOICES = (
+        ('draft', 'Drafting & Review'),
+        ('pending_signatures', 'Awaiting Signatures'),
+        ('partially_signed', 'Partially Signed'),
+        ('fully_executed', 'Fully Executed & Sealed'),
+        ('voided', 'Voided / Expired'),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    deal = models.ForeignKey(TransactionDeal, on_delete=models.CASCADE, related_name='contracts')
+    contract_type = models.CharField(max_length=40, choices=CONTRACT_TYPE_CHOICES, default='property_sale')
+    title = models.CharField(max_length=255)
+
+    # Rendered Legal Terms (HTML & optional PDF)
+    contract_html_content = models.TextField(blank=True)
+    contract_pdf = models.FileField(upload_to='signed_contracts/%Y/%m/', null=True, blank=True)
+
+    # Cryptographic integrity
+    sha256_hash = models.CharField(max_length=64, blank=True, help_text="Cryptographic document fingerprint")
+    qr_verification_token = models.CharField(max_length=64, blank=True, unique=True)
+
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='draft')
+
+    # Structured signers manifest
+    # List of dicts: [
+    #   {"role": "seller", "user_id": 2, "name": "...", "phone": "...", "nida": "...", "status": "signed|pending",
+    #    "signature_data": "data:image/png...", "signature_type": "draw|type", "signed_at": "...", "ip_address": "...", "otp_verified": True},
+    #   ...
+    # ]
+    signers_manifest = models.JSONField(default=list, blank=True)
+    requires_spousal_consent = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    executed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Contract: {self.title} ({self.status}) for Deal {self.deal.id}"
+
+
 class AgentAssignment(models.Model):
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name='assignments')
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='agent_assignments', null=True, blank=True)
@@ -681,8 +816,9 @@ class SiteVisit(models.Model):
 class PropertyInquiry(models.Model):
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='inquiries', null=True, blank=True)
     name = models.CharField(max_length=150)
-    email = models.EmailField(max_length=150)
+    email = models.EmailField(max_length=150, blank=True, null=True)
     phone = models.CharField(max_length=20, blank=True)
+    location = models.CharField(max_length=255, blank=True, null=True)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

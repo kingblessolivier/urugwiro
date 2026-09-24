@@ -25,11 +25,13 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
 
   return (
     <div
-      className="flex min-h-screen flex-col text-[var(--color-text-main)] font-sans antialiased selection:bg-emerald-500/30 w-full max-w-full overflow-x-hidden transition-colors duration-300"
+      className="flex min-h-screen flex-col text-[var(--color-text-main)] font-sans antialiased selection:bg-emerald-500/30 w-full max-w-full overflow-x-clip transition-colors duration-300"
       style={{ background: 'var(--color-bg-deep)' }}
     >
       <PublicHeader view={view} onNavigate={onNavigate} onSearch={onSearch} />
-      <main className={cn("flex-1 w-full max-w-full overflow-x-hidden", !isAuth && "pb-20 md:pb-0")}>{children}</main>
+      {/* Fixed Header Spacer to prevent content jump and overlap */}
+      <div className="h-18 sm:h-20 w-full shrink-0" aria-hidden="true" />
+      <main className={cn("flex-1 w-full max-w-full overflow-x-clip", !isAuth && "pb-20 md:pb-0")}>{children}</main>
       {showFooter && !isAuth ? <PublicFooter onNavigate={onNavigate} /> : null}
       {!isAuth && <MobileTabBar view={view} onNavigate={onNavigate} />}
       {!isAuth && <AiChatWidget />}

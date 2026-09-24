@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  UserCheck, ShieldCheck, Star, Award, Phone, Mail, CheckCircle2,
-  Building, Check, ChevronRight, Sparkles
+  UserCheck, ShieldCheck, Star, Phone, Mail, CheckCircle2,
+  Check
 } from 'lucide-react';
-import { Badge } from '../../../components/ui/Badge';
 import { api } from '../../../api/endpoints';
 
 interface SellerAgentNetworkProps {

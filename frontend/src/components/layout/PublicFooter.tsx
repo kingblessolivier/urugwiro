@@ -53,9 +53,7 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ onNavigate }) => {
             <ul className="mt-5 space-y-3">
               {[
                 { label: 'Explore Properties', view: 'discovery' as AppView },
-                { label: 'Professional Services', view: 'services' as AppView },
-                { label: 'Sell With Us (Proposals)', view: 'submit-proposal' as AppView },
-                { label: 'Land Information', view: 'land-information' as AppView },
+                { label: 'Sell or Rent With Us', view: 'submit-proposal' as AppView },
               ].map((item) => (
                 <li key={item.label}>
                   <button

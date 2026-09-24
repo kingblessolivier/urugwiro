@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  User, UserCheck, UserMinus, ShieldCheck,
-  Search, Filter, Edit3, Trash2, CheckCircle2,
+  User, ShieldCheck,
+  Search, Edit3, Trash2, CheckCircle2,
   XCircle, AlertCircle, ChevronRight, ChevronLeft, UserPlus,
   Key, Eye, EyeOff, Building, Package, HandCoins,
-  RefreshCw, X, MoreVertical, Shield, Mail,
-  Calendar, Phone, Lock, ExternalLink
+  RefreshCw, X, Shield, Mail,
 } from 'lucide-react';
 import { api } from '../../api/endpoints';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { cn } from '../../lib/utils';
+
 
 export interface UserItem {
   id: number;
@@ -250,18 +249,19 @@ export const AdminUserManagement: React.FC = () => {
 
         {/* PAGE HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/10 pb-6">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
-              <ShieldCheck size={14} />
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold uppercase tracking-[0.2em] mb-3">
+              <ShieldCheck size={12} />
               Identity & Access Governance
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-display">
+            <h1 className="text-2xl lg:text-3xl font-serif font-bold text-white tracking-tight">
               User <span className="text-emerald-400">Registry</span>
             </h1>
-            <p className="text-zinc-400 text-xs sm:text-sm mt-1">
-              Manage permissions, assign roles, enforce platform security, and audit identity lifecycles.
+            <p className="text-zinc-500 text-xs font-mono uppercase tracking-wider">
+              Manage permissions, assign roles, and audit identity lifecycles.
             </p>
           </div>
+
 
           <div className="flex items-center gap-3">
             <button
@@ -284,7 +284,7 @@ export const AdminUserManagement: React.FC = () => {
         </div>
 
         {/* KPI ANALYTICS GRID */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
             { label: 'Total Users', value: stats.total, icon: User, color: 'text-white bg-white/5 border-white/10' },
             { label: 'Active Now', value: stats.active, icon: CheckCircle2, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
@@ -295,20 +295,23 @@ export const AdminUserManagement: React.FC = () => {
           ].map((item, idx) => {
             const Icon = item.icon;
             return (
-              <div key={idx} className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex flex-col justify-between group hover:border-white/20 transition-all">
+              <div key={idx} className="rounded-sm border border-white/10 bg-[#0A0C12] p-4 flex flex-col justify-between group hover:border-emerald-500/40 transition-all shadow-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] uppercase font-semibold tracking-wider text-zinc-500">{item.label}</span>
-                  <div className={cn("p-1.5 rounded-lg border", item.color)}>
+                  <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-zinc-400 font-bold">
+                    {item.label}
+                  </span>
+                  <div className={cn("h-7 w-7 rounded-sm border flex items-center justify-center", item.color)}>
                     <Icon size={14} />
                   </div>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold font-mono text-white">
+                <div className="text-2xl font-mono font-bold text-white tracking-tight">
                   {isLoading ? '...' : item.value}
                 </div>
               </div>
             );
           })}
         </div>
+
 
         {/* FILTER & SEARCH CONTROL BAR */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 flex flex-col md:flex-row gap-3 items-center justify-between">
@@ -360,16 +363,17 @@ export const AdminUserManagement: React.FC = () => {
         </div>
 
         {/* USERS ROSTER TABLE */}
-        <div className="rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl overflow-hidden shadow-2xl">
+        <div className="rounded-sm border border-white/10 bg-[#0A0C12] backdrop-blur-xl overflow-hidden shadow-2xl">
           <div className="p-4 sm:p-6 border-b border-white/10 bg-white/[0.01] flex justify-between items-center">
             <div className="flex items-center gap-3">
               <User size={18} className="text-emerald-400" />
-              <h3 className="font-bold text-white text-base sm:text-lg">Registered User Accounts</h3>
+              <h3 className="font-serif font-bold text-white text-base sm:text-lg tracking-tight">Registered User Accounts</h3>
             </div>
             <span className="text-xs font-mono text-zinc-400">
               Showing {users.length} {users.length === 1 ? 'account' : 'accounts'}
             </span>
           </div>
+
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -418,7 +422,7 @@ export const AdminUserManagement: React.FC = () => {
                       {/* Identity */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center text-white font-bold text-xs uppercase shrink-0">
+                          <div className="w-9 h-9 rounded-sm bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center text-white font-bold text-xs uppercase shrink-0">
                             {user.username.slice(0, 2)}
                           </div>
                           <div>
@@ -427,7 +431,7 @@ export const AdminUserManagement: React.FC = () => {
                                 {user.username}
                               </span>
                               {user.is_superuser && (
-                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 border border-red-500/30">
+                                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-sm bg-red-500/20 text-red-300 border border-red-500/30">
                                   Superuser
                                 </span>
                               )}
@@ -441,13 +445,15 @@ export const AdminUserManagement: React.FC = () => {
                         </div>
                       </td>
 
+
                       {/* Role */}
                       <td className="px-5 py-4">
-                        <span className={cn("px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border inline-flex items-center gap-1", roleConfig.color)}>
+                        <span className={cn("px-2.5 py-1 rounded-sm text-[10px] font-mono font-bold uppercase tracking-wider border inline-flex items-center gap-1", roleConfig.color)}>
                           <Shield size={10} />
                           {user.role}
                         </span>
                       </td>
+
 
                       {/* Status */}
                       <td className="px-5 py-4">
@@ -484,45 +490,49 @@ export const AdminUserManagement: React.FC = () => {
                           {/* Details Drawer */}
                           <button
                             onClick={() => { setSelectedUser(user); setActiveModal('drawer'); }}
-                            className="p-1.5 rounded-lg border border-white/10 bg-white/5 hover:border-emerald-500/30 hover:text-emerald-400 text-zinc-400 transition-colors"
+                            className="p-1.5 rounded-sm border border-white/10 bg-white/5 hover:border-emerald-500/30 hover:text-emerald-400 text-zinc-400 transition-colors"
                             title="Inspect User Details"
                           >
                             <Eye size={15} />
                           </button>
 
+
                           {/* Role Transition */}
                           <button
                             onClick={() => { setSelectedUser(user); setActiveModal('role'); }}
-                            className="p-1.5 rounded-lg border border-white/10 bg-white/5 hover:border-amber-500/30 hover:text-amber-400 text-zinc-400 transition-colors"
+                            className="p-1.5 rounded-sm border border-white/10 bg-white/5 hover:border-amber-500/30 hover:text-amber-400 text-zinc-400 transition-colors"
                             title="Assign Role"
                           >
                             <ShieldCheck size={15} />
                           </button>
 
+
                           {/* Edit Details */}
                           <button
                             onClick={() => openEditModal(user)}
-                            className="p-1.5 rounded-lg border border-white/10 bg-white/5 hover:border-blue-500/30 hover:text-blue-400 text-zinc-400 transition-colors"
+                            className="p-1.5 rounded-sm border border-white/10 bg-white/5 hover:border-blue-500/30 hover:text-blue-400 text-zinc-400 transition-colors"
                             title="Edit Account"
                           >
                             <Edit3 size={15} />
                           </button>
 
+
                           {/* Reset Password */}
                           <button
                             onClick={() => { setSelectedUser(user); setActiveModal('password'); }}
-                            className="p-1.5 rounded-lg border border-white/10 bg-white/5 hover:border-purple-500/30 hover:text-purple-400 text-zinc-400 transition-colors"
+                            className="p-1.5 rounded-sm border border-white/10 bg-white/5 hover:border-purple-500/30 hover:text-purple-400 text-zinc-400 transition-colors"
                             title="Reset Password"
                           >
                             <Key size={15} />
                           </button>
+
 
                           {/* Toggle Status (Activate / Suspend) */}
                           {!user.is_superuser && (
                             <button
                               onClick={() => { setSelectedUser(user); setActiveModal('status'); }}
                               className={cn(
-                                "p-1.5 rounded-lg border transition-colors",
+                                "p-1.5 rounded-sm border transition-colors",
                                 user.is_active
                                   ? "border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20"
                                   : "border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
@@ -533,16 +543,18 @@ export const AdminUserManagement: React.FC = () => {
                             </button>
                           )}
 
+
                           {/* Delete */}
                           {!user.is_superuser && (
                             <button
                               onClick={() => { setSelectedUser(user); setActiveModal('delete'); }}
-                              className="p-1.5 rounded-lg border border-white/10 bg-white/5 hover:border-red-500/40 hover:text-red-400 text-zinc-400 transition-colors"
+                              className="p-1.5 rounded-sm border border-white/10 bg-white/5 hover:border-red-500/40 hover:text-red-400 text-zinc-400 transition-colors"
                               title="Delete Account"
                             >
                               <Trash2 size={15} />
                             </button>
                           )}
+
                         </div>
                       </td>
                     </tr>
@@ -599,11 +611,12 @@ export const AdminUserManagement: React.FC = () => {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="px-3 py-1.5 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1 cursor-pointer"
+                  className="px-3 py-1.5 rounded-sm border border-white/10 bg-white/[0.03] text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1 cursor-pointer"
                 >
                   <ChevronLeft size={14} />
                   <span>Prev</span>
                 </button>
+
 
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
@@ -616,7 +629,7 @@ export const AdminUserManagement: React.FC = () => {
                         <button
                           onClick={() => setPage(p)}
                           className={cn(
-                            "w-8 h-8 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer",
+                            "w-8 h-8 rounded-sm text-xs font-mono font-bold transition-all cursor-pointer",
                             page === p
                               ? "bg-emerald-500 text-black shadow-lg shadow-emerald-950/50"
                               : "border border-white/10 bg-white/[0.02] text-zinc-400 hover:text-white hover:bg-white/[0.06]"
@@ -624,6 +637,7 @@ export const AdminUserManagement: React.FC = () => {
                         >
                           {p}
                         </button>
+
                       </React.Fragment>
                     );
                   })}
@@ -631,11 +645,12 @@ export const AdminUserManagement: React.FC = () => {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
-                  className="px-3 py-1.5 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1 cursor-pointer"
+                  className="px-3 py-1.5 rounded-sm border border-white/10 bg-white/[0.03] text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1 cursor-pointer"
                 >
                   <span>Next</span>
                   <ChevronRight size={14} />
                 </button>
+
               </div>
             </div>
           )}
@@ -646,10 +661,10 @@ export const AdminUserManagement: React.FC = () => {
       {/* ── MODAL 1: CREATE NEW USER ── */}
       {activeModal === 'create' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-[#0b0e14] border border-white/15 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-fadeIn">
+          <div className="bg-[#0b0e14] border border-white/15 rounded-sm w-full max-w-lg overflow-hidden shadow-2xl animate-fadeIn">
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                <div className="p-2 rounded-sm bg-emerald-500/10 text-emerald-400">
                   <UserPlus size={20} />
                 </div>
                 <h3 className="font-bold text-white text-lg">Add New User Account</h3>
@@ -658,6 +673,7 @@ export const AdminUserManagement: React.FC = () => {
                 <X size={20} />
               </button>
             </div>
+
 
             <form
               onSubmit={(e) => {
@@ -673,8 +689,9 @@ export const AdminUserManagement: React.FC = () => {
                     type="text"
                     value={createForm.first_name}
                     onChange={(e) => setCreateForm({ ...createForm, first_name: e.target.value })}
-                    className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-emerald-500/50"
+                    className="w-full rounded-sm bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-emerald-500/50"
                   />
+
                 </div>
                 <div>
                   <label className="text-zinc-400 block mb-1">Last Name</label>
@@ -682,8 +699,9 @@ export const AdminUserManagement: React.FC = () => {
                     type="text"
                     value={createForm.last_name}
                     onChange={(e) => setCreateForm({ ...createForm, last_name: e.target.value })}
-                    className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-emerald-500/50"
+                    className="w-full rounded-sm bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-emerald-500/50"
                   />
+
                 </div>
               </div>
 
@@ -695,8 +713,9 @@ export const AdminUserManagement: React.FC = () => {
                   value={createForm.username}
                   onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
                   placeholder="e.g. kigali_investor"
-                  className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-emerald-500/50"
+                  className="w-full rounded-sm bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-emerald-500/50"
                 />
+
               </div>
 
               <div>
@@ -707,8 +726,9 @@ export const AdminUserManagement: React.FC = () => {
                   value={createForm.email}
                   onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
                   placeholder="name@urugwiro.rw"
-                  className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-emerald-500/50"
+                  className="w-full rounded-sm bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-emerald-500/50"
                 />
+
               </div>
 
               <div>
@@ -719,8 +739,9 @@ export const AdminUserManagement: React.FC = () => {
                   minLength={6}
                   value={createForm.password}
                   onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                  className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-emerald-500/50"
+                  className="w-full rounded-sm bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-emerald-500/50"
                 />
+
               </div>
 
               <div>
@@ -728,8 +749,9 @@ export const AdminUserManagement: React.FC = () => {
                 <select
                   value={createForm.role}
                   onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as any })}
-                  className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2.5 text-white outline-none"
+                  className="w-full rounded-sm bg-white/[0.04] border border-white/10 px-3 py-2.5 text-white outline-none"
                 >
+
                   <option value="Buyer" className="bg-[#0b0e14]">Verified Buyer</option>
                   <option value="Seller" className="bg-[#0b0e14]">Asset Seller</option>
                   <option value="Agent" className="bg-[#0b0e14]">Certified Agent</option>
@@ -768,10 +790,11 @@ export const AdminUserManagement: React.FC = () => {
                   variant="primary"
                   type="submit"
                   disabled={createMutation.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-sm shadow-lg"
                 >
                   {createMutation.isPending ? 'Creating...' : 'Create Account'}
                 </Button>
+
               </div>
             </form>
           </div>
@@ -781,10 +804,10 @@ export const AdminUserManagement: React.FC = () => {
       {/* ── MODAL 2: EDIT USER DETAILS ── */}
       {activeModal === 'edit' && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-[#0b0e14] border border-white/15 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-fadeIn">
+          <div className="bg-[#0b0e14] border border-white/15 rounded-sm w-full max-w-lg overflow-hidden shadow-2xl animate-fadeIn">
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+                <div className="p-2 rounded-sm bg-blue-500/10 text-blue-400">
                   <Edit3 size={20} />
                 </div>
                 <div>
@@ -796,6 +819,7 @@ export const AdminUserManagement: React.FC = () => {
                 <X size={20} />
               </button>
             </div>
+
 
             <form
               onSubmit={(e) => {
@@ -811,8 +835,9 @@ export const AdminUserManagement: React.FC = () => {
                     type="text"
                     value={editForm.first_name}
                     onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
-                    className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-blue-500/50"
+                    className="w-full rounded-sm bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-blue-500/50"
                   />
+
                 </div>
                 <div>
                   <label className="text-zinc-400 block mb-1">Last Name</label>
@@ -820,8 +845,9 @@ export const AdminUserManagement: React.FC = () => {
                     type="text"
                     value={editForm.last_name}
                     onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
-                    className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-blue-500/50"
+                    className="w-full rounded-sm bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-blue-500/50"
                   />
+
                 </div>
               </div>
 
@@ -832,8 +858,9 @@ export const AdminUserManagement: React.FC = () => {
                   required
                   value={editForm.username}
                   onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                  className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-blue-500/50"
+                  className="w-full rounded-sm bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-blue-500/50"
                 />
+
               </div>
 
               <div>
@@ -843,8 +870,9 @@ export const AdminUserManagement: React.FC = () => {
                   required
                   value={editForm.email}
                   onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-blue-500/50"
+                  className="w-full rounded-sm bg-white/[0.04] border border-white/10 px-3 py-2 text-white outline-none focus:border-blue-500/50"
                 />
+
               </div>
 
               <div>
@@ -852,8 +880,9 @@ export const AdminUserManagement: React.FC = () => {
                 <select
                   value={editForm.role}
                   onChange={(e) => setEditForm({ ...editForm, role: e.target.value as any })}
-                  className="w-full rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2.5 text-white outline-none"
+                  className="w-full rounded-sm bg-white/[0.04] border border-white/10 px-3 py-2.5 text-white outline-none"
                 >
+
                   <option value="Admin" className="bg-[#0b0e14]">Admin</option>
                   <option value="Agent" className="bg-[#0b0e14]">Agent</option>
                   <option value="Seller" className="bg-[#0b0e14]">Seller</option>
@@ -892,10 +921,11 @@ export const AdminUserManagement: React.FC = () => {
                   variant="primary"
                   type="submit"
                   disabled={updateMutation.isPending}
-                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg"
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-sm shadow-lg"
                 >
                   {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
                 </Button>
+
               </div>
             </form>
           </div>
@@ -905,10 +935,10 @@ export const AdminUserManagement: React.FC = () => {
       {/* ── MODAL 3: ROLE TRANSITION ── */}
       {activeModal === 'role' && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-[#0b0e14] border border-white/15 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-fadeIn">
+          <div className="bg-[#0b0e14] border border-white/15 rounded-sm w-full max-w-lg overflow-hidden shadow-2xl animate-fadeIn">
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
+                <div className="p-2 rounded-sm bg-amber-500/10 text-amber-400">
                   <ShieldCheck size={20} />
                 </div>
                 <div>
@@ -920,6 +950,7 @@ export const AdminUserManagement: React.FC = () => {
                 <X size={20} />
               </button>
             </div>
+
 
             <div className="p-6 space-y-4">
               <p className="text-xs text-zinc-300">
@@ -934,12 +965,13 @@ export const AdminUserManagement: React.FC = () => {
                       key={r.role}
                       onClick={() => !isCurrent && roleMutation.mutate({ id: selectedUser.id, role: r.role })}
                       className={cn(
-                        "p-3.5 rounded-2xl border transition-all flex items-center justify-between",
+                        "p-3.5 rounded-sm border transition-all flex items-center justify-between",
                         isCurrent
                           ? "bg-white/[0.04] border-white/20 opacity-60 cursor-default"
                           : "bg-white/[0.02] border-white/5 hover:border-emerald-500/40 hover:bg-white/[0.05] cursor-pointer"
                       )}
                     >
+
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-sm text-white">{r.label}</span>
