@@ -44,7 +44,10 @@ apiClient.interceptors.response.use(
             } catch (refreshError) {
                 localStorage.removeItem('access_token');
                 localStorage.removeItem('refresh_token');
-                window.location.href = '/login';
+                localStorage.removeItem('urugwiro_user');
+                localStorage.removeItem('user_role');
+                // Routing is state-based (no react-router); the login screen is the `login` view.
+                window.location.href = `${window.location.pathname}?view=login`;
                 return Promise.reject(refreshError);
             }
         }
