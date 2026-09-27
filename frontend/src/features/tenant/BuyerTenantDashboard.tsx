@@ -82,7 +82,7 @@ export const BuyerTenantDashboard: React.FC<BuyerTenantDashboardProps> = ({
     badge?: number;
     badgeColor?: string;
   }> = [
-    { id: 'overview', label: 'Overview Cockpit', mobileLabel: 'Home', icon: LayoutDashboard },
+    { id: 'overview', label: 'Overview', mobileLabel: 'Home', icon: LayoutDashboard },
     {
       id: 'offers',
       label: 'Negotiation & Offers',
@@ -93,7 +93,7 @@ export const BuyerTenantDashboard: React.FC<BuyerTenantDashboardProps> = ({
     },
     {
       id: 'showings',
-      label: 'Digital Showing Passes',
+      label: 'Visits & Showings',
       mobileLabel: 'Showings',
       icon: QrCode,
       badge: upcomingVisitsCount > 0 ? upcomingVisitsCount : undefined,
@@ -101,8 +101,8 @@ export const BuyerTenantDashboard: React.FC<BuyerTenantDashboardProps> = ({
     },
     {
       id: 'assets',
-      label: persona === 'buyer' ? 'Deeds & Assets Vault' : 'Tenancies & Rent',
-      mobileLabel: 'Vault',
+      label: persona === 'buyer' ? 'My Properties & Deeds' : 'Tenancies & Rent',
+      mobileLabel: persona === 'buyer' ? 'Properties' : 'Tenancies',
       icon: Landmark,
     },
     {
@@ -127,7 +127,7 @@ export const BuyerTenantDashboard: React.FC<BuyerTenantDashboardProps> = ({
     },
     {
       id: 'messages',
-      label: 'Sovereign Chat',
+      label: 'Messages',
       mobileLabel: 'Messages',
       icon: MessageSquare,
       badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
@@ -137,7 +137,7 @@ export const BuyerTenantDashboard: React.FC<BuyerTenantDashboardProps> = ({
 
   // Mobile Bottom Bar subset (5 primary touchpoints)
   const mobileBottomItems = [
-    { id: 'overview', label: 'Cockpit', icon: LayoutDashboard },
+    { id: 'overview', label: 'Home', icon: LayoutDashboard },
     {
       id: 'offers',
       label: 'Offers',
@@ -146,11 +146,11 @@ export const BuyerTenantDashboard: React.FC<BuyerTenantDashboardProps> = ({
     },
     {
       id: 'showings',
-      label: 'Passes',
+      label: 'Visits',
       icon: QrCode,
       badge: upcomingVisitsCount > 0 ? upcomingVisitsCount : undefined,
     },
-    { id: 'assets', label: 'Vault', icon: Landmark },
+    { id: 'assets', label: persona === 'buyer' ? 'Properties' : 'Tenancies', icon: Landmark },
     { id: 'matchmaker', label: 'AI Match', icon: Sparkles },
   ];
 
@@ -263,7 +263,7 @@ export const BuyerTenantDashboard: React.FC<BuyerTenantDashboardProps> = ({
           <button
             onClick={() => setActiveTab('messages')}
             className="relative p-2.5 rounded-2xl bg-zinc-100 dark:bg-white/[0.04] border border-zinc-200/80 dark:border-white/10 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
-            title="Sovereign Broker Chat"
+            title="Messages"
           >
             <MessageSquare size={18} />
             {unreadMessagesCount > 0 && (

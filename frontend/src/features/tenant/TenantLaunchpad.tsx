@@ -63,7 +63,7 @@ const TenantLaunchpad: React.FC = () => {
                 <div className="relative z-10 flex justify-between items-start flex-wrap gap-6">
                     <div>
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
-                            <KeyRound size={14} /> Sovereign Resident Terminal
+                            <KeyRound size={14} /> Resident Portal
                         </div>
                         <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
                             Welcome, <span className="text-emerald-400">{displayName}</span> 👋
@@ -219,7 +219,7 @@ const TenantLaunchpad: React.FC = () => {
                     <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 backdrop-blur-xl">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-base font-bold text-white flex items-center gap-2">
-                                <Mail size={16} className="text-emerald-400" /> Sovereign Messages
+                                <Mail size={16} className="text-emerald-400" /> Messages & Notifications
                             </h3>
                         </div>
                         <div className="space-y-3">

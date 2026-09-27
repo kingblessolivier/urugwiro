@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { api } from '../../api/endpoints';
 import { Pagination } from '../../components/ui/Pagination';
+import { tableHead, tableTh, tableBody, tableTr } from '../../components/ui/Dashboard';
+import { cn } from '../../lib/utils';
 
 interface Stat {
   label: string;
@@ -110,26 +112,26 @@ const AdminAgentManager: React.FC = () => {
   }, [filteredAgents, page, pageSize]);
 
   const stats: Stat[] = [
-    { label: 'Field Brokers', value: agents.length, icon: Briefcase, color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
-    { label: 'RERA Certified', value: agents.filter((a: any) => a.is_verified).length, icon: ShieldCheck, color: 'bg-sky-500/10 text-sky-400 border-sky-500/20' },
-    { label: 'Pending Certification', value: agents.filter((a: any) => !a.is_verified).length, icon: Clock, color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+    { label: 'Field Brokers', value: agents.length, icon: Briefcase, color: 'bg-emerald-500/10 text-[var(--color-brand-emerald)] border-emerald-500/20' },
+    { label: 'RERA Certified', value: agents.filter((a: any) => a.is_verified).length, icon: ShieldCheck, color: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20' },
+    { label: 'Pending Certification', value: agents.filter((a: any) => !a.is_verified).length, icon: Clock, color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
   ];
 
   if (isLoading) {
-    return <div className="min-h-screen bg-transparent flex items-center justify-center text-zinc-400 font-mono">Loading Agents...</div>;
+    return <div className="min-h-screen bg-transparent flex items-center justify-center text-[var(--color-text-muted)] font-mono">Loading Agents...</div>;
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 text-zinc-100">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-6">
+    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 text-[var(--color-text-main)]">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[var(--color-border)] pb-6">
         <div>
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">Broker Guild</span>
-          <h1 className="text-3xl lg:text-4xl font-bold text-white tracking-tight mt-1">Field Agents & Brokers</h1>
-          <p className="text-xs text-zinc-400 mt-1">Manage certified real estate brokers, RERA license credentials, and deal volume.</p>
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-brand-emerald)]">Broker Guild</span>
+          <h1 className="text-3xl lg:text-4xl font-bold text-[var(--color-text-main)] tracking-tight mt-1">Field Agents & Brokers</h1>
+          <p className="text-xs text-[var(--color-text-muted)] mt-1">Manage certified real estate brokers, RERA license credentials, and deal volume.</p>
         </div>
         <button
           onClick={() => setIsAddOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+          className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-bold text-xs rounded-xl shadow-[var(--shadow-emerald-soft)] transition-all cursor-pointer"
         >
           <Plus size={16} />
           <span>Add Agent</span>
@@ -141,13 +143,13 @@ const AdminAgentManager: React.FC = () => {
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <div key={i} className="bg-white/[0.02] border border-white/10 p-5 rounded-2xl flex items-center gap-4 backdrop-blur-xl">
+            <div key={i} className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-5 rounded-2xl flex items-center gap-4 backdrop-blur-xl">
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${stat.color}`}>
                 <Icon size={22} />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{stat.label}</p>
-                <h3 className="text-2xl font-bold text-white font-mono mt-0.5">{stat.value}</h3>
+                <p className="text-[10px] font-bold text-[var(--color-text-dim)] uppercase tracking-wider">{stat.label}</p>
+                <h3 className="text-2xl font-bold text-[var(--color-text-main)] font-mono mt-0.5">{stat.value}</h3>
               </div>
             </div>
           );
@@ -155,9 +157,9 @@ const AdminAgentManager: React.FC = () => {
       </div>
 
       {/* Search Bar */}
-      <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] flex items-center justify-between">
+      <div className="p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] flex items-center justify-between">
         <div className="relative w-full max-w-md">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)]" />
           <input
             type="text"
             placeholder="Search by name, email, phone, license or specialization..."
@@ -166,72 +168,72 @@ const AdminAgentManager: React.FC = () => {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="w-full bg-white/[0.04] border border-white/10 rounded-xl py-2 pl-10 pr-4 text-xs sm:text-sm text-white outline-none focus:border-emerald-500/50"
+            className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl py-2 pl-10 pr-4 text-xs sm:text-sm text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500/50"
           />
         </div>
-        <div className="text-xs font-mono text-zinc-400">
+        <div className="text-xs font-mono text-[var(--color-text-muted)]">
           {filteredAgents.length} brokers
         </div>
       </div>
 
       {/* Agents Table */}
       <div className="space-y-4">
-        <div className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden shadow-xl shadow-black/40">
+        <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-[var(--shadow-depth-1)]">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs sm:text-sm">
-              <thead className="bg-white/[0.04] text-zinc-400 text-[10px] uppercase tracking-wider font-bold border-b border-white/10">
+              <thead className={tableHead}>
                 <tr>
-                  <th className="px-6 py-4 font-semibold">Agent</th>
-                  <th className="px-6 py-4 font-semibold">Email</th>
-                  <th className="px-6 py-4 font-semibold">Phone</th>
-                  <th className="px-6 py-4 font-semibold">Specialization</th>
-                  <th className="px-6 py-4 font-semibold">RERA License</th>
-                  <th className="px-6 py-4 font-semibold">Rating</th>
-                  <th className="px-6 py-4 font-semibold">Deals</th>
-                  <th className="px-6 py-4 font-semibold">Status</th>
-                  <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>Agent</th>
+                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>Email</th>
+                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>Phone</th>
+                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>Specialization</th>
+                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>RERA License</th>
+                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>Rating</th>
+                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>Deals</th>
+                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>Status</th>
+                  <th className={cn(tableTh, 'px-6 py-4 font-semibold text-right')}>Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.06]">
+              <tbody className={tableBody}>
                 {paginatedAgents.map((agent: any) => (
                   <tr
                     key={agent.id}
                     onClick={() => setInspectAgent(agent)}
-                    className="hover:bg-white/[0.03] transition-colors group cursor-pointer"
+                    className={cn(tableTr, 'group cursor-pointer')}
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center text-zinc-400 shrink-0 overflow-hidden">
+                        <div className="w-9 h-9 rounded-full bg-[var(--color-bg-elevated)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-muted)] shrink-0 overflow-hidden">
                           {agent.image ? (
                             <img src={agent.image} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <User size={16} />
                           )}
                         </div>
-                        <div className="font-semibold text-white group-hover:text-emerald-400 transition-colors">
+                        <div className="font-semibold text-[var(--color-text-main)] group-hover:text-[var(--color-brand-emerald)] transition-colors">
                           {agent.name}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-zinc-300 font-mono">
+                    <td className="px-6 py-4 text-[var(--color-text-muted)] font-mono">
                       {agent.email}
                     </td>
-                    <td className="px-6 py-4 text-zinc-300 font-mono">
+                    <td className="px-6 py-4 text-[var(--color-text-muted)] font-mono">
                       {agent.phone || agent.phone_number || '-'}
                     </td>
-                    <td className="px-6 py-4 text-zinc-300">
+                    <td className="px-6 py-4 text-[var(--color-text-muted)]">
                       {agent.specialization || 'General Brokerage'}
                     </td>
-                    <td className="px-6 py-4 text-zinc-400 font-mono">
+                    <td className="px-6 py-4 text-[var(--color-text-muted)] font-mono">
                       {agent.license_number || 'Pending'}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1 font-bold text-amber-400 font-mono">
-                        <Star size={13} className="fill-amber-400 text-amber-400" />
+                      <span className="inline-flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400 font-mono">
+                        <Star size={13} className="fill-amber-400 text-amber-600 dark:text-amber-400" />
                         {Number(agent.rating || 0).toFixed(1)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-zinc-300 font-mono font-bold">
+                    <td className="px-6 py-4 text-[var(--color-text-muted)] font-mono font-bold">
                       {agent.total_deals ?? 0}
                     </td>
                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
@@ -239,8 +241,8 @@ const AdminAgentManager: React.FC = () => {
                         onClick={() => toggleVerify(agent.id, agent.is_verified)}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full border uppercase transition-colors cursor-pointer ${
                           agent.is_verified
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30'
-                            : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-emerald-500/10 hover:text-emerald-400 hover:border-emerald-500/30'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/30 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-500/10 dark:hover:text-red-400 dark:hover:border-red-500/30'
+                            : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:text-[var(--color-brand-emerald)] dark:hover:border-emerald-500/30'
                         }`}
                         title={agent.is_verified ? 'Click to Revoke Certification' : 'Click to Verify Certification'}
                       >
@@ -261,21 +263,21 @@ const AdminAgentManager: React.FC = () => {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setInspectAgent(agent)}
-                          className="p-1.5 rounded-lg border border-white/10 text-zinc-400 hover:text-white hover:bg-white/[0.05] transition-colors"
-                          title="View Dossier"
+                          className="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-card-hover)] transition-colors"
+                          title="View Details"
                         >
                           <Eye size={15} />
                         </button>
                         <button
                           onClick={() => setEditingAgent(agent)}
-                          className="p-1.5 rounded-lg border border-white/10 text-zinc-400 hover:text-amber-400 hover:bg-white/[0.05] transition-colors"
+                          className="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-amber-500 dark:hover:text-amber-400 hover:bg-[var(--color-bg-card-hover)] transition-colors"
                           title="Edit Agent"
                         >
                           <Edit size={15} />
                         </button>
                         <button
                           onClick={() => setDeletingId(agent.id)}
-                          className="p-1.5 rounded-lg border border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                          className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:text-red-500 hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-500/10 transition-colors"
                           title="Delete Agent"
                         >
                           <Trash2 size={15} />
@@ -287,7 +289,7 @@ const AdminAgentManager: React.FC = () => {
               </tbody>
             </table>
             {filteredAgents.length === 0 && (
-              <div className="p-12 text-center text-zinc-500">No agents found matching your search.</div>
+              <div className="p-12 text-center text-[var(--color-text-dim)]">No agents found matching your search.</div>
             )}
           </div>
         </div>
@@ -303,21 +305,21 @@ const AdminAgentManager: React.FC = () => {
         />
       </div>
 
-      {/* View Agent Dossier Modal */}
+      {/* View Agent Details Modal */}
       {inspectAgent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-[#0b101b] p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-start justify-between border-b border-white/10 pb-4">
+          <div className="w-full max-w-xl rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 sm:p-8 shadow-[var(--shadow-depth-1)] space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between border-b border-[var(--color-border)] pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-lg">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[var(--color-brand-emerald)] font-bold text-lg">
                   {inspectAgent.name.charAt(0)}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">{inspectAgent.name}</h3>
+                  <h3 className="text-xl font-bold text-[var(--color-text-main)]">{inspectAgent.name}</h3>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-emerald-400 font-mono">Broker ID #{inspectAgent.id}</span>
+                    <span className="text-xs text-[var(--color-brand-emerald)] font-mono">Broker ID #{inspectAgent.id}</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
-                      inspectAgent.is_verified ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                      inspectAgent.is_verified ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/30' : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30'
                     }`}>
                       {inspectAgent.is_verified ? 'Certified Broker' : 'Pending Certification'}
                     </span>
@@ -326,80 +328,80 @@ const AdminAgentManager: React.FC = () => {
               </div>
               <button
                 onClick={() => setInspectAgent(null)}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-white bg-white/[0.04]"
+                className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] bg-[var(--color-bg-elevated)]"
               >
                 <X size={18} />
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">
-                <span className="text-[10px] font-bold uppercase text-zinc-500 block">Licensing & Credentials</span>
+              <div className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-2">
+                <span className="text-[10px] font-bold uppercase text-[var(--color-text-dim)] block">Licensing & Credentials</span>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <span className="text-[10px] text-zinc-500 uppercase block">RERA License</span>
-                    <span className="font-mono text-white font-semibold">{inspectAgent.license_number || 'Under Review'}</span>
+                    <span className="text-[10px] text-[var(--color-text-dim)] uppercase block">RERA License</span>
+                    <span className="font-mono text-[var(--color-text-main)] font-semibold">{inspectAgent.license_number || 'Under Review'}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-zinc-500 uppercase block">Specialization</span>
-                    <span className="text-emerald-400 font-semibold">{inspectAgent.specialization || 'General'}</span>
+                    <span className="text-[10px] text-[var(--color-text-dim)] uppercase block">Specialization</span>
+                    <span className="text-[var(--color-brand-emerald)] font-semibold">{inspectAgent.specialization || 'General'}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-zinc-500 uppercase block">Rating</span>
-                    <span className="text-amber-400 font-bold flex items-center gap-1 font-mono">
-                      <Star size={13} className="fill-amber-400 text-amber-400" />
+                    <span className="text-[10px] text-[var(--color-text-dim)] uppercase block">Rating</span>
+                    <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1 font-mono">
+                      <Star size={13} className="fill-amber-400 text-amber-600 dark:text-amber-400" />
                       {Number(inspectAgent.rating || 0).toFixed(1)} / 5.0
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-zinc-500 uppercase block">Closed Deals</span>
-                    <span className="text-white font-bold font-mono">{inspectAgent.total_deals ?? 0}</span>
+                    <span className="text-[10px] text-[var(--color-text-dim)] uppercase block">Closed Deals</span>
+                    <span className="text-[var(--color-text-main)] font-bold font-mono">{inspectAgent.total_deals ?? 0}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">
-                <span className="text-[10px] font-bold uppercase text-zinc-500 block">Contact Channels</span>
-                <div className="flex items-center gap-2 text-zinc-300">
-                  <Mail size={14} className="text-emerald-400" />
+              <div className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-2">
+                <span className="text-[10px] font-bold uppercase text-[var(--color-text-dim)] block">Contact Channels</span>
+                <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
+                  <Mail size={14} className="text-[var(--color-brand-emerald)]" />
                   <span>{inspectAgent.email}</span>
                 </div>
-                <div className="flex items-center gap-2 text-zinc-300">
-                  <Phone size={14} className="text-emerald-400" />
+                <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
+                  <Phone size={14} className="text-[var(--color-brand-emerald)]" />
                   <span>{inspectAgent.phone || inspectAgent.phone_number || 'No phone recorded'}</span>
                 </div>
               </div>
 
               {inspectAgent.bio && (
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 text-xs text-zinc-300 space-y-1">
-                  <span className="text-[10px] font-bold uppercase text-zinc-500 block">Professional Bio</span>
+                <div className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs text-[var(--color-text-muted)] space-y-1">
+                  <span className="text-[10px] font-bold uppercase text-[var(--color-text-dim)] block">Professional Bio</span>
                   <p className="leading-relaxed">{inspectAgent.bio}</p>
                 </div>
               )}
 
               {/* Assigned Properties */}
               {inspectAgent.properties && inspectAgent.properties.length > 0 && (
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">
-                  <span className="text-[10px] font-bold uppercase text-zinc-500 block">Assigned Properties</span>
+                <div className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-2">
+                  <span className="text-[10px] font-bold uppercase text-[var(--color-text-dim)] block">Assigned Properties</span>
                   {inspectAgent.properties.map((p: any) => (
-                    <div key={p.id} className="p-2.5 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                    <div key={p.id} className="p-2.5 rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border)] flex items-center justify-between">
                       <div>
-                        <p className="font-semibold text-white">{p.title}</p>
-                        <p className="text-[10px] text-zinc-400">{p.city} • {p.property_type}</p>
+                        <p className="font-semibold text-[var(--color-text-main)]">{p.title}</p>
+                        <p className="text-[10px] text-[var(--color-text-muted)]">{p.city} • {p.property_type}</p>
                       </div>
-                      <span className="font-mono text-emerald-400 font-bold">{Number(p.price).toLocaleString()} RWF</span>
+                      <span className="font-mono text-[var(--color-brand-emerald)] font-bold">{Number(p.price).toLocaleString()} RWF</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="pt-4 border-t border-white/10 flex justify-end gap-3">
+            <div className="pt-4 border-t border-[var(--color-border)] flex justify-end gap-3">
               <button
                 onClick={() => setInspectAgent(null)}
-                className="px-4 py-2 rounded-xl border border-white/10 text-xs font-semibold text-zinc-400 hover:text-white"
+                className="px-4 py-2 rounded-xl border border-[var(--color-border)] text-xs font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
               >
-                Close Dossier
+                Close
               </button>
             </div>
           </div>
@@ -409,67 +411,67 @@ const AdminAgentManager: React.FC = () => {
       {/* Edit Agent Modal */}
       {editingAgent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#0b101b] p-6 sm:p-8 shadow-2xl space-y-4">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Edit size={18} className="text-amber-400" />
+          <div className="w-full max-w-lg rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 sm:p-8 shadow-[var(--shadow-depth-1)] space-y-4">
+            <h3 className="text-xl font-bold text-[var(--color-text-main)] flex items-center gap-2">
+              <Edit size={18} className="text-amber-600 dark:text-amber-400" />
               Edit Broker #{editingAgent.id}
             </h3>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="text-zinc-400 block mb-1">Full Name</label>
+                <label className="text-[var(--color-text-muted)] block mb-1">Full Name</label>
                 <input
                   type="text"
                   value={editingAgent.name}
                   onChange={(e) => setEditingAgent({ ...editingAgent, name: e.target.value })}
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white outline-none focus:border-emerald-500"
+                  className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl px-3 py-2 text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
-                <label className="text-zinc-400 block mb-1">Email</label>
+                <label className="text-[var(--color-text-muted)] block mb-1">Email</label>
                 <input
                   type="email"
                   value={editingAgent.email}
                   onChange={(e) => setEditingAgent({ ...editingAgent, email: e.target.value })}
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white outline-none focus:border-emerald-500"
+                  className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl px-3 py-2 text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
-                <label className="text-zinc-400 block mb-1">Phone Number</label>
+                <label className="text-[var(--color-text-muted)] block mb-1">Phone Number</label>
                 <input
                   type="text"
                   value={editingAgent.phone || editingAgent.phone_number || ''}
                   onChange={(e) => setEditingAgent({ ...editingAgent, phone: e.target.value, phone_number: e.target.value })}
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white outline-none focus:border-emerald-500"
+                  className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl px-3 py-2 text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-zinc-400 block mb-1">RERA License</label>
+                  <label className="text-[var(--color-text-muted)] block mb-1">RERA License</label>
                   <input
                     type="text"
                     value={editingAgent.license_number || ''}
                     onChange={(e) => setEditingAgent({ ...editingAgent, license_number: e.target.value })}
-                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white outline-none focus:border-emerald-500 font-mono"
+                    className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl px-3 py-2 text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="text-zinc-400 block mb-1">Specialization</label>
+                  <label className="text-[var(--color-text-muted)] block mb-1">Specialization</label>
                   <input
                     type="text"
                     value={editingAgent.specialization || ''}
                     onChange={(e) => setEditingAgent({ ...editingAgent, specialization: e.target.value })}
-                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white outline-none focus:border-emerald-500"
+                    className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl px-3 py-2 text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+            <div className="flex justify-end gap-2 pt-3 border-t border-[var(--color-border)]">
               <button
                 type="button"
                 onClick={() => setEditingAgent(null)}
-                className="px-4 py-2 rounded-xl border border-white/10 text-xs text-zinc-400 hover:text-white"
+                className="px-4 py-2 rounded-xl border border-[var(--color-border)] text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
               >
                 Cancel
               </button>
@@ -477,7 +479,7 @@ const AdminAgentManager: React.FC = () => {
                 type="button"
                 disabled={updateAgentMutation.isPending}
                 onClick={() => updateAgentMutation.mutate({ id: editingAgent.id, data: editingAgent })}
-                className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md shadow-emerald-500/20"
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-bold text-xs shadow-[var(--shadow-emerald-soft)]"
               >
                 {updateAgentMutation.isPending ? 'Saving...' : 'Save Changes'}
               </button>
@@ -489,72 +491,72 @@ const AdminAgentManager: React.FC = () => {
       {/* Add Agent Modal */}
       {isAddOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#0b101b] p-6 sm:p-8 shadow-2xl space-y-4">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Plus size={18} className="text-emerald-400" />
+          <div className="w-full max-w-lg rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 sm:p-8 shadow-[var(--shadow-depth-1)] space-y-4">
+            <h3 className="text-xl font-bold text-[var(--color-text-main)] flex items-center gap-2">
+              <Plus size={18} className="text-[var(--color-brand-emerald)]" />
               Add Field Broker
             </h3>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="text-zinc-400 block mb-1">Broker Name *</label>
+                <label className="text-[var(--color-text-muted)] block mb-1">Broker Name *</label>
                 <input
                   type="text"
                   placeholder="e.g. Jean-Luc Karasira"
                   value={newAgent.name}
                   onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })}
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white outline-none focus:border-emerald-500"
+                  className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl px-3 py-2 text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
-                <label className="text-zinc-400 block mb-1">Email *</label>
+                <label className="text-[var(--color-text-muted)] block mb-1">Email *</label>
                 <input
                   type="email"
                   placeholder="e.g. jl.karasira@urugwiro.rw"
                   value={newAgent.email}
                   onChange={(e) => setNewAgent({ ...newAgent, email: e.target.value })}
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white outline-none focus:border-emerald-500"
+                  className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl px-3 py-2 text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
-                <label className="text-zinc-400 block mb-1">Phone Number</label>
+                <label className="text-[var(--color-text-muted)] block mb-1">Phone Number</label>
                 <input
                   type="text"
                   placeholder="e.g. +250 788 444 555"
                   value={newAgent.phone}
                   onChange={(e) => setNewAgent({ ...newAgent, phone: e.target.value })}
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white outline-none focus:border-emerald-500"
+                  className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl px-3 py-2 text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-zinc-400 block mb-1">RERA License</label>
+                  <label className="text-[var(--color-text-muted)] block mb-1">RERA License</label>
                   <input
                     type="text"
                     placeholder="e.g. RERA-RW-2024-08"
                     value={newAgent.license_number}
                     onChange={(e) => setNewAgent({ ...newAgent, license_number: e.target.value })}
-                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white outline-none focus:border-emerald-500 font-mono"
+                    className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl px-3 py-2 text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500 font-mono"
                   />
                 </div>
                 <div>
-                  <label className="text-zinc-400 block mb-1">Specialization</label>
+                  <label className="text-[var(--color-text-muted)] block mb-1">Specialization</label>
                   <input
                     type="text"
                     placeholder="e.g. Luxury Residential"
                     value={newAgent.specialization}
                     onChange={(e) => setNewAgent({ ...newAgent, specialization: e.target.value })}
-                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white outline-none focus:border-emerald-500"
+                    className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl px-3 py-2 text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+            <div className="flex justify-end gap-2 pt-3 border-t border-[var(--color-border)]">
               <button
                 type="button"
                 onClick={() => setIsAddOpen(false)}
-                className="px-4 py-2 rounded-xl border border-white/10 text-xs text-zinc-400 hover:text-white"
+                className="px-4 py-2 rounded-xl border border-[var(--color-border)] text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
               >
                 Cancel
               </button>
@@ -562,7 +564,7 @@ const AdminAgentManager: React.FC = () => {
                 type="button"
                 disabled={createAgentMutation.isPending || !newAgent.name || !newAgent.email}
                 onClick={() => createAgentMutation.mutate(newAgent)}
-                className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-emerald-500/20"
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 disabled:opacity-50 text-[#fff] font-bold text-xs shadow-[var(--shadow-emerald-soft)]"
               >
                 {createAgentMutation.isPending ? 'Adding...' : 'Add Agent'}
               </button>
@@ -574,19 +576,19 @@ const AdminAgentManager: React.FC = () => {
       {/* Delete Confirmation Modal */}
       {deletingId && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-          <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-[#0e131f] p-6 space-y-4 shadow-2xl">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-[var(--color-bg-surface)] p-6 space-y-4 shadow-[var(--shadow-depth-1)]">
+            <h3 className="text-lg font-bold text-[var(--color-text-main)] flex items-center gap-2">
               <Trash2 className="text-red-400" size={18} />
               Delete Broker
             </h3>
-            <p className="text-xs text-zinc-300">
+            <p className="text-xs text-[var(--color-text-muted)]">
               Are you sure you want to delete this broker? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setDeletingId(null)}
-                className="px-3 py-1.5 rounded-xl border border-white/10 text-xs text-zinc-400 hover:text-white"
+                className="px-3 py-1.5 rounded-xl border border-[var(--color-border)] text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
               >
                 Cancel
               </button>
@@ -594,7 +596,7 @@ const AdminAgentManager: React.FC = () => {
                 type="button"
                 disabled={deleteAgentMutation.isPending}
                 onClick={() => deleteAgentMutation.mutate(deletingId)}
-                className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors"
+                className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-[#fff] text-xs font-bold transition-colors"
               >
                 {deleteAgentMutation.isPending ? 'Deleting...' : 'Delete'}
               </button>

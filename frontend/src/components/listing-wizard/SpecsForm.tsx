@@ -87,6 +87,14 @@ export interface SpecsData {
   commercialZoning: string;
   hasCommercialElevator: boolean;
   hasLoadingBay: boolean;
+
+  // Hotel
+  starRating: number;
+  totalRooms: number;
+  conferenceHallsCount: number;
+  hasRestaurantBar: boolean;
+  commercialLicenseNumber: string;
+  managementType: string;
 }
 
 interface SpecsFormProps {
@@ -400,6 +408,31 @@ const SpecsForm: React.FC<SpecsFormProps> = ({ category, subtype, specs, onChang
         <div className="grid grid-cols-2 gap-x-4 gap-y-0">
           <Toggle label="Helmet Included" checked={specs.includesHelmet} onChange={(v) => onChange({ includesHelmet: v })} />
           <Toggle label="Delivery Rack" checked={specs.hasDeliveryRack} onChange={(v) => onChange({ hasDeliveryRack: v })} />
+        </div>
+      </div>
+    );
+  }
+
+  // ─── HOTEL ───
+  if (category === 'commercial' && (subtype === 'Hotel' || subtype?.toLowerCase() === 'hotel')) {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div><Label>Star Rating</Label><input type="number" className={inputClass} style={inputStyle} value={specs.starRating} onChange={(e) => onChange({ starRating: Number(e.target.value) })} /></div>
+          <div><Label>Total Rooms</Label><input type="number" className={inputClass} style={inputStyle} value={specs.totalRooms} onChange={(e) => onChange({ totalRooms: Number(e.target.value) })} /></div>
+          <div><Label>Conference Halls</Label><input type="number" className={inputClass} style={inputStyle} value={specs.conferenceHallsCount} onChange={(e) => onChange({ conferenceHallsCount: Number(e.target.value) })} /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Commercial License</Label><input type="text" className={inputClass} style={inputStyle} value={specs.commercialLicenseNumber} onChange={(e) => onChange({ commercialLicenseNumber: e.target.value })} /></div>
+          <div>
+            <Label>Management Type</Label>
+            <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.managementType} onChange={(e) => onChange({ managementType: e.target.value })}>
+              <option value="Independent">Independent</option><option value="Franchise">Franchise</option><option value="Corporate">Corporate</option>
+            </select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-0">
+          <Toggle label="Restaurant / Bar" checked={specs.hasRestaurantBar} onChange={(v) => onChange({ hasRestaurantBar: v })} />
         </div>
       </div>
     );

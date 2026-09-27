@@ -83,7 +83,7 @@ export const ConsumerOverview: React.FC<ConsumerOverviewProps> = ({
         </div>
       )}
 
-      {/* Primary Status Cockpit Cards */}
+      {/* Primary Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Next Showing Pass Card */}
         <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-emerald-950/30 via-white/[0.02] to-transparent border border-emerald-500/20 backdrop-blur-xl shadow-lg flex flex-col justify-between">
@@ -152,10 +152,10 @@ export const ConsumerOverview: React.FC<ConsumerOverviewProps> = ({
               </div>
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400">
-                  Tenancy Vault
+                  {persona === 'tenant' ? 'Tenancy & Leases' : 'Properties & Deeds'}
                 </span>
                 <h4 className="text-base font-bold text-zinc-900 dark:text-white">
-                  {persona === 'tenant' ? 'Monthly Rent Countdown' : 'Escrow & Deeds Vault'}
+                  {persona === 'tenant' ? 'Monthly Rent Countdown' : 'Properties & Deeds Overview'}
                 </h4>
               </div>
             </div>
@@ -163,7 +163,7 @@ export const ConsumerOverview: React.FC<ConsumerOverviewProps> = ({
               onClick={() => onSelectTab('assets')}
               className="text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1 font-medium"
             >
-              Vault <ChevronRight size={14} />
+              View All <ChevronRight size={14} />
             </button>
           </div>
 
@@ -244,7 +244,7 @@ export const ConsumerOverview: React.FC<ConsumerOverviewProps> = ({
           <div className="text-2xl font-bold font-mono text-zinc-900 dark:text-white">
             {persona === 'buyer' ? metrics.purchased_assets : metrics.active_leases}
           </div>
-          <div className="text-[11px] text-zinc-500 mt-1">Sovereign certified archives</div>
+          <div className="text-[11px] text-zinc-500 mt-1">Verified document archives</div>
         </div>
 
         <div

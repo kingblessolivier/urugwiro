@@ -172,7 +172,7 @@ export const AgentOfferManager: React.FC = () => {
                           type="button"
                           onClick={() => setSelectedOfferForView(o)}
                           className="p-1.5 rounded-xl border border-zinc-200 dark:border-white/10 hover:border-zinc-300 dark:hover:border-white/20 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-zinc-50 dark:bg-white/[0.02] transition-colors cursor-pointer"
-                          title="Inspect Full Offer Dossier"
+                          title="View Offer Details"
                         >
                           <Eye size={14} />
                         </button>

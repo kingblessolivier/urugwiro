@@ -87,10 +87,10 @@ export const ConsumerAssetsAndLeases: React.FC = () => {
         <div>
           <h3 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
             <Landmark className="text-sky-500" size={22} />
-            <span>Vault: Properties & Leases</span>
+            <span>My Properties & Leases</span>
           </h3>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Your legal deeds, active residential leases, and official conveyance documents.
+            Your legal deeds, active residential leases, and official property documents.
           </p>
         </div>
 
@@ -334,7 +334,7 @@ export const ConsumerAssetsAndLeases: React.FC = () => {
               </div>
               <h4 className="text-base font-bold text-zinc-900 dark:text-white">No Acquired Properties Yet</h4>
               <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                Once a purchase offer reaches notarization and title deed transfer, your sovereign RLMUA certificates and bilateral sales contracts will appear here.
+                Once a purchase offer reaches notarization and title deed transfer, your official RLMUA certificates and sales contracts will appear here.
               </p>
             </div>
           ) : (

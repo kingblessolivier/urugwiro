@@ -19,6 +19,11 @@ import { PropertyEditModal } from './components/PropertyEditModal';
 import { SellerEarningsAndDeals } from './components/SellerEarningsAndDeals';
 import { SellerAgentNetwork } from './components/SellerAgentNetwork';
 import { CustomerLeadsManager, type LeadChannel } from '../../components/crm/CustomerLeadsManager';
+import { SellerAnalytics } from '../../components/SellerAnalytics';
+import { OfferComparison } from '../../components/OfferComparison';
+import { ClosingChecklist } from '../../components/ClosingChecklist';
+import { PaymentCollection } from '../../components/PaymentCollection';
+import { TaskList } from '../../components/TaskList';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/endpoints';
 import { Pagination } from '../../components/ui/Pagination';
@@ -55,6 +60,15 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
 
   const [activeTab, setActiveTab] = useState<SellerTab>(initialTab);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('urugwiro_seller_sidebar_collapsed') === '1');
+  const [headerSearch, setHeaderSearch] = useState('');
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      localStorage.setItem('urugwiro_seller_sidebar_collapsed', prev ? '0' : '1');
+      return !prev;
+    });
+  };
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'house' | 'land' | 'car'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [inventoryPage, setInventoryPage] = useState(1);
@@ -151,7 +165,6 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
   );
 
   const totalValue = listings.reduce((acc, curr) => acc + curr.price, 0);
-  const totalViews = listings.reduce((acc, curr) => acc + curr.views, 0);
   const totalInquiries = listings.reduce((acc, curr) => acc + curr.inquiries, 0);
   const totalOffers = rawOffers.length;
 
@@ -232,150 +245,200 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
     return list;
   }, [rawVisits, rawInquiries]);
 
-  const navItems = [
-    { id: 'overview', label: 'Command Center', icon: LayoutDashboard },
-    { id: 'listings', label: 'Asset Portfolio', icon: Package, badge: listings.length > 0 ? listings.length.toString() : undefined },
-    { id: 'leads', label: 'Prospect Intelligence', icon: Users, badge: totalLeads > 0 ? `${totalLeads} Active` : undefined, highlight: true },
-    { id: 'visits', label: 'Inspection Log', icon: Calendar, badge: totalVisits > 0 ? `${totalVisits}` : undefined },
-    { id: 'inquiries', label: 'Client Inquiries', icon: MessageSquare, badge: totalInquiries > 0 ? `${totalInquiries}` : undefined },
-    { id: 'likes', label: 'Interest Registry', icon: Heart, badge: totalLikes > 0 ? `${totalLikes}` : undefined },
-    { id: 'offers', label: 'Negotiation Suite', icon: HandCoins, badge: totalOffers > 0 ? `${totalOffers} Active` : undefined },
-    { id: 'deals', label: 'Fiscal Ledger', icon: DollarSign },
-    { id: 'agents', label: 'Verified Network', icon: UserCheck },
-    { id: 'messages', label: 'Private Correspondence', icon: MessageSquare, badge: unreadMessagesCount > 0 ? `${unreadMessagesCount} New` : undefined },
-    { id: 'copilot', label: 'Strategic Intelligence', icon: Sparkles },
-    { id: 'verification', label: 'Compliance & Trust', icon: ShieldCheck },
+  const navSections = [
+    {
+      label: 'Portfolio',
+      items: [
+        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+        { id: 'listings', label: 'My Listings', icon: Package, badge: listings.length > 0 ? listings.length.toString() : undefined },
+        { id: 'new-listing', label: 'List New Asset', icon: Plus },
+      ],
+    },
+    {
+      label: 'Engagement',
+      items: [
+        { id: 'leads', label: 'Leads & Inquiries', icon: Users, badge: totalLeads > 0 ? `${totalLeads} Active` : undefined, highlight: true },
+        { id: 'visits', label: 'Visits & Showings', icon: Calendar, badge: totalVisits > 0 ? `${totalVisits}` : undefined },
+        { id: 'inquiries', label: 'Inquiries', icon: MessageSquare, badge: totalInquiries > 0 ? `${totalInquiries}` : undefined },
+        { id: 'likes', label: 'Saved & Favorites', icon: Heart, badge: totalLikes > 0 ? `${totalLikes}` : undefined },
+        { id: 'messages', label: 'Messages', icon: Mail, badge: unreadMessagesCount > 0 ? `${unreadMessagesCount} New` : undefined },
+      ],
+    },
+    {
+      label: 'Transactions',
+      items: [
+        { id: 'offers', label: 'Offers & Negotiations', icon: HandCoins, badge: totalOffers > 0 ? `${totalOffers} Active` : undefined },
+        { id: 'deals', label: 'Deals & Earnings', icon: DollarSign },
+        { id: 'agents', label: 'Assigned Agents', icon: UserCheck },
+      ],
+    },
+    {
+      label: 'Intelligence & Trust',
+      items: [
+        { id: 'copilot', label: 'AI Assistant', icon: Sparkles },
+        { id: 'verification', label: 'Verification & Title', icon: ShieldCheck },
+      ],
+    },
   ];
+  const navItems = navSections.flatMap(s => s.items);
 
   return (
-    <div className="flex h-screen bg-[#05070b] text-white font-sans antialiased overflow-hidden select-none">
+    <div className="flex h-screen bg-[var(--color-bg-deep)] text-[var(--color-text-main)] font-sans antialiased overflow-hidden select-none">
       
       {/* DESKTOP SIDEBAR */}
-      <aside className="w-72 bg-[#080b11]/90 backdrop-blur-2xl border-r border-white/10 hidden lg:flex flex-col p-6 sticky top-0 h-full shrink-0 z-20">
-        
+      <aside
+        className={cn(
+          "bg-[var(--color-bg-surface)] border-r border-[var(--color-border)] hidden lg:flex flex-col sticky top-0 h-full shrink-0 z-20 transition-all duration-300",
+          sidebarCollapsed ? "w-20" : "w-72"
+        )}
+      >
         {/* Brand Header */}
-        <div 
-          onClick={() => onNavigate ? onNavigate('home') : null}
-          className="flex items-center gap-3.5 px-3 py-3 mb-8 rounded-2xl bg-white/[0.02] border border-white/5 cursor-pointer hover:border-emerald-500/30 transition-all group"
-        >
-          <div className="relative">
-            <img
-              src="/urugwiro_logo_fav.png"
-              alt="Urugwiro"
-              className="h-9 w-9 rounded-xl object-contain drop-shadow-md group-hover:scale-105 transition-transform"
-            />
-            <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-[#080b11] rounded-full" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-lg font-bold font-display tracking-tight text-white flex items-center gap-1.5">
-              Urugwiro
-              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Seller
-              </span>
-            </span>
-            <span className="text-[11px] text-zinc-500 tracking-tight">Verified Estate Hub</span>
+        <div className={cn("flex items-center gap-3 shrink-0 border-b border-[var(--color-border)]", sidebarCollapsed ? "justify-center px-2 py-5" : "px-5 py-5")}>
+          <div
+            onClick={() => onNavigate ? onNavigate('home') : null}
+            className="flex items-center gap-3 cursor-pointer min-w-0 group"
+            title="Urugwiro — Public Portal"
+          >
+            <div className="relative shrink-0">
+              <img
+                src="/urugwiro_logo_fav.png"
+                alt="Urugwiro"
+                className="h-9 w-9 rounded-xl object-contain drop-shadow-md group-hover:scale-105 transition-transform"
+              />
+              <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-600 dark:bg-emerald-500 border-2 border-[var(--color-bg-surface)] rounded-full" />
+            </div>
+            {!sidebarCollapsed && (
+              <div className="flex flex-col min-w-0">
+                <span className="text-base font-bold tracking-tight text-[var(--color-text-main)] flex items-center gap-1.5">
+                  Urugwiro
+                  <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/20">
+                    Seller
+                  </span>
+                </span>
+                <span className="text-[10px] text-[var(--color-text-dim)] tracking-tight truncate">Verified Estate Hub</span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 space-y-1.5">
-          <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-            Operations
-          </div>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id as SellerTab);
-                }}
-                className={cn(
-                  "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all group",
-                  isActive
-                    ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
-                    : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon
-                    size={18}
-                    className={cn(
-                      "transition-colors",
-                      isActive
-                        ? "text-emerald-400"
-                        : item.highlight
-                        ? "text-emerald-400 group-hover:text-emerald-300"
-                        : "text-zinc-500 group-hover:text-white"
-                    )}
-                  />
-                  <span>{item.label}</span>
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
+          {navSections.map((section) => (
+            <div key={section.label} className="space-y-1">
+              {!sidebarCollapsed && (
+                <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-dim)]">
+                  {section.label}
                 </div>
-                {item.badge && (
-                  <span
+              )}
+              {sidebarCollapsed && <div className="mx-3 mb-2 border-t border-[var(--color-border)]" />}
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id as SellerTab)}
+                    title={sidebarCollapsed ? item.label : undefined}
                     className={cn(
-                      "text-[10px] font-mono px-2 py-0.5 rounded-full border",
+                      "w-full relative flex items-center rounded-xl text-sm transition-all group",
+                      sidebarCollapsed ? "justify-center px-0 py-2.5" : "justify-between px-3.5 py-2.5 font-medium",
                       isActive
-                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                        : item.highlight
-                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                        : "bg-white/5 text-zinc-400 border-white/10"
+                        ? "bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] border border-emerald-500/30 font-bold shadow-[var(--shadow-emerald-soft)]"
+                        : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)] border border-transparent"
                     )}
                   >
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+                    <div className={cn("flex items-center", sidebarCollapsed ? "" : "gap-3 min-w-0")}>
+                      <Icon
+                        size={18}
+                        className={cn(
+                          "shrink-0 transition-colors",
+                          isActive
+                            ? "text-[var(--color-brand-emerald)]"
+                            : item.highlight
+                            ? "text-[var(--color-brand-emerald)]"
+                            : "text-[var(--color-text-dim)] group-hover:text-[var(--color-text-main)]"
+                        )}
+                      />
+                      {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+                    </div>
+                    {item.badge && !sidebarCollapsed && (
+                      <span
+                        className={cn(
+                          "text-[10px] font-mono px-2 py-0.5 rounded-full border shrink-0",
+                          isActive
+                            ? "bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] border-emerald-500/40"
+                            : item.highlight
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/20"
+                            : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] border-[var(--color-border)]"
+                        )}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                    {item.badge && sidebarCollapsed && (
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-500" />
+                    )}
+                    {sidebarCollapsed && (
+                      <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border)] shadow-[var(--shadow-depth-2)] text-xs font-semibold text-[var(--color-text-main)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                        {item.label}
+                        {item.badge ? ` · ${item.badge}` : ''}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
-        {/* Quick Launch Button */}
-        <div className="pt-4 pb-4">
+        {/* Collapse Toggle */}
+        <div className={cn("px-3 py-2 border-t border-[var(--color-border)]", sidebarCollapsed ? "flex justify-center" : "flex justify-end")}>
           <button
-            onClick={() => setActiveTab('new-listing')}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-sm shadow-lg shadow-emerald-950/50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            onClick={toggleSidebar}
+            className="p-2 rounded-lg text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)] transition-colors"
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <Plus size={16} />
-            <span>List New Asset</span>
+            {sidebarCollapsed ? <ArrowRight size={16} /> : <ArrowRight size={16} className="rotate-180" />}
           </button>
         </div>
 
         {/* Seller Trust Profile */}
-        <div className="pt-4 border-t border-white/10 space-y-3">
-          <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+        <div className="px-3 pb-4 pt-2 border-t border-[var(--color-border)] space-y-2 shrink-0">
+          <div className={cn(
+            "rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] flex items-center gap-3",
+            sidebarCollapsed ? "justify-center p-2" : "p-3"
+          )}>
             <div className="relative shrink-0">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 flex items-center justify-center font-bold text-emerald-400 text-sm">
+              <div className="w-9 h-9 rounded-lg bg-[var(--color-accent-soft-bg)] border border-emerald-500/30 flex items-center justify-center font-bold text-[var(--color-brand-emerald)] text-xs">
                 {displayName.slice(0, 2).toUpperCase()}
               </div>
-              <CheckCircle2 size={12} className="absolute -bottom-1 -right-1 text-emerald-400 bg-[#080b11] rounded-full" />
+              <CheckCircle2 size={12} className="absolute -bottom-1 -right-1 text-[var(--color-brand-emerald)] bg-[var(--color-bg-elevated)] rounded-full" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-white truncate">{displayName}</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[10px] text-emerald-400 font-mono">{displayRole}</span>
-                <span className="text-[9px] text-zinc-500">•</span>
-                <span className="text-[10px] text-zinc-400 truncate">{user?.email || 'Verified Account'}</span>
+            {!sidebarCollapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-[var(--color-text-main)] truncate">{displayName}</p>
+                <p className="text-[10px] text-[var(--color-text-muted)] truncate">{displayRole} • {user?.email || 'Verified Account'}</p>
               </div>
-            </div>
+            )}
           </div>
 
-          <div className="flex items-center justify-between px-1 text-xs text-zinc-500">
-            <button 
+          <div className={cn("flex items-center text-[11px] text-[var(--color-text-dim)]", sidebarCollapsed ? "flex-col gap-1.5" : "justify-between px-1")}>
+            <button
               onClick={() => onNavigate ? onNavigate('home') : null}
-              className="hover:text-zinc-300 transition-colors flex items-center gap-1 text-[11px]"
+              className="hover:text-[var(--color-text-main)] transition-colors flex items-center gap-1"
+              title="Public Portal"
             >
-              <ArrowRight size={12} className="rotate-180" /> Public Portal
+              <ExternalLink size={12} /> {!sidebarCollapsed && 'Public Portal'}
             </button>
-            <button 
+            <button
               onClick={async () => {
                 await logout();
                 if (onNavigate) onNavigate('home');
               }}
-              className="hover:text-red-400 transition-colors flex items-center gap-1 text-[11px]"
+              className="hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center gap-1"
+              title="Sign out"
             >
-              <LogOut size={12} /> Exit
+              <LogOut size={12} /> {!sidebarCollapsed && 'Exit'}
             </button>
           </div>
         </div>
@@ -388,59 +451,66 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
             className="fixed inset-0 bg-black/80 backdrop-blur-sm"
             onClick={() => setMobileNavOpen(false)}
           />
-          <div className="relative w-80 max-w-[85vw] bg-[#080b11] border-r border-white/10 h-full p-6 flex flex-col z-10">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
+          <div className="relative w-80 max-w-[85vw] bg-[var(--color-bg-surface)] border-r border-[var(--color-border)] h-full p-6 flex flex-col z-10">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--color-border)]">
               <div className="flex items-center gap-2.5">
                 <img src="/urugwiro_logo_fav.png" alt="Urugwiro" className="h-7 w-7 rounded-lg" />
-                <span className="font-bold text-white">Seller Dashboard</span>
+                <span className="font-bold text-[var(--color-text-main)]">Seller Dashboard</span>
               </div>
               <button 
                 onClick={() => setMobileNavOpen(false)}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-white bg-white/5"
+                className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] bg-[var(--color-bg-elevated)]"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <nav className="flex-1 space-y-2 overflow-y-auto">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setActiveTab(item.id as SellerTab);
-                      setMobileNavOpen(false);
-                    }}
-                    className={cn(
-                      "w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all",
-                      isActive
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                        : "text-zinc-400 hover:text-white hover:bg-white/5"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon size={18} className={isActive ? "text-emerald-400" : "text-zinc-500"} />
-                      <span>{item.label}</span>
-                    </div>
-                    {item.badge && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+            <nav className="flex-1 overflow-y-auto space-y-5 py-1">
+              {navSections.map((section) => (
+                <div key={section.label} className="space-y-1.5">
+                  <div className="px-3 pb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-dim)]">
+                    {section.label}
+                  </div>
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setActiveTab(item.id as SellerTab);
+                          setMobileNavOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm transition-all",
+                          isActive
+                            ? "bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] border border-emerald-500/30 font-bold shadow-[var(--shadow-emerald-soft)]"
+                            : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)] border border-transparent"
+                        )}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Icon size={18} className={cn("shrink-0", isActive ? "text-[var(--color-brand-emerald)]" : "text-[var(--color-text-dim)]")} />
+                          <span className="truncate">{item.label}</span>
+                        </div>
+                        {item.badge && (
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)] shrink-0">
+                            {item.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
             </nav>
 
-            <div className="pt-4 border-t border-white/10">
+            <div className="pt-4 border-t border-[var(--color-border)]">
               <button
                 onClick={() => {
                   setActiveTab('new-listing');
                   setMobileNavOpen(false);
                 }}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 text-white font-semibold text-sm"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-semibold text-sm"
               >
                 <Plus size={18} />
                 <span>List New Asset</span>
@@ -454,73 +524,113 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* TOP NAVBAR */}
-        <header className="h-16 lg:h-20 bg-[#080b11]/80 backdrop-blur-xl border-b border-white/10 px-4 sm:px-6 lg:px-8 flex items-center justify-between shrink-0 z-10">
-          
-          <div className="flex items-center gap-3 lg:gap-4 flex-1">
+        <header className="h-16 lg:h-20 bg-[var(--color-header-bg)] backdrop-blur-xl border-b border-[var(--color-border)] px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 shrink-0 z-10">
+
+          <div className="flex items-center gap-3 lg:gap-4 flex-1 min-w-0">
             {/* Mobile menu trigger */}
             <button
               onClick={() => setMobileNavOpen(true)}
-              className="lg:hidden p-2 rounded-xl border border-white/10 bg-white/[0.03] text-zinc-400 hover:text-white"
+              className="lg:hidden p-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] shrink-0"
             >
               <Menu size={20} />
             </button>
 
-            {/* Mobile / Desktop Brand pill when on smaller screens */}
-            <div className="flex items-center gap-2 lg:hidden">
+            {/* Mobile Brand pill */}
+            <div className="flex items-center gap-2 lg:hidden shrink-0">
               <img src="/urugwiro_logo_fav.png" alt="Logo" className="w-6 h-6 rounded-md" />
-              <span className="font-bold text-sm text-white">Urugwiro</span>
+              <span className="font-bold text-sm text-[var(--color-text-main)]">Urugwiro</span>
             </div>
 
-            {/* Active view indicator */}
-            <div className="hidden sm:flex items-center gap-2 text-xs text-zinc-400">
-              <span className="text-zinc-600">Seller Workspace</span>
-              <span>/</span>
-              <span className="text-emerald-400 font-medium capitalize">
-                {activeTab === 'copilot' ? 'AI Co-Pilot' : activeTab}
+            {/* Breadcrumbs */}
+            <nav className="hidden sm:flex items-center gap-2 text-xs min-w-0" aria-label="Breadcrumb">
+              <span className="text-[var(--color-text-dim)] font-medium">Seller Workspace</span>
+              <span className="text-[var(--color-text-dim)]">/</span>
+              <span className="text-[var(--color-text-muted)] font-medium">
+                {navSections.find(s => s.items.some(i => i.id === activeTab))?.label || 'Portfolio'}
               </span>
-            </div>
+              <span className="text-[var(--color-text-dim)]">/</span>
+              <span className="text-[var(--color-brand-emerald)] font-bold capitalize truncate">
+                {activeTab === 'copilot' ? 'AI Co-Pilot' : activeTab.replace(/-/g, ' ')}
+              </span>
+            </nav>
+          </div>
+
+          {/* Header Command Search */}
+          <div className="hidden md:flex items-center relative max-w-xs flex-1">
+            <Search size={15} className="absolute left-3.5 text-[var(--color-text-dim)] pointer-events-none" />
+            <input
+              type="text"
+              value={headerSearch}
+              onChange={(e) => {
+                setHeaderSearch(e.target.value);
+                if (e.target.value && activeTab !== 'listings') setActiveTab('listings');
+                setSearchQuery(e.target.value);
+                setInventoryPage(1);
+              }}
+              placeholder="Search inventory..."
+              className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl py-2 pl-10 pr-12 text-xs text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500/50 transition-colors"
+            />
+            <span className="absolute right-3 text-[9px] font-mono font-bold text-[var(--color-text-dim)] border border-[var(--color-border)] rounded px-1.5 py-0.5 bg-[var(--color-bg-elevated)] pointer-events-none">
+              ⌘K
+            </span>
           </div>
 
           {/* Right Header Controls */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Quick AI Trigger button */}
             <button
               onClick={() => setActiveTab('copilot')}
               className={cn(
                 "flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all",
                 activeTab === 'copilot'
-                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                  : "bg-white/[0.03] text-zinc-300 border-white/10 hover:border-emerald-500/30 hover:text-emerald-400"
+                  ? "bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] border-emerald-500/40"
+                  : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] border-[var(--color-border)] hover:border-emerald-500/30 hover:text-[var(--color-brand-emerald)]"
               )}
             >
-              <Sparkles size={14} className="text-emerald-400 animate-pulse" />
+              <Sparkles size={14} className="text-[var(--color-brand-emerald)] animate-pulse" />
               <span className="hidden sm:inline">AI Co-Pilot</span>
             </button>
 
             {/* Notification bell */}
             <button
               onClick={() => setActiveTab('offers')}
-              className="relative p-2 rounded-xl border border-white/10 bg-white/[0.03] text-zinc-400 hover:text-white transition-colors"
+              className="relative p-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors"
+              title="Offers & notifications"
             >
               <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full ring-2 ring-[#080b11]" />
+              {(totalOffers > 0 || unreadMessagesCount > 0) && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 dark:bg-emerald-500 text-[#fff] dark:text-emerald-950 text-[9px] font-bold flex items-center justify-center ring-2 ring-[var(--color-bg-surface)]">
+                  {totalOffers + unreadMessagesCount}
+                </span>
+              )}
             </button>
 
-            <div className="h-6 w-px bg-white/10 mx-1 hidden sm:block" />
+            <div className="h-6 w-px bg-[var(--color-border)] mx-1 hidden sm:block" />
 
             {/* Quick Public View */}
             <button
               onClick={() => onNavigate ? onNavigate('discovery') : null}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-white/[0.03] text-xs text-zinc-300 hover:text-white hover:border-white/20 transition-all"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:border-[var(--color-border-hover)] transition-all"
             >
               <span>Explore Market</span>
-              <ExternalLink size={12} className="text-zinc-500" />
+              <ExternalLink size={12} className="text-[var(--color-text-dim)]" />
             </button>
+
+            {/* User chip */}
+            <div className="hidden lg:flex items-center gap-2.5 pl-1">
+              <div className="w-9 h-9 rounded-lg bg-[var(--color-accent-soft-bg)] border border-emerald-500/30 flex items-center justify-center font-bold text-[var(--color-brand-emerald)] text-xs shrink-0">
+                {displayName.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="hidden xl:flex flex-col leading-tight">
+                <span className="text-xs font-bold text-[var(--color-text-main)] truncate max-w-[140px]">{displayName}</span>
+                <span className="text-[10px] text-[var(--color-text-dim)]">{displayRole}</span>
+              </div>
+            </div>
           </div>
         </header>
 
         {/* MOBILE HORIZONTAL TAB BAR */}
-        <div className="lg:hidden bg-[#080b11] border-b border-white/10 px-4 py-2 overflow-x-auto scrollbar-none flex items-center gap-2 shrink-0">
+        <div className="lg:hidden bg-[var(--color-bg-surface)] border-b border-[var(--color-border)] px-4 py-2 overflow-x-auto scrollbar-none flex items-center gap-2 shrink-0">
           {navItems.map(item => (
             <button
               key={item.id}
@@ -528,13 +638,13 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
               className={cn(
                 "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5",
                 activeTab === item.id
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold"
-                  : "bg-white/[0.02] text-zinc-400 border border-white/5"
+                  ? "bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] border border-emerald-500/30 font-semibold"
+                  : "bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
               )}
             >
               <span>{item.label}</span>
               {item.badge && (
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-black/40 text-zinc-400">
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]">
                   {item.badge}
                 </span>
               )}
@@ -543,36 +653,36 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
         </div>
 
         {/* TAB CONTENT AREA */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-[#05070b] via-[#080b11] to-[#05070b]">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[var(--color-bg-deep)]">
 
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
               
               {/* Hero Banner with AI Valuation Insight */}
-              <div className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-r from-emerald-950/30 via-black/60 to-black/80 p-6 lg:p-10">
+              <div className="relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] p-6 lg:p-10">
                 <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div className="space-y-2">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-widest">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-[var(--color-brand-emerald)] text-[10px] font-bold uppercase tracking-widest">
                       <Sparkles size={12} />
-                      AI Market Intelligence Active
+                      AI Market Insights Active
                     </div>
-                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white font-display leading-tight">
-                      Welcome Back, <span className="text-emerald-400">{displayName}</span>
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[var(--color-text-main)] font-display leading-tight">
+                      Welcome Back, <span className="text-[var(--color-brand-emerald)]">{displayName}</span>
                     </h1>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <button
                       onClick={() => setActiveTab('new-listing')}
-                      className="flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-b from-emerald-600 to-emerald-800 hover:from-emerald-500 hover:to-emerald-700 text-white font-semibold text-sm shadow-lg shadow-emerald-950/50 transition-all hover:scale-[1.01] active:scale-[0.99] border-t border-white/10 cursor-pointer"
+                      className="flex items-center gap-2 px-6 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-semibold text-sm shadow-[var(--shadow-emerald-soft)] transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                     >
                       <Plus size={16} />
                       List New Asset
                     </button>
                     <button
                       onClick={() => setActiveTab('copilot')}
-                      className="flex items-center gap-2 px-5 py-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-semibold text-sm transition-all duration-300 cursor-pointer"
+                      className="flex items-center gap-2 px-5 py-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] font-semibold text-sm transition-all duration-300 cursor-pointer"
                     >
                       <Bot size={16} />
                       Consult AI Copilot
@@ -583,17 +693,17 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
 
               {/* STATS TILES */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-emerald-500/30 transition-all group">
-                  <div className="flex items-center justify-between text-zinc-500 mb-3">
+                <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 hover:border-emerald-500/30 transition-all group">
+                  <div className="flex items-center justify-between text-[var(--color-text-dim)] mb-3">
                     <span className="text-xs uppercase tracking-wider font-semibold">Gross Portfolio</span>
-                    <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                    <span className="p-2 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] group-hover:bg-emerald-600 group-hover:text-[#fff] transition-colors">
                       <Building size={16} />
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
-                    {totalValue > 0 ? `${(totalValue / 1000000).toLocaleString(undefined, { maximumFractionDigits: 1 })}M` : '0'} <span className="text-xs text-zinc-400 font-sans">RWF</span>
+                  <div className="text-2xl sm:text-3xl font-bold font-mono text-[var(--color-text-main)]">
+                    {totalValue > 0 ? `${(totalValue / 1000000).toLocaleString(undefined, { maximumFractionDigits: 1 })}M` : '0'} <span className="text-xs text-[var(--color-text-muted)] font-sans">RWF</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 mt-2 font-medium">
+                  <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-brand-emerald)] mt-2 font-medium">
                     <TrendingUp size={12} />
                     <span>{listings.length} live {listings.length === 1 ? 'property' : 'properties'}</span>
                   </div>
@@ -601,18 +711,18 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
 
                 <div 
                   onClick={() => setActiveTab('leads')}
-                  className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-emerald-500/30 transition-all group cursor-pointer"
+                  className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 hover:border-emerald-500/30 transition-all group cursor-pointer"
                 >
-                  <div className="flex items-center justify-between text-zinc-500 mb-3">
+                  <div className="flex items-center justify-between text-[var(--color-text-dim)] mb-3">
                     <span className="text-xs uppercase tracking-wider font-semibold">Customer Leads CRM</span>
-                    <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                    <span className="p-2 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] group-hover:bg-emerald-600 group-hover:text-[#fff] transition-colors">
                       <Users size={16} />
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
+                  <div className="text-2xl sm:text-3xl font-bold font-mono text-[var(--color-text-main)]">
                     {totalLeads}
                   </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 mt-2 font-medium">
+                  <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-brand-emerald)] mt-2 font-medium">
                     <Sparkles size={12} />
                     <span>{totalVisits} visits • {rawInquiries.length || totalInquiries} inq • {totalLikes} saves</span>
                   </div>
@@ -620,18 +730,18 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
 
                 <div 
                   onClick={() => setActiveTab('visits')}
-                  className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-emerald-500/30 transition-all group cursor-pointer"
+                  className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 hover:border-emerald-500/30 transition-all group cursor-pointer"
                 >
-                  <div className="flex items-center justify-between text-zinc-500 mb-3">
+                  <div className="flex items-center justify-between text-[var(--color-text-dim)] mb-3">
                     <span className="text-xs uppercase tracking-wider font-semibold">Showing Visits</span>
-                    <span className="p-2 rounded-lg bg-purple-500/10 text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                    <span className="p-2 rounded-lg bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-[#fff] transition-colors">
                       <Calendar size={16} />
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
+                  <div className="text-2xl sm:text-3xl font-bold font-mono text-[var(--color-text-main)]">
                     {totalVisits}
                   </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-purple-400 mt-2 font-medium">
+                  <div className="flex items-center gap-1.5 text-[11px] text-purple-600 dark:text-purple-400 mt-2 font-medium">
                     <Clock size={12} />
                     <span>Scheduled Inspections</span>
                   </div>
@@ -639,18 +749,18 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
 
                 <div 
                   onClick={() => setActiveTab('offers')}
-                  className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 hover:border-emerald-500/30 transition-all group cursor-pointer"
+                  className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 hover:border-emerald-500/30 transition-all group cursor-pointer"
                 >
-                  <div className="flex items-center justify-between text-zinc-500 mb-3">
+                  <div className="flex items-center justify-between text-[var(--color-text-dim)] mb-3">
                     <span className="text-xs uppercase tracking-wider font-semibold">Active Offers</span>
-                    <span className="p-2 rounded-lg bg-amber-500/10 text-amber-400 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                    <span className="p-2 rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 group-hover:bg-amber-600 group-hover:text-[#fff] transition-colors">
                       <HandCoins size={16} />
                     </span>
                   </div>
-                  <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
+                  <div className="text-2xl sm:text-3xl font-bold font-mono text-[var(--color-text-main)]">
                     {totalOffers} {totalOffers === 1 ? 'Deal' : 'Deals'}
                   </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-amber-400 mt-2 font-medium">
+                  <div className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400 mt-2 font-medium">
                     <Sparkles size={12} />
                     <span>In conveyance escrow</span>
                   </div>
@@ -658,28 +768,28 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
               </div>
 
               {/* RECENT CUSTOMER ACTIVITIES (TITLES & ACTIONS ONLY) */}
-              <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 space-y-5">
+              <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 space-y-5">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base sm:text-lg font-bold text-white">Recent Customer Activities</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-[var(--color-text-main)]">Recent Customer Activities</h3>
                     {recentFollowUps.length > 0 && (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold border border-emerald-500/30">
+                      <span className="px-2 py-0.5 rounded-full bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] text-[10px] font-mono font-bold border border-emerald-500/30">
                         {recentFollowUps.length} Activities
                       </span>
                     )}
                   </div>
                   <button
                     onClick={() => setActiveTab('leads')}
-                    className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer transition-colors"
+                    className="text-xs font-semibold text-[var(--color-brand-emerald)] hover:text-[var(--color-brand-emerald)] flex items-center gap-1 cursor-pointer transition-colors"
                   >
                     Manage All Activities <ArrowRight size={13} />
                   </button>
                 </div>
 
                 {recentFollowUps.length === 0 ? (
-                  <div className="p-8 text-center text-zinc-500 rounded-2xl border border-white/5 bg-black/20">
-                    <Users size={28} className="mx-auto text-zinc-600 mb-2" />
-                    <p className="text-sm font-semibold text-zinc-300">No Pending Customer Activities</p>
+                  <div className="p-8 text-center text-[var(--color-text-dim)] rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)]">
+                    <Users size={28} className="mx-auto text-[var(--color-text-dim)] mb-2" />
+                    <p className="text-sm font-semibold text-[var(--color-text-muted)]">No Pending Customer Activities</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -688,31 +798,31 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                       return (
                         <div
                           key={lead.id}
-                          className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] hover:border-emerald-500/30 transition-all flex flex-col justify-between gap-4 group"
+                          className="p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] hover:bg-[var(--color-bg-elevated)] hover:border-emerald-500/30 transition-all flex flex-col justify-between gap-4 group"
                         >
                           <div className="space-y-2">
                             <div className="flex items-center justify-between gap-2">
                               <span className={cn(
                                 "text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border",
                                 lead.type === 'visit'
-                                  ? "bg-purple-500/10 text-purple-300 border-purple-500/30"
-                                  : "bg-blue-500/10 text-blue-300 border-blue-500/30"
+                                  ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/10 dark:text-purple-300 dark:border-purple-500/30"
+                                  : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/30"
                               )}>
                                 {lead.type === 'visit' ? 'Showing Tour' : 'Direct Inquiry'}
                               </span>
                               {lead.date && (
-                                <span className="text-[11px] font-mono text-zinc-400 flex items-center gap-1">
-                                  <Calendar size={11} className="text-zinc-500" />
+                                <span className="text-[11px] font-mono text-[var(--color-text-muted)] flex items-center gap-1">
+                                  <Calendar size={11} className="text-[var(--color-text-dim)]" />
                                   {lead.date}
                                 </span>
                               )}
                             </div>
 
                             <div className="space-y-0.5">
-                              <h4 className="text-sm font-semibold text-white group-hover:text-emerald-300 transition-colors">
+                              <h4 className="text-sm font-semibold text-[var(--color-text-main)] group-hover:text-[var(--color-brand-emerald)] transition-colors">
                                 {lead.customerName}
                               </h4>
-                              <p className="text-xs text-zinc-400 truncate font-medium">
+                              <p className="text-xs text-[var(--color-text-muted)] truncate font-medium">
                                 {lead.title}
                               </p>
                             </div>
@@ -722,23 +832,23 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                               <span className={cn(
                                 "px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase",
                                 lead.type === 'visit'
-                                  ? "bg-purple-500/10 text-purple-300 border border-purple-500/20"
-                                  : "bg-blue-500/10 text-blue-300 border border-blue-500/20"
+                                  ? "bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-500/10 dark:text-purple-300 dark:border-purple-500/20"
+                                  : "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20"
                               )}>
                                 {lead.type === 'visit' ? (lead.timeSlot ? `Slot: ${lead.timeSlot}` : 'Inspection Tour') : 'Buyer Inbound Message'}
                               </span>
-                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/[0.03] text-zinc-400 border border-white/10 uppercase">
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)] uppercase">
                                 {lead.status || 'Active'}
                               </span>
                             </div>
                           </div>
 
-                          <div className="pt-2 border-t border-white/5 flex items-center gap-2">
+                          <div className="pt-2 border-t border-[var(--color-border)] flex items-center gap-2">
                             {cleanPhone ? (
                               <>
                                 <a
                                   href={`tel:${cleanPhone}`}
-                                  className="flex-1 py-1.5 px-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                                  className="flex-1 py-1.5 px-2 rounded-xl bg-emerald-500/10 hover:bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                                   title="Call Customer"
                                 >
                                   <Phone size={13} />
@@ -748,7 +858,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                                   href={`https://wa.me/${cleanPhone.replace('+', '')}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex-1 py-1.5 px-2 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                                  className="flex-1 py-1.5 px-2 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 border border-teal-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                                   title="Chat on WhatsApp"
                                 >
                                   <MessageSquare size={13} />
@@ -756,12 +866,12 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                                 </a>
                               </>
                             ) : (
-                              <span className="text-[11px] text-zinc-500 italic">No phone provided</span>
+                              <span className="text-[11px] text-[var(--color-text-dim)] italic">No phone provided</span>
                             )}
                             {lead.email && (
                               <a
                                 href={`mailto:${lead.email}`}
-                                className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/10 text-zinc-300 border border-white/10 text-xs flex items-center justify-center transition-colors"
+                                className="p-2 rounded-xl bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-card-hover)] text-[var(--color-text-muted)] border border-[var(--color-border)] text-xs flex items-center justify-center transition-colors"
                                 title="Send Email"
                               >
                                 <Mail size={13} />
@@ -779,14 +889,14 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 {/* Listings Summary Column */}
-                <div className="lg:col-span-2 rounded-3xl border border-white/10 bg-white/[0.02] p-6 space-y-6">
+                <div className="lg:col-span-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-bold text-white text-lg">Active Portfolio</h3>
+                      <h3 className="font-bold text-[var(--color-text-main)] text-lg">Active Portfolio</h3>
                     </div>
                     <button
                       onClick={() => setActiveTab('listings')}
-                      className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                      className="text-xs font-semibold text-[var(--color-brand-emerald)] hover:text-[var(--color-brand-emerald)] flex items-center gap-1"
                     >
                       View All Listings <ArrowUpRight size={14} />
                     </button>
@@ -794,12 +904,12 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
 
                   <div className="space-y-3">
                     {listings.length === 0 ? (
-                      <div className="p-8 text-center text-zinc-500 rounded-2xl border border-white/5 bg-black/20">
-                        <Package size={32} className="mx-auto text-zinc-600 mb-2" />
-                        <p className="text-sm text-zinc-300 font-semibold">No properties listed yet</p>
+                      <div className="p-8 text-center text-[var(--color-text-dim)] rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)]">
+                        <Package size={32} className="mx-auto text-[var(--color-text-dim)] mb-2" />
+                        <p className="text-sm text-[var(--color-text-muted)] font-semibold">No properties listed yet</p>
                         <button
                           onClick={() => setActiveTab('new-listing')}
-                          className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                          className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-semibold text-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                         >
                           <Plus size={14} /> List New Asset
                         </button>
@@ -809,42 +919,42 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                         <div
                           key={item.id}
                           onClick={() => onListingClick ? onListingClick(item.id) : setInspectingPropertyId(item.id)}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-white/5 bg-black/20 hover:bg-white/[0.04] hover:border-emerald-500/30 transition-all cursor-pointer group"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-elevated)] hover:border-emerald-500/30 transition-all cursor-pointer group"
                         >
                           <div className="flex items-center gap-3.5">
                             <img
                               src={item.image}
                               alt={item.title}
-                              className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/10"
+                              className="w-16 h-16 rounded-xl object-cover shrink-0 border border-[var(--color-border)]"
                             />
                             <div>
                               <div className="flex items-center gap-2">
-                                <h4 className="font-semibold text-sm text-white line-clamp-1">{item.title}</h4>
+                                <h4 className="font-semibold text-sm text-[var(--color-text-main)] line-clamp-1">{item.title}</h4>
                                 {item.verified && (
-                                  <Badge variant="success" className="text-[9px] py-0 px-1.5 bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                                  <Badge variant="success" className="text-[9px] py-0 px-1.5 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/30">
                                     RLMUA
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5">
-                                <MapPin size={11} className="text-zinc-500" />
+                              <p className="text-xs text-[var(--color-text-muted)] flex items-center gap-1 mt-0.5">
+                                <MapPin size={11} className="text-[var(--color-text-dim)]" />
                                 {item.location}
                               </p>
-                              <p className="text-xs font-mono font-bold text-emerald-400 mt-1">
+                              <p className="text-xs font-mono font-bold text-[var(--color-brand-emerald)] mt-1">
                                 {item.price.toLocaleString()} {item.currency}
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                          <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[var(--color-border)]">
                             <div className="text-left sm:text-right text-xs">
-                              <span className="text-zinc-400 font-medium block">
+                              <span className="text-[var(--color-text-muted)] font-medium block">
                                 {item.views} views • {item.inquiries} inquiries
                               </span>
                               <span className={cn(
                                 "text-[10px] font-semibold px-2 py-0.5 rounded-full inline-block mt-1",
-                                item.status === 'Active' ? "bg-emerald-500/10 text-emerald-400" :
-                                item.status === 'Under Offer' ? "bg-amber-500/10 text-amber-400" : "bg-zinc-800 text-zinc-400"
+                                item.status === 'Active' ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)]" :
+                                item.status === 'Under Offer' ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400" : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]"
                               )}>
                                 {item.status}
                               </span>
@@ -853,7 +963,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                             <button
                               onClick={() => setActiveTab('copilot')}
                               title="Analyze with AI Co-Pilot"
-                              className="p-2 rounded-xl border border-white/10 bg-white/5 hover:border-emerald-500/40 hover:text-emerald-400 text-zinc-400 transition-colors cursor-pointer"
+                              className="p-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] hover:border-emerald-500/40 hover:text-[var(--color-brand-emerald)] text-[var(--color-text-muted)] transition-colors cursor-pointer"
                             >
                               <Sparkles size={14} />
                             </button>
@@ -868,36 +978,36 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                 <div className="space-y-6">
                   
                   {/* AI Market Advisory Card */}
-                  <div className="rounded-3xl border border-emerald-500/20 bg-gradient-to-b from-emerald-950/30 to-black/40 p-6 space-y-4">
+                  <div className="rounded-xl border border-emerald-500/25 bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] p-6 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+                        <div className="p-2 rounded-xl bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)]">
                           <Bot size={18} />
                         </div>
                         <div>
-                          <h4 className="font-bold text-white text-sm">AI Valuation Telemetry</h4>
-                          <span className="text-[10px] text-zinc-400 font-mono">Market Comps Active</span>
+                          <h4 className="font-bold text-[var(--color-text-main)] text-sm">AI Valuation Analysis</h4>
+                          <span className="text-[10px] text-[var(--color-text-muted)] font-mono">Market Comps Active</span>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] border border-emerald-200 dark:border-emerald-500/30 font-bold">
                         Live
                       </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
-                        <span className="text-[10px] font-mono uppercase text-zinc-500 block">Buyer Demand</span>
-                        <span className="font-bold text-emerald-400 text-xs">High Liquidity</span>
+                      <div className="p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-1">
+                        <span className="text-[10px] font-mono uppercase text-[var(--color-text-dim)] block">Buyer Demand</span>
+                        <span className="font-bold text-[var(--color-brand-emerald)] text-xs">High Liquidity</span>
                       </div>
-                      <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
-                        <span className="text-[10px] font-mono uppercase text-zinc-500 block">Valuation Status</span>
-                        <span className="font-bold text-white text-xs">Optimal Comps</span>
+                      <div className="p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-1">
+                        <span className="text-[10px] font-mono uppercase text-[var(--color-text-dim)] block">Valuation Status</span>
+                        <span className="font-bold text-[var(--color-text-main)] text-xs">Optimal Comps</span>
                       </div>
                     </div>
 
                     <button
                       onClick={() => setActiveTab('copilot')}
-                      className="w-full py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-emerald-500/15 border border-emerald-500/20 text-xs font-semibold text-emerald-400 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      className="w-full py-2 px-3 rounded-xl bg-[var(--color-bg-elevated)] hover:bg-emerald-500/15 border border-emerald-500/20 text-xs font-semibold text-[var(--color-brand-emerald)] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                     >
                       <span>Open Valuation Engine</span>
                       <ArrowRight size={12} />
@@ -905,31 +1015,31 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                   </div>
 
                   {/* Trust & Cadastre Verification Status */}
-                  <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 space-y-4">
+                  <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-white text-sm flex items-center gap-2">
-                        <ShieldCheck size={16} className="text-emerald-400" />
+                      <h4 className="font-bold text-[var(--color-text-main)] text-sm flex items-center gap-2">
+                        <ShieldCheck size={16} className="text-[var(--color-brand-emerald)]" />
                         Seller Credibility
                       </h4>
-                      <span className="text-xs font-mono text-emerald-400 font-bold">98/100</span>
+                      <span className="text-xs font-mono text-[var(--color-brand-emerald)] font-bold">98/100</span>
                     </div>
 
                     <div className="space-y-2.5 text-xs">
-                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-black/20 border border-white/5">
-                        <span className="text-zinc-300">RLMUA Cadastre UPI Registry</span>
-                        <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
+                        <span className="text-[var(--color-text-muted)]">RLMUA Cadastre UPI Registry</span>
+                        <span className="text-[var(--color-brand-emerald)] font-semibold flex items-center gap-1">
                           <CheckCircle2 size={12} /> Synced
                         </span>
                       </div>
-                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-black/20 border border-white/5">
-                        <span className="text-zinc-300">National ID / Passport</span>
-                        <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
+                        <span className="text-[var(--color-text-muted)]">National ID / Passport</span>
+                        <span className="text-[var(--color-brand-emerald)] font-semibold flex items-center gap-1">
                           <CheckCircle2 size={12} /> Verified
                         </span>
                       </div>
-                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-black/20 border border-white/5">
-                        <span className="text-zinc-300">Milestone Escrow Vault</span>
-                        <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
+                        <span className="text-[var(--color-text-muted)]">Milestone Escrow Account</span>
+                        <span className="text-[var(--color-brand-emerald)] font-semibold flex items-center gap-1">
                           <CheckCircle2 size={12} /> Ready
                         </span>
                       </div>
@@ -937,7 +1047,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
 
                     <button
                       onClick={() => setActiveTab('verification')}
-                      className="w-full py-2 text-center text-xs text-zinc-400 hover:text-white transition-colors"
+                      className="w-full py-2 text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors"
                     >
                       View Title & Compliance Workspace →
                     </button>
@@ -957,11 +1067,11 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
               {/* Header & Controls */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-white font-display">Asset Inventory</h1>
+                  <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)] font-display">Asset Inventory</h1>
                 </div>
                 <button
                   onClick={() => setActiveTab('new-listing')}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-md transition-all hover:scale-105"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-semibold text-sm shadow-[var(--shadow-emerald-soft)] transition-all"
                 >
                   <Plus size={16} />
                   <span>List New Asset</span>
@@ -969,7 +1079,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
               </div>
 
               {/* Filters & Search */}
-              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white/[0.02] border border-white/10 p-3 rounded-2xl">
+              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-3 rounded-2xl">
                 <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
                   {[
                     { id: 'all', label: 'All Assets' },
@@ -986,8 +1096,8 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                       className={cn(
                         "px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap",
                         categoryFilter === filter.id
-                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                          : "text-zinc-400 hover:text-white hover:bg-white/5"
+                          ? "bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] border border-emerald-500/40"
+                          : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)]"
                       )}
                     >
                       {filter.label}
@@ -996,7 +1106,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                 </div>
 
                 <div className="relative w-full sm:w-64">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)]" />
                   <input
                     type="text"
                     value={searchQuery}
@@ -1005,7 +1115,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                       setInventoryPage(1);
                     }}
                     placeholder="Search by title or district..."
-                    className="w-full bg-black/40 border border-white/10 rounded-xl py-1.5 pl-8 pr-3 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50"
+                    className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl py-1.5 pl-8 pr-3 text-xs text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-emerald-500/50"
                   />
                 </div>
               </div>
@@ -1013,9 +1123,9 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
               {/* Listing Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredListings.length === 0 ? (
-                  <div className="col-span-full p-16 text-center text-zinc-500 rounded-3xl border border-white/10 bg-white/[0.01]">
-                    <Package size={40} className="mx-auto text-zinc-600 mb-3" />
-                    <h3 className="text-base font-semibold text-white">No Properties Found</h3>
+                  <div className="col-span-full p-16 text-center text-[var(--color-text-dim)] rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
+                    <Package size={40} className="mx-auto text-[var(--color-text-dim)] mb-3" />
+                    <h3 className="text-base font-semibold text-[var(--color-text-main)]">No Properties Found</h3>
                     <button
                       onClick={() => {
                         if (searchQuery || categoryFilter !== 'all') {
@@ -1026,7 +1136,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                           setActiveTab('new-listing');
                         }
                       }}
-                      className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors cursor-pointer"
+                      className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-semibold text-xs transition-colors cursor-pointer"
                     >
                       {searchQuery || categoryFilter !== 'all' ? 'Reset Filters' : 'List New Asset'}
                     </button>
@@ -1035,10 +1145,10 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                   paginatedListings.map((item) => (
                     <div
                       key={item.id}
-                      className="group rounded-3xl border border-white/10 bg-white/[0.02] hover:border-emerald-500/30 overflow-hidden flex flex-col transition-all duration-300"
+                      className="group rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] hover:border-emerald-500/30 overflow-hidden flex flex-col transition-all duration-300"
                     >
                       {/* Thumbnail */}
-                      <div className="relative h-48 w-full overflow-hidden bg-zinc-900">
+                      <div className="relative h-48 w-full overflow-hidden bg-[var(--color-bg-elevated)]">
                         <img
                           src={item.image}
                           alt={item.title}
@@ -1051,24 +1161,24 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                             variant={item.status === 'Active' ? 'success' : 'neutral'}
                             className={cn(
                               "text-[10px] uppercase font-mono px-2 py-0.5",
-                              item.status === 'Active' ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40" : "bg-black/80 text-zinc-300 border border-white/20"
+                              item.status === 'Active' ? "bg-emerald-950/80 text-[#6ee7b7] border border-emerald-500/40" : "bg-black/80 text-[#d4d4d8] border border-[rgba(255,255,255,0.2)]"
                             )}
                           >
                             {item.status}
                           </Badge>
                           {item.verified && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-emerald-400 border border-emerald-500/30 font-semibold flex items-center gap-1">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-[#6ee7b7] border border-emerald-500/30 font-semibold flex items-center gap-1">
                               <ShieldCheck size={10} /> RLMUA Verified
                             </span>
                           )}
                         </div>
 
                         <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
-                          <span className="text-lg font-bold font-mono text-white">
-                            {item.price.toLocaleString()} <span className="text-xs text-zinc-400 font-sans">{item.currency}</span>
+                          <span className="text-lg font-bold font-mono text-[#fff]">
+                            {item.price.toLocaleString()} <span className="text-xs text-[#d4d4d8] font-sans">{item.currency}</span>
                           </span>
                           {item.upiNumber && (
-                            <span className="text-[10px] font-mono text-zinc-400 bg-black/60 px-1.5 py-0.5 rounded border border-white/10">
+                            <span className="text-[10px] font-mono text-[#e4e4e7] bg-black/60 px-1.5 py-0.5 rounded border border-[rgba(255,255,255,0.15)]">
                               UPI: {item.upiNumber}
                             </span>
                           )}
@@ -1078,28 +1188,28 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                       {/* Body */}
                       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                         <div>
-                          <h3 className="font-semibold text-white text-base group-hover:text-emerald-400 transition-colors line-clamp-1">
+                          <h3 className="font-semibold text-[var(--color-text-main)] text-base group-hover:text-[var(--color-brand-emerald)] transition-colors line-clamp-1">
                             {item.title}
                           </h3>
-                          <p className="text-xs text-zinc-400 flex items-center gap-1 mt-1">
-                            <MapPin size={12} className="text-zinc-500" />
+                          <p className="text-xs text-[var(--color-text-muted)] flex items-center gap-1 mt-1">
+                            <MapPin size={12} className="text-[var(--color-text-dim)]" />
                             {item.location}
                           </p>
                         </div>
 
                         {/* Performance Bar */}
-                        <div className="grid grid-cols-3 gap-2 py-2.5 px-3 rounded-xl bg-black/30 border border-white/5 text-center">
+                        <div className="grid grid-cols-3 gap-2 py-2.5 px-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-center">
                           <div>
-                            <span className="text-[10px] text-zinc-500 uppercase block">Views</span>
-                            <span className="text-xs font-mono font-bold text-white">{item.views}</span>
+                            <span className="text-[10px] text-[var(--color-text-dim)] uppercase block">Views</span>
+                            <span className="text-xs font-mono font-bold text-[var(--color-text-main)]">{item.views}</span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-zinc-500 uppercase block">Inquiries</span>
-                            <span className="text-xs font-mono font-bold text-white">{item.inquiries}</span>
+                            <span className="text-[10px] text-[var(--color-text-dim)] uppercase block">Inquiries</span>
+                            <span className="text-xs font-mono font-bold text-[var(--color-text-main)]">{item.inquiries}</span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-zinc-500 uppercase block">Offers</span>
-                            <span className="text-xs font-mono font-bold text-white">{item.offers}</span>
+                            <span className="text-[10px] text-[var(--color-text-dim)] uppercase block">Offers</span>
+                            <span className="text-xs font-mono font-bold text-[var(--color-text-main)]">{item.offers}</span>
                           </div>
                         </div>
 
@@ -1107,7 +1217,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                         <div className="flex items-center gap-2 pt-1">
                           <button
                             onClick={() => onListingClick ? onListingClick(item.id) : setInspectingPropertyId(item.id)}
-                            className="flex-1 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-xs font-semibold text-emerald-400 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                            className="flex-1 py-2 rounded-xl bg-emerald-500/10 hover:bg-[var(--color-accent-soft-bg)] border border-emerald-500/20 text-xs font-semibold text-[var(--color-brand-emerald)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                             title="Open full property page with section editor"
                           >
                             <Eye size={13} />
@@ -1123,7 +1233,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                                 setEditingListing(item);
                               }
                             }}
-                            className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/10 border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            className="p-2 rounded-xl bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-card-hover)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors cursor-pointer"
                             title="Edit Listing Specs"
                           >
                             <Edit3 size={14} />
@@ -1133,7 +1243,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                             onClick={() => {
                               setActiveTab('copilot');
                             }}
-                            className="p-2 rounded-xl bg-white/[0.04] hover:bg-emerald-500/10 border border-white/10 text-zinc-400 hover:text-emerald-400 transition-colors cursor-pointer"
+                            className="p-2 rounded-xl bg-[var(--color-bg-elevated)] hover:bg-emerald-500/10 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-brand-emerald)] transition-colors cursor-pointer"
                             title="AI Optimization"
                           >
                             <Sparkles size={14} />
@@ -1211,62 +1321,62 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
           {activeTab === 'verification' && (
             <div className="max-w-5xl mx-auto space-y-6 animate-fadeIn">
               
-              <div className="border border-white/10 rounded-3xl bg-white/[0.02] p-6 lg:p-8 space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-white/10">
+              <div className="border border-[var(--color-border)] rounded-xl bg-[var(--color-bg-surface)] p-6 lg:p-8 space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-[var(--color-border)]">
                   <div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-[var(--color-brand-emerald)] text-xs font-semibold uppercase tracking-wider mb-2">
                       <ShieldCheck size={14} />
-                      Urugwiro Sovereign Trust Bureau
+                      Urugwiro Trust & Verification
                     </div>
-                    <h2 className="text-2xl font-bold text-white font-display">Seller Legal & Cadastre Credentials</h2>
+                    <h2 className="text-2xl font-bold text-[var(--color-text-main)] font-display">Seller Legal & Cadastre Credentials</h2>
                   </div>
-                  <div className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/30">
-                    <CheckCircle2 size={20} className="text-emerald-400" />
+                  <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[var(--color-accent-soft-bg)] border border-emerald-500/30">
+                    <CheckCircle2 size={20} className="text-[var(--color-brand-emerald)]" />
                     <div>
-                      <span className="text-xs font-bold text-white block">Sovereign Tier Verified</span>
-                      <span className="text-[10px] text-emerald-400 font-mono">RLMUA Cadastre + Irembo Sync</span>
+                      <span className="text-xs font-bold text-[var(--color-text-main)] block">Verified Seller Status</span>
+                      <span className="text-[10px] text-[var(--color-brand-emerald)] font-mono">RLMUA Cadastre + Irembo Sync</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-5 rounded-2xl bg-black/30 border border-white/5 space-y-3">
+                  <div className="p-5 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Land Title (RLMUA UPI)</span>
-                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Verified</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Land Title (RLMUA UPI)</span>
+                      <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 dark:text-[var(--color-brand-emerald)] dark:bg-emerald-500/10 dark:border-emerald-500/20">Verified</span>
                     </div>
-                    <div className="text-[11px] font-mono text-zinc-400">
-                      Connected Registry: <span className="text-white">RLMUA / IremboGov</span>
+                    <div className="text-[11px] font-mono text-[var(--color-text-muted)]">
+                      Connected Registry: <span className="text-[var(--color-text-main)]">RLMUA / IremboGov</span>
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-black/30 border border-white/5 space-y-3">
+                  <div className="p-5 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Milestone Escrow Vault</span>
-                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Active</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Milestone Escrow Account</span>
+                      <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 dark:text-[var(--color-brand-emerald)] dark:bg-emerald-500/10 dark:border-emerald-500/20">Active</span>
                     </div>
-                    <div className="text-[11px] font-mono text-zinc-400">
-                      Deposit Guarantee: <span className="text-white">100% Insured</span>
+                    <div className="text-[11px] font-mono text-[var(--color-text-muted)]">
+                      Deposit Guarantee: <span className="text-[var(--color-text-main)]">100% Insured</span>
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-black/30 border border-white/5 space-y-3">
+                  <div className="p-5 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">National ID / Passport (KYC)</span>
-                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Authorized</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">National ID / Passport (KYC)</span>
+                      <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 dark:text-[var(--color-brand-emerald)] dark:bg-emerald-500/10 dark:border-emerald-500/20">Authorized</span>
                     </div>
-                    <div className="text-[11px] font-mono text-zinc-400">
-                      Doc Expiry: <span className="text-white">October 2030</span>
+                    <div className="text-[11px] font-mono text-[var(--color-text-muted)]">
+                      Doc Expiry: <span className="text-[var(--color-text-main)]">October 2030</span>
                     </div>
                   </div>
 
-                  <div className="p-5 rounded-2xl bg-black/30 border border-white/5 space-y-3">
+                  <div className="p-5 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Electronic Notary Conveyance</span>
-                      <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">Ready</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Electronic Notary Conveyance</span>
+                      <span className="text-[10px] font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 dark:text-blue-400 dark:bg-blue-500/10 dark:border-blue-500/20">Ready</span>
                     </div>
-                    <div className="text-[11px] font-mono text-zinc-400">
-                      District Office: <span className="text-white">Gasabo / Kicukiro Sector</span>
+                    <div className="text-[11px] font-mono text-[var(--color-text-muted)]">
+                      District Office: <span className="text-[var(--color-text-main)]">Gasabo / Kicukiro Sector</span>
                     </div>
                   </div>
                 </div>
@@ -1282,17 +1392,17 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
               <div className="flex items-center justify-between pb-2">
                 <button
                   onClick={() => setActiveTab('listings')}
-                  className="text-xs text-zinc-400 hover:text-white flex items-center gap-1"
+                  className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] flex items-center gap-1"
                 >
                   ← Return to Inventory
                 </button>
-                <div className="flex items-center gap-2 text-xs text-emerald-400">
+                <div className="flex items-center gap-2 text-xs text-[var(--color-brand-emerald)]">
                   <Sparkles size={14} />
                   <span>AI Co-Pilot Assists Every Step</span>
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-4 sm:p-6">
+              <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4 sm:p-6">
                 <ListingWizard 
                   onSuccess={() => {
                     refetchListings();

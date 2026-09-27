@@ -64,7 +64,7 @@ export const AgentProfileSettings: React.FC = () => {
           <Award size={22} className="text-emerald-500" /> Broker Accreditation & Public Profile
         </h1>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Manage regulatory licensing, geographic expertise, and public sovereign broker portfolio.
+          Manage regulatory licensing, geographic expertise, and public broker profile.
         </p>
       </div>
 

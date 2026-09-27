@@ -161,7 +161,7 @@ export const AccessRestricted: React.FC<AccessRestrictedProps> = ({ view, onNavi
 
         {/* Security Note Footer */}
         <div className="mt-8 border-t border-white/[0.06] pt-4 text-xs text-zinc-500 flex items-center justify-center gap-2">
-          <span>Urugwiro Sovereign RBAC</span>
+          <span>Urugwiro Access Control</span>
           <span>•</span>
           <span>Rwanda Real Estate Trust Infrastructure</span>
         </div>

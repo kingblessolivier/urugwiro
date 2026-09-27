@@ -4,12 +4,16 @@ import {
   Phone, MessageSquare, Mail, Calendar, Heart, Search,
   CheckCircle2, Clock, Building2, User, ExternalLink,
   ChevronDown, MessageCircle, Eye,
-  Sparkles, RefreshCw
+  Sparkles, RefreshCw, X, Users
 } from 'lucide-react';
-import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import { api } from '../../api/endpoints';
+import { Pagination } from '../ui/Pagination';
+import {
+  DashboardCard, CardHeader, StatCard, EmptyState,
+  tableHead, tableTh, tableBody, tableTr, tableTd,
+  tdPrimary, tdSecondary, tdMono,
+} from '../ui/Dashboard';
 
 export type LeadChannel = 'all' | 'visits' | 'inquiries' | 'likes';
 
@@ -20,6 +24,21 @@ interface CustomerLeadsManagerProps {
   title?: string;
   subtitle?: string;
 }
+
+const chipBase = 'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider';
+
+const channelChip = (channel: string) =>
+  channel === 'visit'
+    ? `${chipBase} bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/40`
+    : channel === 'inquiry'
+    ? `${chipBase} bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/40`
+    : `${chipBase} bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/40`;
+
+const statusChip =
+  `${chipBase} border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]`;
+
+const iconBtn =
+  'p-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:border-[var(--color-border-hover)] transition-colors cursor-pointer';
 
 export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
   mode,
@@ -34,6 +53,8 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
   const [selectedPropertyFilter, setSelectedPropertyFilter] = useState<string>('all');
   const [selectedLead, setSelectedLead] = useState<any | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string>('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // 1. Fetch Showing Visits
   const {
@@ -232,12 +253,10 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
     }
 
     return pool.filter((item) => {
-      // Property filter
       if (selectedPropertyFilter !== 'all' && String(item.propertyId) !== selectedPropertyFilter) {
         return false;
       }
 
-      // Search filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchName = item.customerName.toLowerCase().includes(q);
@@ -254,6 +273,11 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
     });
   }, [activeChannel, normalizedVisits, normalizedInquiries, normalizedLikes, selectedPropertyFilter, searchQuery]);
 
+  const paginatedLeads = useMemo(
+    () => displayedLeads.slice((page - 1) * pageSize, page * pageSize),
+    [displayedLeads, page, pageSize]
+  );
+
   // Total phone numbers captured
   const totalPhonesCount = useMemo(() => {
     const all = [...normalizedVisits, ...normalizedInquiries, ...normalizedLikes];
@@ -266,482 +290,376 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
     refetchLikes();
   };
 
+  const switchChannel = (ch: LeadChannel) => {
+    setActiveChannel(ch);
+    setPage(1);
+  };
+
   const isLoading = loadingVisits || loadingInquiries || loadingLikes;
 
+  const channelTabs: { id: LeadChannel; label: string; count: number; icon: React.ElementType }[] = [
+    { id: 'all', label: 'All Channels', count: normalizedVisits.length + normalizedInquiries.length + normalizedLikes.length, icon: Users },
+    { id: 'visits', label: 'Showing Visits', count: normalizedVisits.length, icon: Calendar },
+    { id: 'inquiries', label: 'Inquiries', count: normalizedInquiries.length, icon: MessageSquare },
+    { id: 'likes', label: 'Wishlist', count: normalizedLikes.length, icon: Heart },
+  ];
+
   return (
-    <div className="space-y-6 text-zinc-100">
-      {/* ━━━ 1. CRM HEADER & TELEMETRY ━━━ */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
-            <Sparkles size={13} /> {mode === 'seller' ? 'Seller Portfolio CRM' : 'Admin Sovereign CRM'}
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-            {title || (mode === 'seller' ? 'Customer Leads & Showing Requests' : 'Customer Enquiries & Showing Bureau')}
-          </h1>
-          {subtitle && (
-            <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-              {subtitle}
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 self-start md:self-auto">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleRefreshAll}
-            className="rounded-xl text-xs font-bold border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-zinc-200"
-          >
-            <RefreshCw size={13} className={cn(isLoading && 'animate-spin')} /> Refresh Leads
-          </Button>
-        </div>
-      </div>
-
-      {/* Action Notification Alert */}
+    <div className="space-y-6 text-[var(--color-text-main)]">
+      {/* Toast feedback */}
       {actionSuccess && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm flex items-center gap-3 animate-in fade-in">
-          <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-          <span className="font-semibold">{actionSuccess}</span>
+        <div className="fixed top-6 right-6 z-50 px-4 py-3 rounded-2xl border shadow-[var(--shadow-depth-1)] flex items-center gap-2.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 animate-fadeIn">
+          <CheckCircle2 size={16} />
+          <span>{actionSuccess}</span>
         </div>
       )}
 
-      {/* ━━━ 2. UNIFIED KPI CARDS (MATCHING DESIGN & FONT SIZES) ━━━ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Metric 1: Showing Visits */}
-        <div
-          onClick={() => setActiveChannel('visits')}
-          className={cn(
-            "p-5 rounded-2xl border transition-all cursor-pointer backdrop-blur-xl group",
-            activeChannel === 'visits'
-              ? "border-sky-500/50 bg-sky-500/10 shadow-lg shadow-sky-500/10"
-              : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-          )}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
-              Showing Visits
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400">
-              <Calendar size={15} />
-            </div>
+      {/* ━━━ 1. CRM HEADER ━━━ */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-border)] pb-6">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-[var(--color-brand-emerald)] text-[10px] font-mono font-bold uppercase tracking-[0.2em] mb-2">
+            <Sparkles size={12} /> {mode === 'seller' ? 'Seller CRM' : 'Admin CRM'}
           </div>
-          <div className="text-2xl sm:text-3xl font-mono font-bold text-white tracking-tight">
-            {normalizedVisits.length}
-          </div>
-          <span className="text-[11px] text-zinc-500 mt-1 block">Scheduled Tours</span>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--color-text-main)]">
+            {title || (mode === 'seller' ? 'Customer Leads & Showing Requests' : 'Customer Inquiries & Showing Requests')}
+          </h1>
+          {subtitle && <p className="text-xs sm:text-sm text-[var(--color-text-muted)]">{subtitle}</p>}
         </div>
 
-        {/* Metric 2: Inquiries */}
-        <div
-          onClick={() => setActiveChannel('inquiries')}
-          className={cn(
-            "p-5 rounded-2xl border transition-all cursor-pointer backdrop-blur-xl group",
-            activeChannel === 'inquiries'
-              ? "border-emerald-500/50 bg-emerald-500/10 shadow-lg shadow-emerald-500/10"
-              : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-          )}
+        <button
+          onClick={handleRefreshAll}
+          className="self-start md:self-auto p-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:border-[var(--color-border-hover)] transition-all cursor-pointer flex items-center gap-2 text-xs font-bold"
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
-              Property Inquiries
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <MessageSquare size={15} />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-mono font-bold text-white tracking-tight">
-            {normalizedInquiries.length}
-          </div>
-          <span className="text-[11px] text-zinc-500 mt-1 block">Inbound Messages</span>
-        </div>
-
-        {/* Metric 3: Wishlist & Likes */}
-        <div
-          onClick={() => setActiveChannel('likes')}
-          className={cn(
-            "p-5 rounded-2xl border transition-all cursor-pointer backdrop-blur-xl group",
-            activeChannel === 'likes'
-              ? "border-amber-500/50 bg-amber-500/10 shadow-lg shadow-amber-500/10"
-              : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-          )}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
-              Wishlist & Saves
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <Heart size={15} />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-mono font-bold text-white tracking-tight">
-            {normalizedLikes.length}
-          </div>
-          <span className="text-[11px] text-zinc-500 mt-1 block">Client Saves</span>
-        </div>
-
-        {/* Metric 4: Total Phone Numbers */}
-        <div
-          onClick={() => setActiveChannel('all')}
-          className={cn(
-            "p-5 rounded-2xl border transition-all cursor-pointer backdrop-blur-xl group",
-            activeChannel === 'all'
-              ? "border-emerald-500/50 bg-emerald-500/10 shadow-lg shadow-emerald-500/10"
-              : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
-          )}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
-              Phones Captured
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <Phone size={15} />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-mono font-bold text-white tracking-tight">
-            {totalPhonesCount}
-          </div>
-          <span className="text-[11px] text-zinc-500 mt-1 block">Verified Phone Numbers</span>
-        </div>
+          <RefreshCw size={14} className={cn(isLoading && 'animate-spin text-[var(--color-brand-emerald)]')} />
+          Refresh Leads
+        </button>
       </div>
 
-      {/* ━━━ 3. CHANNEL TABS & FILTER TOOLBAR ━━━ */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 p-2 rounded-2xl border border-white/10 bg-white/[0.02]">
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setActiveChannel('all')}
-            className={cn(
-              "px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer",
-              activeChannel === 'all'
-                ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-            )}
-          >
-            All Channels ({normalizedVisits.length + normalizedInquiries.length + normalizedLikes.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveChannel('visits')}
-            className={cn(
-              "px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-              activeChannel === 'visits'
-                ? "bg-sky-500 text-white shadow-md shadow-sky-500/20"
-                : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-            )}
-          >
-            <Calendar size={13} /> Showing Visits ({normalizedVisits.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveChannel('inquiries')}
-            className={cn(
-              "px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-              activeChannel === 'inquiries'
-                ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-            )}
-          >
-            <MessageSquare size={13} /> Inquiries ({normalizedInquiries.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveChannel('likes')}
-            className={cn(
-              "px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
-              activeChannel === 'likes'
-                ? "bg-amber-500 text-white shadow-md shadow-amber-500/20"
-                : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"
-            )}
-          >
-            <Heart size={13} /> Wishlist ({normalizedLikes.length})
-          </button>
+      {/* ━━━ 2. KPI STRIP ━━━ */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard
+          label="Showing Visits"
+          value={normalizedVisits.length}
+          sub="Scheduled tours"
+          icon={Calendar}
+          tone="blue"
+          onClick={() => switchChannel('visits')}
+          className={cn(activeChannel === 'visits' && 'border-sky-500/50 ring-1 ring-sky-500/30')}
+        />
+        <StatCard
+          label="Property Inquiries"
+          value={normalizedInquiries.length}
+          sub="Inbound messages"
+          icon={MessageSquare}
+          tone="emerald"
+          onClick={() => switchChannel('inquiries')}
+          className={cn(activeChannel === 'inquiries' && 'border-emerald-500/50 ring-1 ring-emerald-500/30')}
+        />
+        <StatCard
+          label="Wishlist & Saves"
+          value={normalizedLikes.length}
+          sub="Client saves"
+          icon={Heart}
+          tone="amber"
+          onClick={() => switchChannel('likes')}
+          className={cn(activeChannel === 'likes' && 'border-amber-500/50 ring-1 ring-amber-500/30')}
+        />
+        <StatCard
+          label="Phones Captured"
+          value={totalPhonesCount}
+          sub="Verified phone numbers"
+          icon={Phone}
+          tone="neutral"
+          onClick={() => switchChannel('all')}
+          className={cn(activeChannel === 'all' && 'border-emerald-500/50 ring-1 ring-emerald-500/30')}
+        />
+      </div>
+
+      {/* ━━━ 3. TOOLBAR: CHANNEL TABS + FILTERS ━━━ */}
+      <DashboardCard className="p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+        <div className="flex items-center gap-1 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] p-1 overflow-x-auto">
+          {channelTabs.map((tab) => {
+            const Icon = tab.icon;
+            const active = activeChannel === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => switchChannel(tab.id)}
+                className={cn(
+                  "px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5",
+                  active
+                    ? "bg-emerald-600 text-[#fff] shadow-sm dark:bg-emerald-500 dark:text-emerald-950"
+                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
+                )}
+              >
+                <Icon size={13} />
+                {tab.label} ({tab.count})
+              </button>
+            );
+          })}
         </div>
 
-        {/* Search & Property Selector */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          {/* Property Dropdown Filter */}
           {propertiesList.length > 0 && (
-            <div className="relative min-w-[200px]">
+            <div className="relative sm:min-w-[200px]">
               <select
                 value={selectedPropertyFilter}
-                onChange={(e) => setSelectedPropertyFilter(e.target.value)}
-                className="w-full appearance-none rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 pr-8 text-xs font-medium text-zinc-200 focus:outline-none focus:border-emerald-500 transition-colors"
+                onChange={(e) => { setSelectedPropertyFilter(e.target.value); setPage(1); }}
+                className="w-full appearance-none rounded-xl border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3.5 py-2 pr-8 text-xs font-medium text-[var(--color-text-main)] focus:outline-none focus:border-emerald-500/50 transition-colors"
               >
-                <option value="all" className="bg-[#0b101b] text-white">All Properties ({propertiesList.length})</option>
+                <option value="all">All Properties ({propertiesList.length})</option>
                 {propertiesList.map((p) => (
-                  <option key={p.id} value={p.id} className="bg-[#0b101b] text-white">
+                  <option key={p.id} value={p.id}>
                     {p.title.length > 32 ? `${p.title.slice(0, 32)}...` : p.title}
                   </option>
                 ))}
               </select>
-              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)] pointer-events-none" />
             </div>
           )}
 
-          {/* Search Input */}
           <div className="relative flex-1 sm:w-64">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)]" />
             <input
               type="text"
               placeholder="Search name, phone, notes..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/[0.04] pl-9 pr-3.5 py-2 text-xs font-medium text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-colors"
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+              className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-input-bg)] pl-9 pr-3.5 py-2 text-xs font-medium text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-emerald-500/50 transition-colors"
             />
           </div>
         </div>
-      </div>
+      </DashboardCard>
 
-      {/* ━━━ 4. CUSTOMER LEADS LIST (USER-FRIENDLY DIRECT FOLLOW-UP LEDGER) ━━━ */}
-      <div className="space-y-3">
-        {isLoading ? (
-          <div className="py-20 text-center text-zinc-500 text-xs font-mono flex flex-col items-center justify-center gap-3">
-            <Clock className="w-8 h-8 animate-spin text-emerald-400/50" />
-            <span>Loading verified customer inquiries and showing bookings...</span>
+      {/* ━━━ 4. CUSTOMER LEADS LEDGER (TABLE) ━━━ */}
+      <DashboardCard className="overflow-hidden">
+        <CardHeader
+          icon={Users}
+          title="Customer Leads Ledger"
+          subtitle={`${displayedLeads.length} ${displayedLeads.length === 1 ? 'record' : 'records'} · direct follow-up channels`}
+        />
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead className={tableHead}>
+              <tr>
+                <th className={cn(tableTh, 'px-5 py-3.5 font-semibold')}>Customer</th>
+                <th className={cn(tableTh, 'px-5 py-3.5 font-semibold')}>Channel</th>
+                <th className={cn(tableTh, 'px-5 py-3.5 font-semibold')}>Property</th>
+                <th className={cn(tableTh, 'px-5 py-3.5 font-semibold')}>Contact</th>
+                <th className={cn(tableTh, 'px-5 py-3.5 font-semibold')}>Activity</th>
+                <th className={cn(tableTh, 'px-5 py-3.5 font-semibold')}>Status</th>
+                <th className={cn(tableTh, 'px-5 py-3.5 font-semibold text-right')}>Follow-Up Actions</th>
+              </tr>
+            </thead>
+            <tbody className={cn(tableBody, 'text-xs sm:text-sm')}>
+              {isLoading && (
+                <tr>
+                  <td colSpan={7} className="p-16 text-center text-[var(--color-text-dim)]">
+                    <Clock size={24} className="mx-auto animate-spin text-[var(--color-brand-emerald)] mb-2" />
+                    Loading verified customer inquiries and showing bookings...
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading && paginatedLeads.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="p-6">
+                    <EmptyState
+                      icon={User}
+                      title="No customer leads match your filters"
+                      hint="When prospective buyers request site inspections, send inquiry messages, or save properties to their wishlist, they will appear here with instant contact links."
+                      action={
+                        (selectedPropertyFilter !== 'all' || searchQuery.trim()) ? (
+                          <button
+                            onClick={() => { setSelectedPropertyFilter('all'); setSearchQuery(''); setPage(1); }}
+                            className="px-4 py-2 rounded-xl text-xs font-bold text-[var(--color-brand-emerald)] border border-emerald-500/30 bg-[var(--color-accent-soft-bg)] hover:bg-emerald-500/15 transition-colors cursor-pointer"
+                          >
+                            Clear Filters
+                          </button>
+                        ) : undefined
+                      }
+                    />
+                  </td>
+                </tr>
+              )}
+
+              {!isLoading && paginatedLeads.map((lead: any) => {
+                const isVisit = lead.channel === 'visit';
+                const isInquiry = lead.channel === 'inquiry';
+                const cleanPhone = String(lead.customerPhone || '').replace(/[^0-9]/g, '');
+                const waText = encodeURIComponent(
+                  `Hello ${lead.customerName}, I am reaching out from Urugwiro regarding ${lead.propertyTitle}. Are you available for a brief follow-up?`
+                );
+
+                return (
+                  <tr key={lead.id} className={tableTr}>
+                    {/* Customer */}
+                    <td className={cn(tableTd, 'px-5')}>
+                      <div className={cn(tdPrimary, 'text-sm flex items-center gap-1.5')}>
+                        <User size={13} className="text-[var(--color-text-dim)] shrink-0" />
+                        {lead.customerName}
+                      </div>
+                      {lead.customerEmail && (
+                        <div className={cn(tdSecondary, 'flex items-center gap-1 mt-0.5')}>
+                          <Mail size={11} className="shrink-0" /> {lead.customerEmail}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Channel */}
+                    <td className={cn(tableTd, 'px-5')}>
+                      <span className={channelChip(lead.channel)}>
+                        {isVisit && <Calendar size={11} />}
+                        {isInquiry && <MessageSquare size={11} />}
+                        {lead.channel === 'like' && <Heart size={11} />}
+                        {isVisit ? 'Showing Tour' : isInquiry ? 'Buyer Inquiry' : 'Wishlist Save'}
+                      </span>
+                    </td>
+
+                    {/* Property */}
+                    <td className={cn(tableTd, 'px-5')}>
+                      <button
+                        type="button"
+                        onClick={() => onListingClick && lead.propertyId && onListingClick(String(lead.propertyId))}
+                        className="text-xs font-semibold text-[var(--color-brand-emerald)] hover:underline flex items-center gap-1.5 max-w-[220px] cursor-pointer text-left"
+                        title="Inspect Property Listing"
+                      >
+                        <Building2 size={12} className="shrink-0" />
+                        <span className="truncate">{lead.propertyTitle}</span>
+                      </button>
+                    </td>
+
+                    {/* Contact */}
+                    <td className={cn(tableTd, 'px-5')}>
+                      {lead.customerPhone ? (
+                        <span className={cn(tdMono, 'text-xs')}>{lead.customerPhone}</span>
+                      ) : (
+                        <span className="text-xs text-[var(--color-text-dim)] italic">No phone provided</span>
+                      )}
+                    </td>
+
+                    {/* Activity */}
+                    <td className={cn(tableTd, 'px-5')}>
+                      <div className={cn(tdMono, 'text-xs')}>{lead.dateLabel}</div>
+                      {isVisit && lead.timeSlot && (
+                        <div className={tdSecondary}>Window: {lead.timeSlot}</div>
+                      )}
+                    </td>
+
+                    {/* Status */}
+                    <td className={cn(tableTd, 'px-5')}>
+                      <span className={statusChip}>{lead.status}</span>
+                    </td>
+
+                    {/* Actions */}
+                    <td className={cn(tableTd, 'px-5')}>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {lead.customerPhone && (
+                          <a href={`tel:${lead.customerPhone}`} className={iconBtn} title="Direct Phone Call">
+                            <Phone size={14} />
+                          </a>
+                        )}
+                        {cleanPhone && (
+                          <a
+                            href={`https://wa.me/${cleanPhone}?text=${waText}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={iconBtn}
+                            title="Chat on WhatsApp"
+                          >
+                            <MessageCircle size={14} />
+                          </a>
+                        )}
+                        {lead.customerEmail && (
+                          <a
+                            href={`mailto:${lead.customerEmail}?subject=${encodeURIComponent(`Following up on ${lead.propertyTitle}`)}`}
+                            className={iconBtn}
+                            title="Send Direct Email"
+                          >
+                            <Mail size={14} />
+                          </a>
+                        )}
+                        <button type="button" onClick={() => setSelectedLead(lead)} className={iconBtn} title="View Lead Details">
+                          <Eye size={14} />
+                        </button>
+
+                        {isVisit && lead.status === 'scheduled' && (
+                          <button
+                            type="button"
+                            onClick={() => updateVisitMutation.mutate({ id: lead.rawId, status: 'completed' })}
+                            disabled={updateVisitMutation.isPending}
+                            className="ml-1 px-2.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-[#fff] text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            <CheckCircle2 size={12} /> Complete
+                          </button>
+                        )}
+
+                        {isInquiry && lead.status === 'unread' && (
+                          <button
+                            type="button"
+                            onClick={() => updateInquiryMutation.mutate({ id: lead.rawId, is_read: true })}
+                            disabled={updateInquiryMutation.isPending}
+                            className="ml-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] dark:text-emerald-950 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            <CheckCircle2 size={12} /> Contacted
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {displayedLeads.length > 0 && (
+          <div className="p-4 border-t border-[var(--color-border)]">
+            <Pagination
+              currentPage={page}
+              totalPages={Math.max(1, Math.ceil(displayedLeads.length / pageSize))}
+              onPageChange={setPage}
+              pageSize={pageSize}
+              onPageSizeChange={(sz) => { setPageSize(sz); setPage(1); }}
+              totalItems={displayedLeads.length}
+              itemLabel="leads"
+            />
           </div>
-        ) : displayedLeads.length === 0 ? (
-          <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-12 text-center text-zinc-400 space-y-3">
-            <User size={36} className="mx-auto text-zinc-600" />
-            <h3 className="text-base font-bold text-white">No customer leads match your filters</h3>
-            <p className="text-xs text-zinc-500 max-w-sm mx-auto">
-              When prospective buyers request site inspections, send inquiry messages, or save properties to their wishlist, they will appear here with instant contact links.
-            </p>
-            {(selectedPropertyFilter !== 'all' || searchQuery.trim()) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => { setSelectedPropertyFilter('all'); setSearchQuery(''); }}
-                className="text-xs font-bold text-emerald-400 hover:text-emerald-300"
-              >
-                Clear Filters
-              </Button>
-            )}
-          </div>
-        ) : (
-          displayedLeads.map((lead: any) => {
-            const isVisit = lead.channel === 'visit';
-            const isInquiry = lead.channel === 'inquiry';
-            const isLike = lead.channel === 'like';
-
-            const cleanPhone = lead.customerPhone.replace(/[^0-9]/g, '');
-            const waText = encodeURIComponent(
-              `Hello ${lead.customerName}, I am reaching out from Urugwiro regarding ${lead.propertyTitle}. Are you available for a brief follow-up?`
-            );
-
-            return (
-              <div
-                key={lead.id}
-                className={cn(
-                  "rounded-2xl border transition-all p-4.5 sm:p-5 backdrop-blur-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:border-white/20",
-                  isVisit && "border-sky-500/25 bg-sky-500/[0.03] hover:border-sky-500/40",
-                  isInquiry && "border-emerald-500/25 bg-emerald-500/[0.03] hover:border-emerald-500/40",
-                  isLike && "border-amber-500/25 bg-amber-500/[0.03] hover:border-amber-500/40"
-                )}
-              >
-                {/* Left Content Column */}
-                <div className="space-y-2 min-w-0 flex-1">
-                  {/* Lead Metadata Header */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    {isVisit && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center gap-1">
-                        <Calendar size={11} /> Showing Tour
-                      </span>
-                    )}
-                    {isInquiry && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                        <MessageSquare size={11} /> Buyer Inquiry
-                      </span>
-                    )}
-                    {isLike && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                        <Heart size={11} /> Wishlist Save
-                      </span>
-                    )}
-
-                    {/* Customer Name */}
-                    <span className="text-sm font-bold text-white flex items-center gap-1.5">
-                      <User size={13} className="text-zinc-400" /> {lead.customerName}
-                    </span>
-
-                    {/* Property Link */}
-                    <span className="text-xs text-zinc-500">•</span>
-                    <button
-                      type="button"
-                      onClick={() => onListingClick && lead.propertyId && onListingClick(String(lead.propertyId))}
-                      className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1 truncate max-w-xs cursor-pointer text-left"
-                      title="Inspect Property Listing"
-                    >
-                      <Building2 size={12} className="shrink-0" />
-                      <span className="truncate">{lead.propertyTitle}</span>
-                    </button>
-                  </div>
-
-                  {/* Activity Details (Titles & Badges Only - No Descriptions) */}
-                  <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-                    {isVisit ? (
-                      <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono">
-                        <span className="px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-300 border border-sky-500/20 font-semibold">
-                          Inspection Date: <strong className="text-white">{lead.dateLabel}</strong>
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-sky-500/10 text-sky-300 border border-sky-500/20 font-semibold">
-                          Window: <strong className="text-white">{lead.timeSlot}</strong>
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-white/[0.04] text-zinc-300 border border-white/10 uppercase font-semibold">
-                          Status: {lead.status}
-                        </span>
-                      </div>
-                    ) : isInquiry ? (
-                      <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono">
-                        <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-semibold">
-                          Activity: Inbound Buyer Inquiry
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-white/[0.04] text-zinc-300 border border-white/10 uppercase font-semibold">
-                          Status: Active Lead
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono">
-                        <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20 font-semibold">
-                          Activity: Saved to Wishlist
-                        </span>
-                        <span className="px-2.5 py-1 rounded-lg bg-white/[0.04] text-zinc-300 border border-white/10 uppercase font-semibold">
-                          Status: Interested Prospect
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Customer Email & Timestamp */}
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
-                    {lead.customerEmail && (
-                      <span className="flex items-center gap-1">
-                        <Mail size={12} className="text-zinc-500" /> {lead.customerEmail}
-                      </span>
-                    )}
-                    {lead.dateLabel && !isVisit && (
-                      <>
-                        <span className="text-zinc-600">•</span>
-                        <span className="text-[11px] font-mono text-zinc-500">{lead.dateLabel}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right Action Column: Direct Follow-Up Buttons */}
-                <div className="flex flex-wrap items-center gap-2 shrink-0 self-start lg:self-center">
-                  {/* Direct Phone Call */}
-                  {lead.customerPhone ? (
-                    <a
-                      href={`tel:${lead.customerPhone}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold transition-all active:scale-95 cursor-pointer"
-                      title="Direct Phone Call"
-                    >
-                      <Phone size={13} />
-                      <span>{lead.customerPhone}</span>
-                    </a>
-                  ) : (
-                    <span className="text-xs text-zinc-500 font-mono italic px-2 py-1">
-                      No phone provided
-                    </span>
-                  )}
-
-                  {/* Direct WhatsApp */}
-                  {cleanPhone && (
-                    <a
-                      href={`https://wa.me/${cleanPhone}?text=${waText}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all active:scale-95 cursor-pointer"
-                      title="Chat on WhatsApp"
-                    >
-                      <MessageCircle size={13} />
-                      <span>WhatsApp</span>
-                    </a>
-                  )}
-
-                  {/* Direct Email */}
-                  {lead.customerEmail && (
-                    <a
-                      href={`mailto:${lead.customerEmail}?subject=${encodeURIComponent(`Following up on ${lead.propertyTitle}`)}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 border border-white/10 text-xs font-bold transition-all active:scale-95 cursor-pointer"
-                      title="Send Direct Email"
-                    >
-                      <Mail size={13} />
-                      <span>Email</span>
-                    </a>
-                  )}
-
-                  {/* Inspect Details / Action Button */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedLead(lead)}
-                    className="p-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                    title="View Full Lead Dossier"
-                  >
-                    <Eye size={14} />
-                  </button>
-
-                  {/* Toggle Status Quick Actions */}
-                  {isVisit && lead.status === 'scheduled' && (
-                    <Button
-                      size="sm"
-                      onClick={() => updateVisitMutation.mutate({ id: lead.rawId, status: 'completed' })}
-                      disabled={updateVisitMutation.isPending}
-                      className="text-xs font-bold py-1.5 px-2.5 rounded-xl bg-sky-600/30 hover:bg-sky-600/50 text-sky-300 border border-sky-500/40"
-                    >
-                      <CheckCircle2 size={12} className="mr-1" /> Complete
-                    </Button>
-                  )}
-
-                  {isInquiry && lead.status === 'unread' && (
-                    <Button
-                      size="sm"
-                      onClick={() => updateInquiryMutation.mutate({ id: lead.rawId, is_read: true })}
-                      disabled={updateInquiryMutation.isPending}
-                      className="text-xs font-bold py-1.5 px-2.5 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40"
-                    >
-                      <CheckCircle2 size={12} className="mr-1" /> Mark Contacted
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })
         )}
-      </div>
+      </DashboardCard>
 
-      {/* ━━━ 5. LEAD DOSSIER MODAL ━━━ */}
+      {/* ━━━ 5. LEAD DETAILS MODAL ━━━ */}
       {selectedLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="border border-white/10 rounded-3xl max-w-lg w-full p-6 sm:p-7 space-y-6 shadow-2xl bg-[#090d16] text-white">
-            <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+          <div className="border border-[var(--color-border)] rounded-2xl max-w-lg w-full p-6 sm:p-7 space-y-6 shadow-[var(--shadow-depth-3)] bg-[var(--color-bg-surface)] text-[var(--color-text-main)]">
+            <div className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] pb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] font-mono font-bold uppercase">
+                  <span className={channelChip(selectedLead.channel)}>
                     {selectedLead.channel === 'visit' ? 'Showing Appointment' : selectedLead.channel === 'inquiry' ? 'Buyer Inquiry' : 'Wishlist Interest'}
-                  </Badge>
-                  <span className="text-xs text-zinc-500 font-mono">{selectedLead.dateLabel}</span>
+                  </span>
+                  <span className="text-xs text-[var(--color-text-dim)] font-mono">{selectedLead.dateLabel}</span>
                 </div>
-                <h3 className="text-lg font-bold text-white mt-1.5 flex items-center gap-2">
-                  <User size={16} className="text-emerald-400" /> {selectedLead.customerName}
+                <h3 className="text-lg font-bold text-[var(--color-text-main)] mt-1.5 flex items-center gap-2">
+                  <User size={16} className="text-[var(--color-brand-emerald)]" /> {selectedLead.customerName}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedLead(null)}
-                className="p-1 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.08]"
+                className="p-1.5 rounded-xl text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)] transition-colors cursor-pointer"
               >
-                ✕
+                <X size={16} />
               </button>
             </div>
 
             {/* Target Property */}
-            <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-between gap-3">
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400 font-semibold">Target Asset</span>
-                <h4 className="text-sm font-bold text-white">{selectedLead.propertyTitle}</h4>
+            <div className="p-3.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] flex items-center justify-between gap-3">
+              <div className="space-y-0.5 min-w-0">
+                <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--color-text-dim)] font-semibold block">Target Asset</span>
+                <h4 className="text-sm font-bold text-[var(--color-text-main)] truncate">{selectedLead.propertyTitle}</h4>
               </div>
               {onListingClick && selectedLead.propertyId && (
                 <button
@@ -750,7 +668,7 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
                     onListingClick(String(selectedLead.propertyId));
                     setSelectedLead(null);
                   }}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-400 hover:bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1"
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-[var(--color-brand-emerald)] hover:bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-1 shrink-0 cursor-pointer"
                 >
                   <ExternalLink size={12} /> View
                 </button>
@@ -759,7 +677,7 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
 
             {/* Contact Details Dock */}
             <div className="space-y-3">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold block">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--color-text-dim)] font-bold block">
                 Direct Contact Channels
               </span>
 
@@ -767,12 +685,12 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
                 {selectedLead.customerPhone ? (
                   <a
                     href={`tel:${selectedLead.customerPhone}`}
-                    className="p-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold flex items-center gap-2 transition-all"
+                    className="p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:border-emerald-500/30 dark:text-[var(--color-brand-emerald)] text-xs font-mono font-bold flex items-center gap-2 transition-all"
                   >
                     <Phone size={14} /> {selectedLead.customerPhone}
                   </a>
                 ) : (
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/10 text-zinc-500 text-xs font-mono">
+                  <div className="p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-[var(--color-text-dim)] text-xs font-mono">
                     No phone recorded
                   </div>
                 )}
@@ -782,7 +700,7 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
                     href={`https://wa.me/${selectedLead.customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${selectedLead.customerName}, regarding your interest in ${selectedLead.propertyTitle} on Urugwiro...`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                    className="p-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 border border-emerald-600 dark:border-emerald-500 text-[#fff] dark:text-emerald-950 text-xs font-bold flex items-center justify-center gap-2 transition-all"
                   >
                     <MessageCircle size={14} /> Open WhatsApp
                   </a>
@@ -792,54 +710,53 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
               {selectedLead.customerEmail && (
                 <a
                   href={`mailto:${selectedLead.customerEmail}`}
-                  className="p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 text-zinc-300 text-xs flex items-center gap-2 transition-all"
+                  className="p-3 rounded-xl bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-card-hover)] border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs flex items-center gap-2 transition-all"
                 >
-                  <Mail size={14} className="text-zinc-500" /> {selectedLead.customerEmail}
+                  <Mail size={14} className="text-[var(--color-text-dim)]" /> {selectedLead.customerEmail}
                 </a>
               )}
             </div>
 
             {/* Full Notes / Message */}
             <div className="space-y-1.5">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold block">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--color-text-dim)] font-bold block">
                 Customer Message & Inquiry Details
               </span>
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 text-xs text-zinc-200 leading-relaxed whitespace-pre-wrap">
+              <div className="p-4 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs text-[var(--color-text-muted)] leading-relaxed whitespace-pre-wrap">
                 {selectedLead.notes}
               </div>
             </div>
 
             {/* Modal Footer Controls */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
-              <Button
-                variant="ghost"
-                size="sm"
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--color-border)]">
+              <button
+                type="button"
                 onClick={() => setSelectedLead(null)}
-                className="text-xs font-bold text-zinc-400 hover:text-white"
+                className="px-4 py-2 rounded-xl text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)] transition-colors cursor-pointer"
               >
                 Close
-              </Button>
+              </button>
 
               {selectedLead.channel === 'visit' && (
-                <Button
-                  size="sm"
+                <button
+                  type="button"
                   onClick={() => updateVisitMutation.mutate({ id: selectedLead.rawId, status: 'completed' })}
                   disabled={updateVisitMutation.isPending}
-                  className="text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white rounded-xl"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-600 text-[#fff] transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1"
                 >
-                  <CheckCircle2 size={13} className="mr-1" /> Mark Tour Completed
-                </Button>
+                  <CheckCircle2 size={13} /> Mark Tour Completed
+                </button>
               )}
 
               {selectedLead.channel === 'inquiry' && selectedLead.status === 'unread' && (
-                <Button
-                  size="sm"
+                <button
+                  type="button"
                   onClick={() => updateInquiryMutation.mutate({ id: selectedLead.rawId, is_read: true })}
                   disabled={updateInquiryMutation.isPending}
-                  className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] dark:text-emerald-950 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1"
                 >
-                  <CheckCircle2 size={13} className="mr-1" /> Mark Contacted
-                </Button>
+                  <CheckCircle2 size={13} /> Mark Contacted
+                </button>
               )}
             </div>
           </div>

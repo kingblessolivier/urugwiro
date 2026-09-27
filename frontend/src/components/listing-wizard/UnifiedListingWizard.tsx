@@ -57,6 +57,8 @@ const initialSpecs: SpecsData = {
   hasReverseCamera: true, includesHelmet: false, hasDeliveryRack: false,
   commercialFloors: '4', grossArea: '', commercialZoning: 'Commercial C1',
   hasCommercialElevator: true, hasLoadingBay: false,
+  starRating: 0, totalRooms: 0, conferenceHallsCount: 0,
+  hasRestaurantBar: false, commercialLicenseNumber: '', managementType: 'Independent',
 };
 
 // ─── Component ───

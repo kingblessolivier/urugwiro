@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Info } from 'lucide-react';
+import { Info, ArrowUpRight } from 'lucide-react';
 
 interface TechnicalMetricProps {
   icon: LucideIcon;
-  value: string | number;
+  value?: string | number;
   label: string;
 }
 
@@ -26,28 +26,28 @@ export const TechnicalMetric: React.FC<TechnicalMetricProps> = ({ icon: Icon, va
   if (value === undefined || value === null || value === '') return null;
 
   const { friendly, explanation } = FRIENDLY_LABELS[label] || { friendly: label, explanation: '' };
+  const isAddress = label === 'Address';
+  const isExactLocation = label === 'Exact Location' || label === 'Coordinates';
 
   return (
-    <div className="group relative p-4 rounded-2xl border border-white/10 bg-white/[0.02] hover:border-emerald-500/40 hover:bg-emerald-500/[0.03] transition-all duration-300 hover:-translate-y-1 cursor-default">
-      <div className="flex items-start justify-between mb-2">
-        <div className="text-zinc-500 group-hover:text-emerald-400 transition-colors">
-          <Icon size={16} />
-        </div>
+    <div className={`group flex min-w-0 items-center gap-3 border-b py-4 last:border-b-0 ${isAddress ? 'sm:col-span-2' : ''}`} style={{ borderColor: 'var(--color-border)' }}>
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors group-hover:border-emerald-500/30 group-hover:bg-emerald-500/10 group-hover:text-[var(--color-brand-emerald)]" style={{ borderColor: 'var(--color-border)', background: 'var(--color-input-bg)', color: 'var(--color-text-dim)' }}>
+        <Icon size={15} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{friendly}</span>
         {explanation && (
           <div className="relative group/tooltip">
-            <Info size={12} className="text-zinc-600 hover:text-zinc-400 cursor-help" />
-            <div className="absolute bottom-full right-0 mb-2 w-48 p-2 rounded-lg bg-zinc-800 text-zinc-300 text-[10px] leading-tight opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity shadow-xl border border-white/10 z-50">
+            <Info size={12} className="cursor-help hover:text-[var(--color-text-main)]" style={{ color: 'var(--color-text-dim)' }} />
+            <div className="pointer-events-none absolute bottom-full right-0 z-50 mb-2 w-52 rounded-lg border p-2.5 text-[10px] leading-relaxed opacity-0 shadow-[var(--shadow-depth-2)] transition-opacity group-hover/tooltip:opacity-100" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-elevated)', color: 'var(--color-text-muted)' }}>
               {explanation}
             </div>
           </div>
         )}
-      </div>
-      <div className="flex flex-col gap-1">
-        <span className="font-mono text-emerald-400 text-sm font-bold truncate">
+        </div>
+        <span className={`mt-1 block font-mono font-semibold transition-colors group-hover:text-[var(--color-brand-emerald)] ${isAddress ? 'break-words text-sm leading-relaxed' : isExactLocation ? 'break-all text-xs leading-relaxed' : 'break-words text-sm'}`} style={{ color: 'var(--color-text-main)' }}>
           {value}
-        </span>
-        <span className="text-zinc-500 text-[10px] uppercase tracking-widest truncate">
-          {friendly}
         </span>
       </div>
     </div>
@@ -57,23 +57,39 @@ export const TechnicalMetric: React.FC<TechnicalMetricProps> = ({ icon: Icon, va
 interface SpecDomainProps {
   title: string;
   icon: LucideIcon;
-  metrics: { icon: LucideIcon; value: string | number; label: string }[];
+  metrics: { icon: LucideIcon; value?: string | number; label: string }[];
 }
 
 export const SpecDomain: React.FC<SpecDomainProps> = ({ title, icon: Icon, metrics }) => {
-  if (metrics.length === 0) return null;
+  const visibleMetrics = metrics.filter((metric) => {
+    if (metric.value === undefined || metric.value === null || metric.value === '') return false;
+    const normalized = String(metric.value).trim().toLowerCase();
+    return !['n/a', 'na', 'not listed', 'not provided', 'undefined', 'null', 'none'].includes(normalized);
+  });
+
+  if (visibleMetrics.length === 0) return null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4 text-zinc-400">
-        <Icon size={16} className="text-emerald-500" />
-        <h4 className="text-[11px] uppercase font-bold tracking-widest">{title}</h4>
+    <section className="overflow-visible rounded-2xl border p-5 sm:p-6" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)' }}>
+      <div className="mb-1 flex items-center justify-between gap-4 border-b pb-4" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-[var(--color-brand-emerald)]">
+            <Icon size={18} />
+          </div>
+          <div className="min-w-0">
+            <h4 className="truncate text-sm font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>{title}</h4>
+            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--color-text-dim)' }}>Property information</p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>
+          {visibleMetrics.length} fields <ArrowUpRight size={13} className="text-[var(--color-brand-emerald)]" />
+        </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {metrics.map((m, idx) => (
+      <div className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+        {visibleMetrics.map((m, idx) => (
           <TechnicalMetric key={idx} {...m} />
         ))}
       </div>
-    </div>
+    </section>
   );
 };

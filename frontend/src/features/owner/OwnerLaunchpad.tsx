@@ -128,7 +128,7 @@ const OwnerLaunchpad: React.FC<OwnerLaunchpadProps> = ({ onListingClick }) => {
                 <div className="relative z-10 flex justify-between items-start flex-wrap gap-6">
                     <div>
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
-                            <ShieldCheck size={14} /> Sovereign Portfolio Cockpit
+                            <ShieldCheck size={14} /> Property Portfolio Dashboard
                         </div>
                         <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
                             Welcome, <span className="text-emerald-400">{displayName}</span> 👋
@@ -261,14 +261,14 @@ const OwnerLaunchpad: React.FC<OwnerLaunchpadProps> = ({ onListingClick }) => {
                 )}
             </div>
 
-            {/* Asset Inspection Dossier Modal */}
+            {/* Property Details Modal */}
             {selectedAsset && (
                 <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
                     <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#080c14] p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex items-start justify-between border-b border-white/10 pb-4">
                             <div>
                                 <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider mb-2">
-                                    <Building2 size={12} /> Asset Dossier
+                                    <Building2 size={12} /> Property Details
                                 </div>
                                 <h3 className="text-xl font-bold text-white">
                                     {selectedAsset.title}
@@ -319,7 +319,7 @@ const OwnerLaunchpad: React.FC<OwnerLaunchpadProps> = ({ onListingClick }) => {
                                 <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
                                     <span className="text-zinc-500 text-[10px] block font-bold uppercase tracking-wider">Cadastre UPI</span>
                                     <span className="text-sm font-mono font-semibold text-zinc-300 mt-1 block">
-                                        {selectedAsset.upi_number || 'Registered In Vault'}
+                                        {selectedAsset.upi_number || 'Registered on File'}
                                     </span>
                                 </div>
                             </div>

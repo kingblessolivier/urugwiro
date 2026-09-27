@@ -137,18 +137,18 @@ export const AddDiscoveryModal: React.FC<AddDiscoveryModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-      <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-[#0b101b] p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-2xl rounded-3xl border p-6 sm:p-8 shadow-[var(--shadow-depth-3)] space-y-6 max-h-[90vh] overflow-y-auto" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)', color: 'var(--color-text-main)' }}>
         {/* Modal Header */}
-        <div className="flex items-start justify-between border-b border-white/10 pb-4">
+        <div className="flex items-start justify-between border-b pb-4" style={{ borderColor: 'var(--color-border)' }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[var(--color-brand-emerald)]">
               <ActiveIconComponent size={20} />
             </div>
             <div>
-              <span className="font-mono text-emerald-400 font-bold text-xs uppercase tracking-wider block">
+              <span className="font-mono text-[var(--color-brand-emerald)] font-bold text-xs uppercase tracking-wider block">
                 {initialData ? 'Edit Discovery Section' : 'Create New Discovery'}
               </span>
-              <h3 className="text-xl font-bold text-white mt-0.5">
+              <h3 className="text-xl font-bold mt-0.5" style={{ color: 'var(--color-text-main)' }}>
                 {initialData ? 'Update Property Highlight' : 'Add Bespoke Feature & Discovery'}
               </h3>
             </div>
@@ -156,7 +156,8 @@ export const AddDiscoveryModal: React.FC<AddDiscoveryModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-zinc-400 hover:text-white bg-white/[0.04] hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-2 rounded-xl transition-colors cursor-pointer hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-main)]"
+            style={{ color: 'var(--color-text-muted)' }}
           >
             <X size={18} />
           </button>
@@ -166,8 +167,8 @@ export const AddDiscoveryModal: React.FC<AddDiscoveryModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Title */}
           <div>
-            <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
-              Section Title <span className="text-emerald-400">*</span>
+            <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
+              Section Title <span className="text-[var(--color-brand-emerald)]">*</span>
             </label>
             <input
               type="text"
@@ -175,13 +176,13 @@ export const AddDiscoveryModal: React.FC<AddDiscoveryModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Rooftop Sky Lounge & Cocktail Terrace"
-              className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] text-sm focus:outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
 
           {/* Category / Theme */}
           <div>
-            <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
               Theme / Category
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
@@ -192,8 +193,8 @@ export const AddDiscoveryModal: React.FC<AddDiscoveryModalProps> = ({
                   onClick={() => setCategory(cat)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
                     category === cat
-                      ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-sm shadow-emerald-500/20'
-                      : 'bg-white/[0.02] border-white/10 text-zinc-400 hover:text-zinc-200 hover:border-white/20'
+                      ? 'bg-emerald-500/20 border-emerald-500 text-[var(--color-brand-emerald)] shadow-sm shadow-emerald-500/20'
+                      : 'bg-[var(--color-input-bg)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:border-[var(--color-border-hover)]'
                   }`}
                 >
                   {cat}
@@ -205,13 +206,13 @@ export const AddDiscoveryModal: React.FC<AddDiscoveryModalProps> = ({
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               placeholder="Or enter custom category tag..."
-              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder-zinc-500 text-xs focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] text-xs focus:outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
 
           {/* Icon Selector */}
           <div>
-            <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
               Discovery Icon
             </label>
             <div className="grid grid-cols-6 sm:grid-cols-12 gap-2">
@@ -225,8 +226,8 @@ export const AddDiscoveryModal: React.FC<AddDiscoveryModalProps> = ({
                     onClick={() => setSelectedIcon(iconKey)}
                     className={`p-2.5 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 ring-2 ring-emerald-500/20 shadow-md'
-                        : 'bg-white/[0.02] border-white/10 text-zinc-400 hover:text-white hover:border-white/20'
+                        ? 'bg-emerald-500/20 border-emerald-500 text-[var(--color-brand-emerald)] ring-2 ring-emerald-500/20 shadow-md'
+                        : 'bg-[var(--color-input-bg)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:border-[var(--color-border-hover)]'
                     }`}
                     title={iconKey}
                   >
@@ -239,7 +240,7 @@ export const AddDiscoveryModal: React.FC<AddDiscoveryModalProps> = ({
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
               Narrative Description
             </label>
             <textarea
@@ -247,20 +248,20 @@ export const AddDiscoveryModal: React.FC<AddDiscoveryModalProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe this feature in detail to captivate prospective buyers and tenants..."
-              className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-emerald-500 transition-colors resize-none leading-relaxed"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] text-sm focus:outline-none focus:border-emerald-500 transition-colors resize-none leading-relaxed"
             />
           </div>
 
           {/* Bulleted Highlights */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
                 Key Points & Specs ({highlights.filter((h) => h.trim()).length})
               </label>
               <button
                 type="button"
                 onClick={handleAddHighlight}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300 cursor-pointer"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-brand-emerald)] hover:text-[var(--color-brand-emerald)] cursor-pointer"
               >
                 <Plus size={13} /> Add Point
               </button>
@@ -269,7 +270,7 @@ export const AddDiscoveryModal: React.FC<AddDiscoveryModalProps> = ({
             <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
               {highlights.map((highlight, idx) => (
                 <div key={idx} className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                  <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-[var(--color-brand-emerald)] flex items-center justify-center shrink-0">
                     <CheckCircle2 size={12} />
                   </div>
                   <input
@@ -277,13 +278,14 @@ export const AddDiscoveryModal: React.FC<AddDiscoveryModalProps> = ({
                     value={highlight}
                     onChange={(e) => handleUpdateHighlight(idx, e.target.value)}
                     placeholder={`e.g. 15 kVA MultiPlus-II Inverter with 30 kWh Lithium Battery`}
-                    className="flex-1 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder-zinc-500 text-xs focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="flex-1 px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] text-xs focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                   {highlights.length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveHighlight(idx)}
-                      className="p-2 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer"
+                      className="p-2 hover:text-red-500 transition-colors cursor-pointer"
+                      style={{ color: 'var(--color-text-dim)' }}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -294,11 +296,12 @@ export const AddDiscoveryModal: React.FC<AddDiscoveryModalProps> = ({
           </div>
 
           {/* Modal Actions */}
-          <div className="pt-4 border-t border-white/10 flex items-center justify-end gap-3">
+          <div className="pt-4 border-t flex items-center justify-end gap-3" style={{ borderColor: 'var(--color-border)' }}>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-white/10 text-xs font-semibold text-zinc-400 hover:text-white cursor-pointer"
+              className="px-4 py-2.5 rounded-xl border text-xs font-semibold cursor-pointer hover:text-[var(--color-text-main)]"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
             >
               Cancel
             </button>

@@ -294,7 +294,7 @@ def toggle_like(request, pk=None, slug=None):
             'status': 'guest_interest_recorded',
             'liked': True,
             'total_likes': total_likes,
-            'message': 'Your interest in this asset has been registered! Our fiduciary concierge will follow up promptly.'
+            'message': 'Your interest in this property has been registered! Our team will follow up promptly.'
         }, status=status.HTTP_200_OK)
 
     return Response({
@@ -973,7 +973,7 @@ def api_contact_submit(request):
 
     return Response({
         'status': 'Success',
-        'message': 'Your message and contact details have been received. The owner and our fiduciary team will follow up directly.',
+        'message': 'Your message and contact details have been received. The owner and our team will follow up directly.',
         'id': inquiry.id
     }, status=status.HTTP_201_CREATED)
 
@@ -1998,7 +1998,7 @@ def list_create_site_visits(request):
             visitor=user,
             scheduled_date=data.get('scheduled_date') or now(),
             notes=structured_notes,
-            status='scheduled'
+            status='requested'
         )
 
         # Companion lead inquiry so admin and seller see the showing appointment in all ledgers
@@ -4954,7 +4954,7 @@ def consumer_dashboard_metrics(request):
     purchased_count = purchased_deals.count()
 
     # Saved Properties
-    saved_count = LikedProperties.objects.filter(user=user).count()
+    saved_count = LikedProperties.objects.filter(user=user, listing__isnull=False).count()
 
     # Total Transactions Volume
     total_volume = sum([float(d.agreed_price) for d in purchased_deals]) if purchased_deals.exists() else 0.0
@@ -5615,7 +5615,10 @@ def consumer_saved_properties(request):
         return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
     from .models import LikedProperties
-    liked = LikedProperties.objects.filter(user=request.user).select_related('listing').order_by('-id')
+    liked = LikedProperties.objects.filter(
+        user=request.user,
+        listing__isnull=False
+    ).select_related('listing', 'listing__asset').prefetch_related('listing__media').order_by('-id')
 
     data = []
     for item in liked:
@@ -5625,9 +5628,31 @@ def consumer_saved_properties(request):
 
         img = '/images/hero/house.jpg'
         if getattr(l, 'featured_image', None):
-            img = l.featured_image.url
-        elif l.media.exists() and l.media.first().file:
-            img = l.media.first().file.url
+            try:
+                img = l.featured_image.url
+            except Exception:
+                pass
+        elif l.media.exists():
+            first_media = l.media.first()
+            if first_media and getattr(first_media, 'file', None):
+                try:
+                    img = first_media.file.url
+                except Exception:
+                    pass
+
+        asset = getattr(l, 'asset', None)
+        district = (getattr(asset, 'district', None) or '') if asset else ''
+        sector = (getattr(asset, 'sector', None) or '') if asset else ''
+        address = getattr(l, 'address', '') or ''
+
+        if address:
+            location_str = address
+        elif sector and district:
+            location_str = f"{sector}, {district}"
+        elif district:
+            location_str = district
+        else:
+            location_str = 'Kigali, Rwanda'
 
         data.append({
             'id': l.id,
@@ -5636,9 +5661,9 @@ def consumer_saved_properties(request):
             'purpose': l.purpose or 'sale',
             'price': float(l.price) if l.price else 0,
             'currency': l.currency or 'RWF',
-            'location': l.location or f"{l.sector or 'Kacyiru'}, {l.district or 'Gasabo'}",
-            'district': l.district or 'Gasabo',
-            'sector': l.sector or 'Kacyiru',
+            'location': location_str,
+            'district': district or 'Gasabo',
+            'sector': sector or 'Kacyiru',
             'image': img,
             'status': l.status,
             'views_count': getattr(l, 'views_count', 0),
@@ -6099,6 +6124,41 @@ def admin_property_assign_agent(request, pk):
         prop.assigned_agent = None
     prop.save()
     return Response({'success': True, 'message': 'Agent assigned successfully.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def admin_upload_listing_media(request, pk):
+    from .models import Listing, ListingMedia
+    from .serializers import ListingMediaSerializer
+    listing = get_object_or_404(Listing, pk=pk)
+    file = request.FILES.get('file')
+    if not file:
+        return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+    media = ListingMedia.objects.create(
+        listing=listing,
+        file=file,
+        media_type=request.data.get('media_type', 'image'),
+        category=request.data.get('category', 'Exterior'),
+        caption=request.data.get('caption', ''),
+        order=listing.media.count()
+    )
+    return Response(ListingMediaSerializer(media).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['PATCH', 'DELETE'])
+def admin_manage_listing_media(request, pk):
+    from .models import ListingMedia
+    from .serializers import ListingMediaSerializer
+    media = get_object_or_404(ListingMedia, pk=pk)
+    if request.method == 'DELETE':
+        media.delete()
+        return Response({'success': True, 'message': 'Media deleted successfully.'}, status=status.HTTP_200_OK)
+    if request.method == 'PATCH':
+        for f in ['caption', 'category', 'room_name', 'order', 'media_type']:
+            if f in request.data:
+                setattr(media, f, request.data[f])
+        media.save()
+        return Response(ListingMediaSerializer(media).data, status=status.HTTP_200_OK)
 
 
 # ─── Admin Tenants Management APIs ───

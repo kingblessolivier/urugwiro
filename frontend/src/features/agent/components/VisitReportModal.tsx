@@ -186,7 +186,7 @@ export const VisitReportModal: React.FC<VisitReportModalProps> = ({ visit, onClo
             disabled={updateMutation.isPending}
             className="flex-1 rounded-2xl text-xs font-bold py-3 bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-950/20"
           >
-            {updateMutation.isPending ? 'Logging Report...' : 'Save Inspection Dossier'}
+            {updateMutation.isPending ? 'Logging Report...' : 'Save Inspection Report'}
           </Button>
         </div>
       </div>

@@ -84,7 +84,7 @@ export const MaintenanceTicketModal: React.FC<MaintenanceTicketModalProps> = ({
               </div>
               <h4 className="text-lg font-bold text-zinc-900 dark:text-white">Maintenance Ticket Filed</h4>
               <p className="text-xs text-zinc-500 max-w-xs mx-auto">
-                Your landlord and property manager have been notified. You can track progress in your Tenancy Vault.
+                Your landlord and property manager have been notified. You can track progress in your Tenancy & Leases dashboard.
               </p>
               <button
                 onClick={handleClose}

@@ -54,7 +54,7 @@ export const AgentPropertyManager: React.FC<AgentPropertyManagerProps> = ({ onSc
             <Building2 size={22} className="text-emerald-500" /> Assigned Asset Portfolio
           </h1>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Exclusive representation portfolio, cadastral dossiers, and owner co-brokering coordination.
+            Exclusive representation portfolio, verified listings, and owner coordination.
           </p>
         </div>
         <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs px-3 py-1 font-bold">
@@ -196,7 +196,7 @@ export const AgentPropertyManager: React.FC<AgentPropertyManagerProps> = ({ onSc
                   onClick={() => setInspectingPropertyId(prop.id)}
                   className="flex-1 rounded-xl text-xs font-bold py-2 border-zinc-200 dark:border-white/10 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-white/[0.04]"
                 >
-                  <Eye size={13} className="mr-1" /> Dossier
+                  <Eye size={13} className="mr-1" /> Details
                 </Button>
                 {onScheduleVisit && (
                   <Button

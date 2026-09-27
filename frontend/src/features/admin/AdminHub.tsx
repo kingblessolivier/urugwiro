@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-  TrendingUp,
   Landmark,
   ShieldCheck,
   Layers,
@@ -21,6 +20,7 @@ import {
 import { api } from '../../api/endpoints';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '../../components/ui/Button';
+import { tableHead, tableTh, tableBody, tableTr } from '../../components/ui/Dashboard';
 import { cn } from '../../lib/utils';
 import type { AppView } from '../../types/navigation';
 import { ContractSigningDesk } from '../../components/contracts/ContractSigningDesk';
@@ -30,12 +30,12 @@ interface AdminHubProps {
 }
 
 const STAGES = [
-  { id: 'offer_submitted', label: '1. Offer Submitted', step: '01' },
-  { id: 'kyc_escrow', label: '2. KYC & Escrow', step: '02' },
-  { id: 'title_search', label: '3. Title Search (RLMUA)', step: '03' },
-  { id: 'contract_drafting', label: '4. Contract Drafting', step: '04' },
-  { id: 'irembo_notary', label: '5. Irembo Notary', step: '05' },
-  { id: 'closed', label: '6. Conveyance Closed', step: '06' },
+  { id: 'offer_accepted', label: '1. Offer Accepted', step: '01' },
+  { id: 'escrow_funded', label: '2. Escrow Funded', step: '02' },
+  { id: 'due_diligence', label: '3. Due Diligence', step: '03' },
+  { id: 'irembo_filing', label: '4. Government Filing', step: '04' },
+  { id: 'notary_signing', label: '5. Notary Signing', step: '05' },
+  { id: 'settled_closed', label: '6. Deal Closed', step: '06' },
 ];
 
 export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
@@ -52,7 +52,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
     latencyMs: 384,
     status: 'success',
     model: 'meta/llama-3.2-11b-vision-instruct',
-    message: 'NVIDIA TensorRT-LLM Acceleration Active',
+    message: 'AI acceleration active',
   });
 
   const handleRunAiBenchmark = async () => {
@@ -160,17 +160,20 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
 
     // 2. Active Escrow Reserves In-Flight
     const activeEscrow_RWF = deals.reduce((sum, deal) => {
-      if (deal.escrow_status !== 'refunded' && deal.stage !== 'closed') {
-        return sum + (Number(deal.escrow_amount) || 0);
+      const stage = deal.current_stage || deal.stage;
+      if (deal.escrow_status === 'held_in_escrow' && stage !== 'settled_closed' && stage !== 'closed') {
+        return sum + (Number(deal.escrow_deposit_amount) || 0);
       }
       return sum;
     }, 0);
     const activeEscrow_USD = Math.round(activeEscrow_RWF / 1350);
 
-    // 3. Completed Conveyance & Realized Commission (2.5% platform brokerage)
-    const closedDeals = deals.filter((d) => d.stage === 'closed');
+    // 3. Completed deals and brokerage estimates
+    const closedDeals = deals.filter((d) => ['settled_closed', 'closed'].includes(d.current_stage || d.stage));
     const closedVolume_RWF = closedDeals.reduce((sum, d) => sum + (Number(d.agreed_price) || 0), 0);
     const realizedCommission_RWF = Math.round(closedVolume_RWF * 0.025);
+    const activeDeals = deals.filter((d) => !['settled_closed', 'closed', 'cancelled'].includes(d.current_stage || d.stage));
+    const projectedCommission_RWF = Math.round(activeDeals.reduce((sum, d) => sum + (Number(d.agreed_price) || 0), 0) * 0.025);
 
     // 4. Statutory Title Integrity
     const verifiedListings = listings.filter(
@@ -185,7 +188,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
       stageCounts[s.id] = { count: 0, volume: 0 };
     });
     deals.forEach((d) => {
-      const stg = d.stage || 'offer_submitted';
+      const stg = d.current_stage || d.stage || 'offer_accepted';
       if (!stageCounts[stg]) {
         stageCounts[stg] = { count: 0, volume: 0 };
       }
@@ -195,15 +198,17 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
 
     // 6. Asset Class Distribution
     const categories = [
-      { key: 'land', label: 'Sovereign Land Parcels', icon: Compass },
+      { key: 'land', label: 'Land', icon: Compass },
       { key: 'residential', label: 'Residential Estates', icon: Building2 },
-      { key: 'vehicle', label: 'Executive Mobility Fleet', icon: Car },
+      { key: 'vehicle', label: 'Vehicles', icon: Car },
       { key: 'commercial', label: 'Commercial & Office', icon: Landmark },
     ];
 
     const categoryStats = categories.map((cat) => {
       const matching = listings.filter((l) => {
         const c = (l.category || l.listing_type || '').toLowerCase();
+        if (cat.key === 'residential') return ['house', 'apartment', 'residential'].some((value) => c.includes(value));
+        if (cat.key === 'vehicle') return ['car', 'vehicle', 'motorbike'].some((value) => c.includes(value));
         return c.includes(cat.key);
       });
       const count = matching.length;
@@ -222,10 +227,11 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
       grossAUM_USD,
       activeEscrow_RWF,
       activeEscrow_USD,
-      activeDealsCount: deals.filter((d) => d.stage !== 'closed').length,
+      activeDealsCount: activeDeals.length,
       closedDealsCount: closedDeals.length,
       closedVolume_RWF,
       realizedCommission_RWF,
+      projectedCommission_RWF,
       verifiedListingsCount: verifiedListings.length,
       verificationRatio,
       pendingVerificationsCount,
@@ -238,25 +244,24 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
 
   return (
     <div className="p-6 md:p-8 xl:p-10 max-w-[1700px] mx-auto space-y-8 animate-in fade-in duration-300">
-      {/* 1. EXECUTIVE COMMAND CENTER & PLATFORM TELEMETRY */}
-      <div className="rounded-sm border border-white/10 bg-[#0A0C12] p-6 lg:p-8 shadow-2xl relative overflow-hidden">
+      {/* 1. OVERVIEW & PLATFORM METRICS */}
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 lg:p-8 shadow-[var(--shadow-depth-1)] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
           <div className="space-y-1">
             <div className="flex items-center gap-3 mb-3">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-              <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-emerald-400 font-bold">
-                Sovereign Operations Engine Active
+              <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-[var(--color-brand-emerald)] font-bold">
+                Operations Active
               </span>
-              <span className="text-zinc-600">|</span>
-              <span className="text-[10px] font-mono text-zinc-400">
-                Kigali (CAT / UTC+2): <span className="text-emerald-400 font-extrabold">{currentTime || '12:00:00'}</span>
+              <span className="text-[var(--color-text-dim)]">|</span>
+              <span className="text-[10px] font-mono text-[var(--color-text-muted)]">
+                Kigali (CAT / UTC+2): <span className="text-[var(--color-brand-emerald)] font-extrabold">{currentTime || '12:00:00'}</span>
               </span>
             </div>
-            <h1 className="text-2xl lg:text-3xl font-serif font-bold text-white tracking-tight">
-              Executive Platform Intelligence
+            <h1 className="text-2xl lg:text-3xl font-sans font-bold text-[var(--color-text-main)] tracking-tight">
+              Platform Overview
             </h1>
-            <p className="text-zinc-500 text-xs font-mono uppercase tracking-wider">System Status: Optimal / High-Trust Verified</p>
           </div>
 
           {/* Quick Action Dock */}
@@ -264,20 +269,20 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
             <Button
               onClick={() => setView('admin-offers')}
               variant="primary"
-              className="bg-gradient-to-b from-emerald-600 to-emerald-800 text-white font-bold text-xs py-2 px-4 rounded-sm flex items-center gap-2 shadow-lg transition-all duration-300 oneui-press border-t border-white/10"
+              className="font-bold text-xs py-2 px-4 rounded-lg flex items-center gap-2 oneui-press"
             >
               <Layers size={14} strokeWidth={2} />
-              Conveyance Kanban
+              Deal Board
             </Button>
             <Button
               onClick={() => setView('admin-verification')}
               variant="secondary"
-              className="border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06] text-xs py-2 px-3.5 rounded-sm flex items-center gap-2 font-semibold transition-all duration-300 oneui-press"
+              className="border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-card-hover)] text-xs py-2 px-3.5 rounded-lg flex items-center gap-2 font-semibold transition-all duration-300 oneui-press"
             >
-              <ShieldCheck size={14} strokeWidth={2} className="text-emerald-400" />
-              Title Bureau
+              <ShieldCheck size={14} strokeWidth={2} className="text-[var(--color-brand-emerald)]" />
+              Verification
               {metrics.pendingVerificationsCount > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-sm bg-amber-500/20 text-amber-300 font-mono text-[10px] font-bold border border-amber-500/30">
+                <span className="ml-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 font-mono text-[10px] font-bold border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30">
                   {metrics.pendingVerificationsCount}
                 </span>
               )}
@@ -285,18 +290,18 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
             <Button
               onClick={() => setView('admin-enquiries')}
               variant="secondary"
-              className="border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06] text-xs py-2 px-3.5 rounded-sm flex items-center gap-2 font-semibold transition-all duration-300 oneui-press"
+              className="border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-card-hover)] text-xs py-2 px-3.5 rounded-lg flex items-center gap-2 font-semibold transition-all duration-300 oneui-press"
             >
-              <Users size={14} strokeWidth={2} className="text-emerald-400" />
-              Institutional CRM
+              <Users size={14} strokeWidth={2} className="text-[var(--color-brand-emerald)]" />
+              Customer Inquiries
             </Button>
             <Button
               onClick={() => setView('admin-reports')}
               variant="ghost"
-              className="border border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.06] text-xs py-2 px-3.5 rounded-sm flex items-center gap-2 font-semibold transition-all duration-300 oneui-press"
+              className="border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-card-hover)] text-xs py-2 px-3.5 rounded-lg flex items-center gap-2 font-semibold transition-all duration-300 oneui-press"
             >
-              <FileSpreadsheet size={14} strokeWidth={2} className="text-blue-400" />
-              Statutory Audits
+              <FileSpreadsheet size={14} strokeWidth={2} className="text-blue-600 dark:text-blue-400" />
+              Reports
             </Button>
             <Button
               onClick={() => {
@@ -306,8 +311,8 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
                 visitsQuery.refetch();
               }}
               variant="ghost"
-              className="p-2 rounded-sm border border-white/10 bg-white/[0.03] text-zinc-400 hover:text-white transition-all duration-300 oneui-press"
-              title="Refresh Telemetry"
+              className="p-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-all duration-300 oneui-press"
+              title="Refresh data"
             >
               <RefreshCw size={14} strokeWidth={2} />
             </Button>
@@ -318,115 +323,113 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
       {/* 2. PRIMARY LIQUIDITY & EXECUTIVE KPI CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
         {/* Metric 1: Gross Platform AUM */}
-        <div className="rounded-sm border border-white/10 bg-[#0A0C12] p-6 relative overflow-hidden group hover:border-emerald-500/40 shadow-lg transition-all duration-300">
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 relative overflow-hidden group hover:border-emerald-500/40 shadow-[var(--shadow-depth-1)] transition-all duration-300">
           <div className="flex items-center justify-between mb-6">
-            <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-zinc-400 font-bold">
-              Gross Platform AUM
+            <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-bold">
+              Total Listing Value
             </span>
-            <div className="h-8 w-8 rounded-sm bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <div className="h-8 w-8 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[var(--color-brand-emerald)]">
               <Landmark size={16} strokeWidth={2} />
             </div>
           </div>
-          <div className="text-3xl font-mono font-bold text-white tracking-tight mb-1">
-            {(metrics.grossAUM_RWF / 1_000_000_000).toFixed(2)}B <span className="text-xs font-sans font-semibold text-zinc-500 uppercase">RWF</span>
+          <div className="text-3xl font-mono font-bold text-[var(--color-text-main)] tracking-tight mb-1">
+            {(metrics.grossAUM_RWF / 1_000_000_000).toFixed(2)}B <span className="text-xs font-sans font-semibold text-[var(--color-text-dim)] uppercase">RWF</span>
           </div>
-          <div className="text-xs font-mono text-emerald-400/80 mb-6">
-            â‰ˆ ${(metrics.grossAUM_USD / 1_000_000).toFixed(2)}M USD Equivalent
+          <div className="text-xs font-mono text-[var(--color-brand-emerald)] mb-6">
+            Approx. ${(metrics.grossAUM_USD / 1_000_000).toFixed(2)}M USD
           </div>
-          <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[11px] text-zinc-500 font-medium">
-            <span>{listings.length} Master Assets</span>
-            <span className="text-emerald-400 font-mono font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded-sm border border-emerald-500/20 flex items-center gap-1">
-              <TrendingUp size={10} strokeWidth={2} /> +18.4%
-            </span>
+          <div className="pt-4 border-t border-[var(--color-border)] flex items-center justify-between text-[11px] text-[var(--color-text-dim)] font-medium">
+            <span>{listings.length} Listings</span>
+            <span className="text-[var(--color-text-muted)] font-mono font-semibold">{listings.length} total</span>
           </div>
         </div>
 
         {/* Metric 2: Escrow Liquidity In-Flight */}
-        <div className="rounded-sm border border-white/10 bg-[#0A0C12] p-6 relative overflow-hidden group hover:border-blue-400/40 shadow-lg transition-all duration-300">
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 relative overflow-hidden group hover:border-blue-400/40 shadow-[var(--shadow-depth-1)] transition-all duration-300">
           <div className="flex items-center justify-between mb-6">
-            <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-zinc-400 font-bold">
+            <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-bold">
               Active Escrow Reserves
             </span>
-            <div className="h-8 w-8 rounded-sm bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+            <div className="h-8 w-8 rounded-md bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
               <Lock size={16} strokeWidth={2} />
             </div>
           </div>
-          <div className="text-3xl font-mono font-bold text-white tracking-tight mb-1">
-            {(metrics.activeEscrow_RWF / 1_000_000).toFixed(1)}M <span className="text-xs font-sans font-semibold text-zinc-500 uppercase">RWF</span>
+          <div className="text-3xl font-mono font-bold text-[var(--color-text-main)] tracking-tight mb-1">
+            {(metrics.activeEscrow_RWF / 1_000_000).toFixed(1)}M <span className="text-xs font-sans font-semibold text-[var(--color-text-dim)] uppercase">RWF</span>
           </div>
-          <div className="text-xs font-mono text-zinc-400 mb-6">
-            â‰ˆ ${metrics.activeEscrow_USD.toLocaleString()} USD Protected
+          <div className="text-xs font-mono text-[var(--color-text-muted)] mb-6">
+            Approx. ${metrics.activeEscrow_USD.toLocaleString()} USD
           </div>
-          <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[11px] text-zinc-500 font-medium">
-            <span>{metrics.activeDealsCount} Conveyances</span>
-            <span className="text-zinc-300 font-mono font-semibold bg-white/[0.03] px-1.5 py-0.5 rounded-sm border border-white/10">3.4d Avg.</span>
+          <div className="pt-4 border-t border-[var(--color-border)] flex items-center justify-between text-[11px] text-[var(--color-text-dim)] font-medium">
+            <span>{metrics.activeDealsCount} Deals</span>
+            <span className="text-[var(--color-text-muted)] font-mono font-semibold">Held deposits</span>
           </div>
         </div>
 
         {/* Metric 3: Pipeline Deals Velocity */}
-        <div className="rounded-sm border border-white/10 bg-[#0A0C12] p-6 relative overflow-hidden group hover:border-cyan-400/40 shadow-lg transition-all duration-300">
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 relative overflow-hidden group hover:border-cyan-400/40 shadow-[var(--shadow-depth-1)] transition-all duration-300">
           <div className="flex items-center justify-between mb-6">
-            <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-zinc-400 font-bold">
-              Conveyance Velocity
+            <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-bold">
+              Deal Progress
             </span>
-            <div className="h-8 w-8 rounded-sm bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+            <div className="h-8 w-8 rounded-md bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
               <Activity size={16} strokeWidth={2} />
             </div>
           </div>
-          <div className="text-3xl font-mono font-bold text-white tracking-tight mb-1">
-            {metrics.activeDealsCount} <span className="text-xs font-sans font-semibold text-zinc-500 uppercase">In-Flight</span>
+          <div className="text-3xl font-mono font-bold text-[var(--color-text-main)] tracking-tight mb-1">
+            {metrics.activeDealsCount} <span className="text-xs font-sans font-semibold text-[var(--color-text-dim)] uppercase">In-Flight</span>
           </div>
-          <div className="text-xs font-mono text-zinc-400 mb-6">
-            {metrics.closedDealsCount} Deeds Transferred
+          <div className="text-xs font-mono text-[var(--color-text-muted)] mb-6">
+            {metrics.closedDealsCount} Completed Deals
           </div>
-          <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[11px] text-zinc-500 font-medium">
-            <span>Proj. Brokerage:</span>
-            <span className="text-white font-mono font-bold">
-              {(metrics.realizedCommission_RWF / 1_000_000).toFixed(1)}M RWF
+          <div className="pt-4 border-t border-[var(--color-border)] flex items-center justify-between text-[11px] text-[var(--color-text-dim)] font-medium">
+            <span>Projected brokerage:</span>
+            <span className="text-[var(--color-text-main)] font-mono font-bold">
+              {(metrics.projectedCommission_RWF / 1_000_000).toFixed(1)}M RWF
             </span>
           </div>
         </div>
 
         {/* Metric 4: Statutory RLMUA Trust Ratio */}
-        <div className="rounded-sm border border-white/10 bg-[#0A0C12] p-6 relative overflow-hidden group hover:border-emerald-400/40 shadow-lg transition-all duration-300">
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 relative overflow-hidden group hover:border-emerald-400/40 shadow-[var(--shadow-depth-1)] transition-all duration-300">
           <div className="flex items-center justify-between mb-6">
-            <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-zinc-400 font-bold">
-              RLMUA Trust Integrity
+            <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-[var(--color-text-muted)] font-bold">
+              Verification
             </span>
-            <div className="h-8 w-8 rounded-sm bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <div className="h-8 w-8 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[var(--color-brand-emerald)]">
               <ShieldCheck size={16} strokeWidth={2} />
             </div>
           </div>
-          <div className="text-3xl font-mono font-bold text-white tracking-tight mb-1">
-            {metrics.verificationRatio}% <span className="text-xs font-sans font-semibold text-zinc-500 uppercase">Certified</span>
+          <div className="text-3xl font-mono font-bold text-[var(--color-text-main)] tracking-tight mb-1">
+            {metrics.verificationRatio}% <span className="text-xs font-sans font-semibold text-[var(--color-text-dim)] uppercase">Certified</span>
           </div>
-          <div className="text-xs font-mono text-emerald-400/80 mb-6 flex items-center gap-1.5">
+          <div className="text-xs font-mono text-[var(--color-brand-emerald)] mb-6 flex items-center gap-1.5">
             <span className="h-1 w-1 rounded-full bg-emerald-400" />
-            Zero Title Disputes
+            Based on listing verification records
           </div>
-          <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[11px] text-zinc-500 font-medium">
+          <div className="pt-4 border-t border-[var(--color-border)] flex items-center justify-between text-[11px] text-[var(--color-text-dim)] font-medium">
             <span>{metrics.verifiedListingsCount} Verified UPIs</span>
-            <span className="text-zinc-300 font-mono font-semibold">{metrics.pendingVerificationsCount} Awaiting</span>
+            <span className="text-[var(--color-text-muted)] font-mono font-semibold">{metrics.pendingVerificationsCount} Awaiting</span>
           </div>
         </div>
       </div>
 
-      {/* 3. SOVEREIGN CONVEYANCE PIPELINE (STATUTORY FLOW) */}
-      <div className="rounded-sm border border-white/10 bg-[#0A0C12] p-6 lg:p-7 shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-white/5">
+      {/* 3. DEAL PIPELINE */}
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 lg:p-7 shadow-[var(--shadow-depth-1)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-[var(--color-border)]">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Layers size={16} strokeWidth={2} className="text-emerald-400" />
-              <h2 className="text-lg font-serif font-bold text-white tracking-tight">
-                Statutory Conveyance Pipeline
+              <Layers size={16} strokeWidth={2} className="text-[var(--color-brand-emerald)]" />
+              <h2 className="text-lg font-sans font-bold text-[var(--color-text-main)] tracking-tight">
+                Deal Pipeline
               </h2>
             </div>
-            <p className="text-[11px] font-mono text-zinc-500 uppercase tracking-wider">High-Trust Asset Transfer Distribution</p>
+            <p className="text-[11px] font-mono text-[var(--color-text-dim)] uppercase tracking-wider">Deals grouped by current stage</p>
           </div>
           <Button
             onClick={() => setView('admin-offers')}
             variant="ghost"
-            className="text-xs text-emerald-400 hover:text-white hover:bg-emerald-500 border border-emerald-500/30 px-4 py-2 rounded-sm flex items-center gap-2 self-start sm:self-auto font-bold transition-all duration-300 oneui-press"
+            className="text-xs text-[var(--color-brand-emerald)] hover:text-white hover:bg-emerald-600 border border-emerald-500/30 px-4 py-2 rounded-md flex items-center gap-2 self-start sm:self-auto font-bold transition-all duration-300 oneui-press"
           >
             Open Interactive Kanban <ArrowRight size={14} strokeWidth={2} />
           </Button>
@@ -435,7 +438,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
         {/* 6 Stage-based Precision View: Linear Progression */}
         <div className="relative">
           {/* Background Progress Line */}
-          <div className="absolute top-6 left-0 w-full h-px bg-zinc-800 z-0" />
+          <div className="absolute top-6 left-0 w-full h-px bg-[var(--color-border)] z-0" />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12 relative z-10">
             {STAGES.map((stg, idx) => {
@@ -448,28 +451,28 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
                 >
                   <div className="flex items-center justify-between mb-4 px-1">
                     <div className="flex items-center gap-3">
-                      <div className="h-6 w-6 rounded-sm border border-emerald-500/40 bg-[#0A0C12] flex items-center justify-center text-[10px] font-mono text-emerald-400 font-bold group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300 shadow-[0_0_10px_rgba(16,185,129,0.1)]">
+                      <div className="h-6 w-6 rounded-md border border-emerald-500/40 bg-[var(--color-bg-surface)] flex items-center justify-center text-[10px] font-mono text-emerald-600 dark:text-[var(--color-brand-emerald)] font-bold group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300 shadow-[var(--shadow-emerald-soft)]">
                         {stg.step}
                       </div>
-                      <span className="text-xs font-semibold text-zinc-400 group-hover:text-white transition-colors tracking-wide">
+                      <span className="text-xs font-semibold text-[var(--color-text-muted)] group-hover:text-[var(--color-text-main)] transition-colors tracking-wide">
                         {stg.label}
                       </span>
                     </div>
                     {data.count > 0 && (
-                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-sm border border-emerald-500/20">
+                      <span className="text-[10px] font-mono text-[var(--color-brand-emerald)] bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
                         {data.count} Assets
                       </span>
                     )}
                   </div>
-                  <div className="rounded-sm border border-white/10 bg-white/[0.02] p-4 transition-all duration-300 group-hover:border-emerald-500/40 group-hover:bg-white/[0.04] flex items-end justify-between shadow-sm">
-                    <div className="text-3xl font-mono font-bold text-white">
+                  <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-4 transition-all duration-300 group-hover:border-[var(--color-brand-emerald)] group-hover:bg-[var(--color-bg-card-hover)] flex items-end justify-between shadow-sm">
+                    <div className="text-3xl font-mono font-bold text-[var(--color-text-main)]">
                       {data.count}
                     </div>
-                    <div className="text-[11px] font-mono text-zinc-500">
+                    <div className="text-[11px] font-mono text-[var(--color-text-dim)]">
                       {data.volume > 0 ? (
-                        <span className="text-emerald-400 font-bold">{(data.volume / 1_000_000).toFixed(1)}M RWF</span>
+                        <span className="text-[var(--color-brand-emerald)] font-bold">{(data.volume / 1_000_000).toFixed(1)}M RWF</span>
                       ) : (
-                        <span className="text-zinc-600 font-medium">Zero Volume</span>
+                        <span className="text-[var(--color-text-dim)] font-medium">Zero Volume</span>
                       )}
                     </div>
                   </div>
@@ -480,15 +483,15 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
         </div>
 
         {/* Pipeline Conversion Health Bar */}
-        <div className="mt-10 pt-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-zinc-500 font-medium">
+        <div className="mt-10 pt-6 border-t border-[var(--color-border)] flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-[var(--color-text-dim)] font-medium">
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-            <span>Closing Velocity: <strong className="text-zinc-200 font-mono font-bold">14 Calendar Days</strong></span>
+            <span>Closing Velocity: <strong className="text-[var(--color-text-main)] font-mono font-bold">14 Calendar Days</strong></span>
           </div>
           <div className="flex items-center gap-6 font-mono text-[11px]">
-            <span className="flex items-center gap-1.5">Active Bids: <strong className="text-emerald-400 font-bold">{metrics.activeOffersCount}</strong></span>
-            <span className="flex items-center gap-1.5">Inspections: <strong className="text-zinc-200 font-bold">{metrics.upcomingVisitsCount}</strong></span>
-            <span className="flex items-center gap-1.5">Escrow: <strong className="text-emerald-300 font-bold">{(metrics.activeEscrow_RWF / 1_000_000).toFixed(1)}M RWF</strong></span>
+            <span className="flex items-center gap-1.5">Active Bids: <strong className="text-[var(--color-brand-emerald)] font-bold">{metrics.activeOffersCount}</strong></span>
+            <span className="flex items-center gap-1.5">Inspections: <strong className="text-[var(--color-text-main)] font-bold">{metrics.upcomingVisitsCount}</strong></span>
+            <span className="flex items-center gap-1.5">Escrow: <strong className="text-[var(--color-brand-emerald)] font-bold">{(metrics.activeEscrow_RWF / 1_000_000).toFixed(1)}M RWF</strong></span>
           </div>
         </div>
       </div>
@@ -496,57 +499,57 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
       {/* 4. ASSET CLASS CAPITAL ALLOCATION & STATUTORY RADAR */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Column 1 & 2: Asset Class Capital Allocation */}
-        <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 lg:p-7 shadow-lg shadow-black/20">
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
+        <div className="lg:col-span-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 lg:p-7 shadow-[var(--shadow-depth-1)]">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--color-border)]">
             <div>
               <div className="flex items-center gap-2">
-                <Compass size={18} strokeWidth={2} className="text-emerald-400" />
-                <h3 className="text-base font-serif font-bold text-white tracking-tight">
-                  Asset Class Capital Allocation & Inventory Yield
+                <Compass size={18} strokeWidth={2} className="text-[var(--color-brand-emerald)]" />
+                <h3 className="text-base font-sans font-bold text-[var(--color-text-main)] tracking-tight">
+                  Listings by Category
                 </h3>
               </div>
             </div>
             <Button
               onClick={() => setView('admin-listings')}
               variant="ghost"
-              className="text-xs text-zinc-200 hover:text-white hover:bg-white/[0.08] px-3 py-1.5 rounded-xl border border-white/10 font-semibold flex items-center gap-1.5 oneui-press"
+              className="text-xs text-[var(--color-text-main)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-card-hover)] px-3 py-1.5 rounded-xl border border-[var(--color-border)] font-semibold flex items-center gap-1.5 oneui-press"
             >
-              Manage Catalog <ArrowUpRight size={14} strokeWidth={2} className="text-emerald-400" />
+              Manage Catalog <ArrowUpRight size={14} strokeWidth={2} className="text-[var(--color-brand-emerald)]" />
             </Button>
           </div>
 
           <div className="space-y-4">
-            {metrics.categoryStats.map((cat) => {
+            {metrics.categoryStats.filter((cat) => cat.count > 0).map((cat) => {
               const Icon = cat.icon;
               return (
                 <div
                   key={cat.key}
-                  className="p-4 rounded-xl border border-white/10 bg-white/[0.04] hover:border-white/[0.15] transition-all shadow-sm"
+                  className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] hover:border-[var(--color-border-hover)] transition-all shadow-sm"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
-                      <div className="p-2.5 rounded-xl bg-white/[0.08] border border-white/10 text-white">
+                      <div className="p-2.5 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border)] text-[var(--color-text-main)]">
                         <Icon size={18} strokeWidth={2} />
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-white">{cat.label}</div>
-                        <div className="text-xs text-zinc-300 font-mono mt-0.5">
-                          {cat.count} listings â€¢ {cat.share}% of total platform AUM
+                        <div className="text-sm font-bold text-[var(--color-text-main)]">{cat.label}</div>
+                        <div className="text-xs text-[var(--color-text-muted)] font-mono mt-0.5">
+                          {cat.count} listings · {cat.share}% of listing value
                         </div>
                       </div>
                     </div>
                     <div className="text-right font-mono">
-                      <div className="text-sm font-bold text-white">
+                      <div className="text-sm font-bold text-[var(--color-text-main)]">
                         {(cat.totalVal / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 1 })}M RWF
                       </div>
-                      <div className="text-xs text-zinc-300 font-medium">
-                        â‰ˆ ${Math.round(cat.totalVal / 1350).toLocaleString()} USD
+                      <div className="text-xs text-[var(--color-text-muted)] font-medium">
+                        Approx. ${Math.round(cat.totalVal / 1350).toLocaleString()} USD
                       </div>
                     </div>
                   </div>
 
                   {/* Relative bar */}
-                  <div className="w-full bg-white/[0.1] h-2 rounded-full overflow-hidden mt-3">
+                  <div className="w-full bg-[var(--color-border)] h-2 rounded-full overflow-hidden mt-3">
                     <div
                       className="h-full bg-emerald-500 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"
                       style={{ width: `${Math.max(cat.share, 4)}%` }}
@@ -560,59 +563,59 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
 
         {/* Column 3: Statutory Land Cadastre & NVIDIA AI Engines */}
         <div className="space-y-6">
-          {/* RLMUA Sovereign Trust Card */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 shadow-lg shadow-black/20 hover:border-white/[0.15] transition-all">
+          {/* RLMUA Title Verification Card */}
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 shadow-[var(--shadow-depth-1)] hover:border-[var(--color-border-hover)] transition-all">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-[var(--color-brand-emerald)]">
                   <ShieldCheck size={20} strokeWidth={2} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-serif font-bold text-white">RLMUA Cadastre Bureau</h4>
+                  <h4 className="text-sm font-sans font-bold text-[var(--color-text-main)]">Land Records</h4>
                 </div>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-[10px] font-bold">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[var(--color-brand-emerald)] font-mono text-[10px] font-bold">
                 SYNCED
               </span>
             </div>
 
-            <div className="space-y-2.5 text-xs text-zinc-300 font-medium">
-              <div className="flex justify-between py-2 border-b border-white/[0.1]">
+            <div className="space-y-2.5 text-xs text-[var(--color-text-muted)] font-medium">
+              <div className="flex justify-between py-2 border-b border-[var(--color-border)]">
                 <span>UPI Cadastre Query Uptime</span>
-                <span className="font-mono text-emerald-300 font-bold">99.8%</span>
+                <span className="font-mono text-[var(--color-brand-emerald)] font-bold">99.8%</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-white/[0.1]">
+              <div className="flex justify-between py-2 border-b border-[var(--color-border)]">
                 <span>Irembo Gov Notary Bill Engine</span>
-                <span className="font-mono text-white font-semibold">Connected</span>
+                <span className="font-mono text-[var(--color-text-main)] font-semibold">Connected</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-white/[0.1]">
+              <div className="flex justify-between py-2 border-b border-[var(--color-border)]">
                 <span>Pending Title Deeds to Audit</span>
-                <span className="font-mono text-emerald-400 font-bold">{metrics.pendingVerificationsCount}</span>
+                <span className="font-mono text-[var(--color-brand-emerald)] font-bold">{metrics.pendingVerificationsCount}</span>
               </div>
             </div>
 
             <Button
               onClick={() => setView('admin-verification')}
               variant="secondary"
-              className="w-full mt-5 bg-white/[0.06] hover:bg-white/[0.1] text-white border border-white/10 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all oneui-press shadow-sm"
+              className="w-full mt-5 bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-card-hover)] text-[var(--color-text-main)] border border-[var(--color-border)] font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all oneui-press shadow-sm"
             >
-              Launch Verification Bureau <ArrowRight size={14} strokeWidth={2} />
+              Open Verification <ArrowRight size={14} strokeWidth={2} />
             </Button>
           </div>
 
-          {/* NVIDIA NIM AI Engine & System Performance Telemetry */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 shadow-lg shadow-black/20 hover:border-white/[0.15] transition-all flex flex-col justify-between">
+          {/* NVIDIA NIM AI Engine & System Performance */}
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 shadow-[var(--shadow-depth-1)] hover:border-[var(--color-border-hover)] transition-all flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-[var(--color-brand-emerald)]">
                     <Sparkles size={18} strokeWidth={2} />
                   </div>
                   <div>
-                    <h4 className="text-sm font-serif font-bold text-white">NVIDIA NIM AI Core & Telemetry</h4>
+                    <h4 className="text-sm font-sans font-bold text-[var(--color-text-main)]">AI Status</h4>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] text-zinc-200 border border-white/10 font-mono text-[10px] font-bold">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] border border-[var(--color-border)] font-mono text-[10px] font-bold">
                   <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
                   <span>{aiBenchmark.latencyMs}ms</span>
                 </div>
@@ -620,38 +623,38 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
 
               {/* Performance Key Indicators */}
               <div className="grid grid-cols-2 gap-2 mb-4">
-                <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10">
-                  <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400 font-semibold block">Inference Speed</span>
-                  <span className="text-xs font-mono font-bold text-white">{aiBenchmark.latencyMs}ms avg</span>
+                <div className="p-2.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
+                  <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--color-text-muted)] font-semibold block">Inference Speed</span>
+                  <span className="text-xs font-mono font-bold text-[var(--color-text-main)]">{aiBenchmark.latencyMs}ms avg</span>
                 </div>
-                <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10">
-                  <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400 font-semibold block">Audits Today</span>
-                  <span className="text-xs font-mono font-bold text-emerald-300">100% Zero-Touch</span>
+                <div className="p-2.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
+                  <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--color-text-muted)] font-semibold block">Audits Today</span>
+                  <span className="text-xs font-mono font-bold text-[var(--color-brand-emerald)]">100%</span>
                 </div>
               </div>
 
-              <div className="space-y-2 text-xs text-zinc-300 font-medium">
-                <div className="flex justify-between py-1.5 border-b border-white/[0.1]">
+              <div className="space-y-2 text-xs text-[var(--color-text-muted)] font-medium">
+                <div className="flex justify-between py-1.5 border-b border-[var(--color-border)]">
                   <span>Active Architecture</span>
-                  <span className="font-mono text-white font-bold truncate max-w-[160px]" title={aiBenchmark.model}>
+                  <span className="font-mono text-[var(--color-text-main)] font-bold truncate max-w-[160px]" title={aiBenchmark.model}>
                     {aiBenchmark.model.replace('meta/', '').replace('nvidia/', '')}
                   </span>
                 </div>
-                <div className="flex justify-between py-1.5 border-b border-white/[0.1]">
+                <div className="flex justify-between py-1.5 border-b border-[var(--color-border)]">
                   <span>OCR Verification Speed</span>
-                  <span className="font-mono text-emerald-300 font-bold">1.8s / Deed</span>
+                  <span className="font-mono text-[var(--color-brand-emerald)] font-bold">1.8s / Deed</span>
                 </div>
-                <div className="flex justify-between py-1.5 border-b border-white/[0.1]">
+                <div className="flex justify-between py-1.5 border-b border-[var(--color-border)]">
                   <span>Cadastre Fraud Shield</span>
-                  <span className="font-mono text-emerald-300 font-bold">0 Violations</span>
+                  <span className="font-mono text-[var(--color-brand-emerald)] font-bold">0 Violations</span>
                 </div>
               </div>
 
               {/* Diagnostic Result Callout */}
               {aiBenchmark.message && (
-                <div className="mt-3 p-2 rounded-lg bg-white/[0.04] border border-white/10 text-xs font-mono text-zinc-200 flex items-center justify-between">
+                <div className="mt-3 p-2 rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs font-mono text-[var(--color-text-main)] flex items-center justify-between">
                   <span className="truncate">{aiBenchmark.message}</span>
-                  <span className="text-emerald-400 text-[10px] font-bold">ONLINE</span>
+                  <span className="text-[var(--color-brand-emerald)] text-[10px] font-bold">ONLINE</span>
                 </div>
               )}
             </div>
@@ -661,46 +664,46 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
                 onClick={handleRunAiBenchmark}
                 disabled={isTestingAi}
                 variant="secondary"
-                className="flex-1 border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.1] text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 font-semibold oneui-press disabled:opacity-50"
+                className="flex-1 border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-card-hover)] text-xs py-2.5 rounded-xl flex items-center justify-center gap-1.5 font-semibold oneui-press disabled:opacity-50"
               >
-                <RefreshCw size={13} className={cn(isTestingAi && 'animate-spin text-emerald-400')} />
+                <RefreshCw size={13} className={cn(isTestingAi && 'animate-spin text-[var(--color-brand-emerald)]')} />
                 <span>{isTestingAi ? 'Benchmarking...' : 'Test AI Speed'}</span>
               </Button>
 
               <Button
                 onClick={() => setView('admin-settings')}
                 variant="secondary"
-                className="px-3 border-white/10 bg-white/[0.04] text-zinc-200 hover:text-white text-xs py-2.5 rounded-xl flex items-center justify-center oneui-press"
+                className="px-3 border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] hover:text-[var(--color-text-main)] text-xs py-2.5 rounded-xl flex items-center justify-center oneui-press"
                 title="Manage AI Model Credentials"
               >
-                <Cpu size={14} className="text-emerald-400" />
+                <Cpu size={14} className="text-[var(--color-brand-emerald)]" />
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 5. LIVE SOVEREIGN ACTIVITY STREAM (DEALS, OFFERS, VISITS) */}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 lg:p-7 shadow-lg shadow-black/20">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/10">
+      {/* 5. LIVE PLATFORM ACTIVITY STREAM (DEALS, OFFERS, VISITS) */}
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 lg:p-7 shadow-[var(--shadow-depth-1)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-[var(--color-border)]">
           <div>
             <div className="flex items-center gap-2">
-              <Activity size={18} strokeWidth={2} className="text-emerald-400" />
-              <h3 className="text-base font-serif font-bold text-white tracking-tight">
-                Real-Time Sovereign Activity & Operations Stream
+              <Activity size={18} strokeWidth={2} className="text-[var(--color-brand-emerald)]" />
+              <h3 className="text-base font-sans font-bold text-[var(--color-text-main)] tracking-tight">
+                Recent Activity
               </h3>
             </div>
           </div>
 
           {/* Activity Tabs */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/[0.04] border border-white/10 self-start sm:self-auto">
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] self-start sm:self-auto">
             <button
               onClick={() => setActivityTab('deals')}
               className={cn(
                 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all oneui-press',
                 activityTab === 'deals'
-                  ? 'bg-emerald-500 text-white shadow-sm'
-                  : 'text-zinc-300 hover:text-white'
+                  ? 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-500'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'
               )}
             >
               In-Flight Deals ({deals.length})
@@ -710,8 +713,8 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
               className={cn(
                 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all oneui-press',
                 activityTab === 'offers'
-                  ? 'bg-emerald-500 text-white shadow-sm'
-                  : 'text-zinc-300 hover:text-white'
+                  ? 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-500'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'
               )}
             >
               Live Offers ({offers.length})
@@ -721,8 +724,8 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
               className={cn(
                 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all oneui-press',
                 activityTab === 'visits'
-                  ? 'bg-emerald-500 text-white shadow-sm'
-                  : 'text-zinc-300 hover:text-white'
+                  ? 'bg-emerald-600 text-white shadow-sm dark:bg-emerald-500'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]'
               )}
             >
               Inspections ({visits.length})
@@ -733,59 +736,59 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
         {/* Tab 1: Deals In-Flight */}
         {activityTab === 'deals' && (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-zinc-200">
-              <thead className="bg-white/[0.04] border-b border-white/10 text-[11px] font-mono uppercase tracking-wider text-zinc-300 font-bold">
+            <table className="w-full text-left text-xs text-[var(--color-text-muted)]">
+              <thead className={tableHead}>
                 <tr>
-                  <th className="py-3 px-4">Deal ID / Asset</th>
-                  <th className="py-3 px-4">Parties Involved</th>
-                  <th className="py-3 px-4">Agreed Price</th>
-                  <th className="py-3 px-4">Escrow Status</th>
-                  <th className="py-3 px-4">Current Stage</th>
-                  <th className="py-3 px-4 text-right">Action</th>
+                  <th className={tableTh}>Deal ID / Asset</th>
+                  <th className={tableTh}>Parties Involved</th>
+                  <th className={tableTh}>Agreed Price</th>
+                  <th className={tableTh}>Escrow Status</th>
+                  <th className={tableTh}>Current Stage</th>
+                  <th className={cn(tableTh, 'text-right')}>Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.08]">
+              <tbody className={tableBody}>
                 {deals.slice(0, 8).map((deal) => {
-                  const stageObj = STAGES.find((s) => s.id === deal.stage) || STAGES[0];
+                  const stageObj = STAGES.find((s) => s.id === (deal.current_stage || deal.stage)) || STAGES[0];
                   return (
-                    <tr key={deal.id} className="hover:bg-white/[0.04] transition-colors">
+                    <tr key={deal.id} className={tableTr}>
                       <td className="py-3.5 px-4 font-mono">
-                        <div className="font-bold text-white">#{deal.id.slice(0, 8)}</div>
-                        <div className="text-[11px] text-zinc-400 truncate max-w-xs font-sans">
-                          {deal.property_title || 'Sovereign Real Estate Asset'}
+                        <div className="font-bold text-[var(--color-text-main)]">#{deal.id.slice(0, 8)}</div>
+                        <div className="text-[11px] text-[var(--color-text-muted)] truncate max-w-xs font-sans">
+                          {deal.property_title || 'Property'}
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="text-white font-semibold">{deal.buyer_name || 'Verified Buyer'}</div>
-                        <div className="text-[11px] text-zinc-400">Owner: {deal.seller_name || 'Asset Owner'}</div>
+                        <div className="text-[var(--color-text-main)] font-semibold">{deal.buyer_name || 'Verified Buyer'}</div>
+                        <div className="text-[11px] text-[var(--color-text-muted)]">Owner: {deal.seller_name || 'Asset Owner'}</div>
                       </td>
                       <td className="py-3.5 px-4 font-mono">
-                        <div className="text-white font-bold">
+                        <div className="text-[var(--color-text-main)] font-bold">
                           {Number(deal.agreed_price || 0).toLocaleString()} RWF
                         </div>
-                        <div className="text-[10px] text-zinc-400">
-                          â‰ˆ ${Math.round(Number(deal.agreed_price || 0) / 1350).toLocaleString()} USD
+                        <div className="text-[10px] text-[var(--color-text-muted)]">
+                          Approx. ${Math.round(Number(deal.agreed_price || 0) / 1350).toLocaleString()} USD
                         </div>
                       </td>
                       <td className="py-3.5 px-4 font-mono">
                         <span
                           className={cn(
                             'px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase',
-                            deal.escrow_status === 'funded'
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/35'
-                              : deal.escrow_status === 'released'
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-white/[0.08] text-zinc-200 border border-white/10'
+                            deal.escrow_status === 'held_in_escrow'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/15 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/30'
+                              : deal.escrow_status === 'released_to_seller'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/15 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/30'
+                              : 'bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]'
                           )}
                         >
                           {deal.escrow_status || 'pending'}
                         </span>
-                        <div className="text-[10px] text-zinc-300 mt-1 font-semibold">
-                          {Number(deal.escrow_amount || 0).toLocaleString()} RWF
+                        <div className="text-[10px] text-[var(--color-text-muted)] mt-1 font-semibold">
+                          {Number(deal.escrow_deposit_amount || 0).toLocaleString()} RWF
                         </div>
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-white/10 bg-white/[0.04] text-zinc-200 inline-block font-mono">
+                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] inline-block font-mono">
                           {stageObj.label}
                         </span>
                       </td>
@@ -794,7 +797,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
                           <Button
                             onClick={() => setSelectedContractDeal(deal)}
                             variant="ghost"
-                            className="text-xs text-emerald-400 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-white/[0.08] font-bold flex items-center gap-1 cursor-pointer"
+                            className="text-xs text-[var(--color-brand-emerald)] hover:text-[var(--color-text-main)] px-2.5 py-1.5 rounded-lg hover:bg-[var(--color-bg-card-hover)] font-bold flex items-center gap-1 cursor-pointer"
                             title="Review & Sign Digital Contract"
                           >
                             <ShieldCheck size={13} /> Contract
@@ -802,7 +805,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
                           <Button
                             onClick={() => setView('admin-offers')}
                             variant="ghost"
-                            className="text-xs text-zinc-300 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-white/[0.08] font-bold cursor-pointer"
+                            className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] px-2.5 py-1.5 rounded-lg hover:bg-[var(--color-bg-card-hover)] font-bold cursor-pointer"
                           >
                             Pipeline <ArrowRight size={13} strokeWidth={2} className="ml-1" />
                           </Button>
@@ -813,8 +816,8 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
                 })}
                 {deals.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-zinc-400 font-mono text-xs">
-                      No active conveyance deals found.
+                    <td colSpan={6} className="py-8 text-center text-[var(--color-text-muted)] font-mono text-xs">
+                      No active deals found.
                     </td>
                   </tr>
                 )}
@@ -826,41 +829,41 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
         {/* Tab 2: Live Offers */}
         {activityTab === 'offers' && (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-zinc-200">
-              <thead className="bg-white/[0.04] border-b border-white/10 text-[11px] font-mono uppercase tracking-wider text-zinc-300 font-bold">
+            <table className="w-full text-left text-xs text-[var(--color-text-muted)]">
+              <thead className={tableHead}>
                 <tr>
-                  <th className="py-3 px-4">Offer ID / Date</th>
-                  <th className="py-3 px-4">Asset / Location</th>
-                  <th className="py-3 px-4">Prospective Buyer</th>
-                  <th className="py-3 px-4">Offered Price</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Action</th>
+                  <th className={tableTh}>Offer ID / Date</th>
+                  <th className={tableTh}>Asset / Location</th>
+                  <th className={tableTh}>Prospective Buyer</th>
+                  <th className={tableTh}>Offered Price</th>
+                  <th className={tableTh}>Status</th>
+                  <th className={cn(tableTh, 'text-right')}>Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.08]">
+              <tbody className={tableBody}>
                 {offers.slice(0, 8).map((offer) => (
-                  <tr key={offer.id} className="hover:bg-white/[0.04] transition-colors">
+                  <tr key={offer.id} className={tableTr}>
                     <td className="py-3.5 px-4 font-mono">
-                      <div className="font-bold text-white">#OFFER-{offer.id}</div>
-                      <div className="text-[10px] text-zinc-400">
+                      <div className="font-bold text-[var(--color-text-main)]">#OFFER-{offer.id}</div>
+                      <div className="text-[10px] text-[var(--color-text-muted)]">
                         {offer.created_at ? new Date(offer.created_at).toLocaleDateString() : 'Recent'}
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="text-white font-semibold truncate max-w-xs">
-                        {offer.property_title || 'Sovereign Listing'}
+                      <div className="text-[var(--color-text-main)] font-semibold truncate max-w-xs">
+                        {offer.property_title || 'Listing'}
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="text-white font-semibold">{offer.buyer_name || 'Prospective Investor'}</div>
-                      <div className="text-[10px] text-zinc-400">{offer.buyer_phone || 'Private Contact'}</div>
+                      <div className="text-[var(--color-text-main)] font-semibold">{offer.buyer_name || 'Prospective Investor'}</div>
+                      <div className="text-[10px] text-[var(--color-text-muted)]">{offer.buyer_phone || 'Private Contact'}</div>
                     </td>
                     <td className="py-3.5 px-4 font-mono">
-                      <div className="text-emerald-300 font-bold">
+                      <div className="text-[var(--color-brand-emerald)] font-bold">
                         {Number(offer.amount || 0).toLocaleString()} RWF
                       </div>
-                      <div className="text-[10px] text-zinc-400">
-                        â‰ˆ ${Math.round(Number(offer.amount || 0) / 1350).toLocaleString()} USD
+                      <div className="text-[10px] text-[var(--color-text-muted)]">
+                        Approx. ${Math.round(Number(offer.amount || 0) / 1350).toLocaleString()} USD
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
@@ -868,12 +871,12 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
                         className={cn(
                           'px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase font-mono',
                           offer.status === 'accepted'
-                            ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/20 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/40'
                             : offer.status === 'countered'
-                            ? 'bg-blue-500/25 text-blue-300 border border-blue-500/40'
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40'
                             : offer.status === 'rejected'
-                            ? 'bg-red-500/25 text-red-300 border border-red-500/40'
-                            : 'bg-amber-500/25 text-amber-300 border border-amber-500/40'
+                            ? 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/40'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40'
                         )}
                       >
                         {offer.status || 'pending'}
@@ -883,7 +886,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
                       <Button
                         onClick={() => setView('admin-offers')}
                         variant="ghost"
-                        className="text-xs text-emerald-400 hover:text-white p-2 rounded-lg hover:bg-white/[0.08] font-bold"
+                        className="text-xs text-[var(--color-brand-emerald)] hover:text-[var(--color-text-main)] p-2 rounded-lg hover:bg-[var(--color-bg-card-hover)] font-bold"
                       >
                         Review In Kanban <ArrowRight size={13} strokeWidth={2} className="ml-1" />
                       </Button>
@@ -892,7 +895,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
                 ))}
                 {offers.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-zinc-400 font-mono text-xs">
+                    <td colSpan={6} className="py-8 text-center text-[var(--color-text-muted)] font-mono text-xs">
                       No incoming offers registered yet.
                     </td>
                   </tr>
@@ -905,47 +908,47 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
         {/* Tab 3: Inspections & Showings */}
         {activityTab === 'visits' && (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-zinc-200">
-              <thead className="bg-white/[0.04] border-b border-white/10 text-[11px] font-mono uppercase tracking-wider text-zinc-300 font-bold">
+            <table className="w-full text-left text-xs text-[var(--color-text-muted)]">
+              <thead className={tableHead}>
                 <tr>
-                  <th className="py-3 px-4">Appointment ID</th>
-                  <th className="py-3 px-4">Asset Under Inspection</th>
-                  <th className="py-3 px-4">Interested Client</th>
-                  <th className="py-3 px-4">Scheduled Date & Window</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Action</th>
+                  <th className={tableTh}>Appointment ID</th>
+                  <th className={tableTh}>Asset Under Inspection</th>
+                  <th className={tableTh}>Interested Client</th>
+                  <th className={tableTh}>Scheduled Date & Window</th>
+                  <th className={tableTh}>Status</th>
+                  <th className={cn(tableTh, 'text-right')}>Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.08]">
+              <tbody className={tableBody}>
                 {visits.slice(0, 8).map((visit) => (
-                  <tr key={visit.id} className="hover:bg-white/[0.04] transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-white">
+                  <tr key={visit.id} className={tableTr}>
+                    <td className="py-3.5 px-4 font-mono font-bold text-[var(--color-text-main)]">
                       #VISIT-{visit.id}
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="text-white font-semibold truncate max-w-xs">
-                        {visit.property_title || 'Sovereign Listing'}
+                      <div className="text-[var(--color-text-main)] font-semibold truncate max-w-xs">
+                        {visit.property_title || 'Listing'}
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="text-white font-semibold">{visit.client_name || 'VIP Client'}</div>
-                      <div className="text-[10px] text-zinc-400">{visit.client_phone || 'Private'}</div>
+                      <div className="text-[var(--color-text-main)] font-semibold">{visit.client_name || 'VIP Client'}</div>
+                      <div className="text-[10px] text-[var(--color-text-muted)]">{visit.client_phone || 'Private'}</div>
                     </td>
                     <td className="py-3.5 px-4 font-mono">
-                      <div className="text-white font-bold">
+                      <div className="text-[var(--color-text-main)] font-bold">
                         {visit.date || 'TBD'}
                       </div>
-                      <div className="text-[10px] text-emerald-400 font-medium">{visit.time_slot || 'Morning (09:00 - 12:00)'}</div>
+                      <div className="text-[10px] text-[var(--color-brand-emerald)] font-medium">{visit.time_slot || 'Morning (09:00 - 12:00)'}</div>
                     </td>
                     <td className="py-3.5 px-4">
                       <span
                         className={cn(
                           'px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase font-mono',
                           visit.status === 'confirmed'
-                            ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/20 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/40'
                             : visit.status === 'completed'
-                            ? 'bg-purple-500/25 text-purple-300 border border-purple-500/40'
-                            : 'bg-amber-500/25 text-amber-300 border border-amber-500/40'
+                            ? 'bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/40'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40'
                         )}
                       >
                         {visit.status || 'pending'}
@@ -955,7 +958,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
                       <Button
                         onClick={() => setView('admin-offers')}
                         variant="ghost"
-                        className="text-xs text-emerald-400 hover:text-white p-2 rounded-lg hover:bg-white/[0.08] font-bold"
+                        className="text-xs text-[var(--color-brand-emerald)] hover:text-[var(--color-text-main)] p-2 rounded-lg hover:bg-[var(--color-bg-card-hover)] font-bold"
                       >
                         Dispatch Escort <ArrowRight size={13} strokeWidth={2} className="ml-1" />
                       </Button>
@@ -964,7 +967,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
                 ))}
                 {visits.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-zinc-400 font-mono text-xs">
+                    <td colSpan={6} className="py-8 text-center text-[var(--color-text-muted)] font-mono text-xs">
                       No site visits currently scheduled.
                     </td>
                   </tr>
@@ -977,79 +980,79 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
 
       {/* 6. EXECUTIVE OPERATIONS LAUNCHPAD */}
       <div className="pt-6">
-        <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-500 font-bold mb-6">
-          Direct Command Portals
+        <h3 className="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--color-text-dim)] font-bold mb-6">
+              Quick Links
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           <button
             onClick={() => setView('admin-enquiries')}
-            className="p-5 rounded-sm border border-white/10 bg-[#0A0C12] hover:border-emerald-500/40 hover:bg-white/[0.04] transition-all duration-300 text-left group shadow-lg shadow-black/20 oneui-card"
+            className="p-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] hover:border-[var(--color-brand-emerald)] hover:bg-[var(--color-bg-card-hover)] transition-all duration-300 text-left group shadow-[var(--shadow-depth-1)] oneui-card"
           >
-            <div className="h-8 w-8 rounded-sm bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 mb-4 group-hover:scale-110 transition-transform">
+            <div className="h-8 w-8 rounded-md bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400 mb-4 group-hover:scale-110 transition-transform">
               <Users size={16} strokeWidth={2} />
             </div>
-            <div className="text-xs font-bold text-white flex items-center justify-between group-hover:text-emerald-400 transition-colors">
-              Institutional CRM <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400" />
+            <div className="text-xs font-bold text-[var(--color-text-main)] flex items-center justify-between group-hover:text-[var(--color-brand-emerald)] transition-colors">
+              Customer Inquiries <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-brand-emerald)]" />
             </div>
           </button>
 
           <button
             onClick={() => setView('admin-offers')}
-            className="p-5 rounded-sm border border-white/10 bg-[#0A0C12] hover:border-emerald-500/40 hover:bg-white/[0.04] transition-all duration-300 text-left group shadow-lg shadow-black/20 oneui-card"
+            className="p-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] hover:border-[var(--color-brand-emerald)] hover:bg-[var(--color-bg-card-hover)] transition-all duration-300 text-left group shadow-[var(--shadow-depth-1)] oneui-card"
           >
-            <div className="h-8 w-8 rounded-sm bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4 group-hover:scale-110 transition-transform">
+            <div className="h-8 w-8 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[var(--color-brand-emerald)] mb-4 group-hover:scale-110 transition-transform">
               <Layers size={16} strokeWidth={2} />
             </div>
-            <div className="text-xs font-bold text-white flex items-center justify-between group-hover:text-emerald-400 transition-colors">
-              Deals & Offers <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400" />
+            <div className="text-xs font-bold text-[var(--color-text-main)] flex items-center justify-between group-hover:text-[var(--color-brand-emerald)] transition-colors">
+              Deals & Offers <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-brand-emerald)]" />
             </div>
           </button>
 
           <button
             onClick={() => setView('admin-listings')}
-            className="p-5 rounded-sm border border-white/10 bg-[#0A0C12] hover:border-emerald-500/40 hover:bg-white/[0.04] transition-all duration-300 text-left group shadow-lg shadow-black/20 oneui-card"
+            className="p-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] hover:border-[var(--color-brand-emerald)] hover:bg-[var(--color-bg-card-hover)] transition-all duration-300 text-left group shadow-[var(--shadow-depth-1)] oneui-card"
           >
-            <div className="h-8 w-8 rounded-sm bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-4 group-hover:scale-110 transition-transform">
+            <div className="h-8 w-8 rounded-md bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4 group-hover:scale-110 transition-transform">
               <Building2 size={16} strokeWidth={2} />
             </div>
-            <div className="text-xs font-bold text-white flex items-center justify-between group-hover:text-emerald-400 transition-colors">
-              Asset Catalog <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400" />
+            <div className="text-xs font-bold text-[var(--color-text-main)] flex items-center justify-between group-hover:text-[var(--color-brand-emerald)] transition-colors">
+              Listings <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-brand-emerald)]" />
             </div>
           </button>
 
           <button
             onClick={() => setView('admin-verification')}
-            className="p-5 rounded-sm border border-white/10 bg-[#0A0C12] hover:border-emerald-500/40 hover:bg-white/[0.04] transition-all duration-300 text-left group shadow-lg shadow-black/20 oneui-card"
+            className="p-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] hover:border-[var(--color-brand-emerald)] hover:bg-[var(--color-bg-card-hover)] transition-all duration-300 text-left group shadow-[var(--shadow-depth-1)] oneui-card"
           >
-            <div className="h-8 w-8 rounded-sm bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4 group-hover:scale-110 transition-transform">
+            <div className="h-8 w-8 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[var(--color-brand-emerald)] mb-4 group-hover:scale-110 transition-transform">
               <ShieldCheck size={16} strokeWidth={2} />
             </div>
-            <div className="text-xs font-bold text-white flex items-center justify-between group-hover:text-emerald-400 transition-colors">
-              Title Bureau <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400" />
+            <div className="text-xs font-bold text-[var(--color-text-main)] flex items-center justify-between group-hover:text-[var(--color-brand-emerald)] transition-colors">
+              Verification <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-brand-emerald)]" />
             </div>
           </button>
 
           <button
             onClick={() => setView('admin-inbox')}
-            className="p-5 rounded-sm border border-white/10 bg-[#0A0C12] hover:border-emerald-500/40 hover:bg-white/[0.04] transition-all duration-300 text-left group shadow-lg shadow-black/20 oneui-card"
+            className="p-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] hover:border-[var(--color-brand-emerald)] hover:bg-[var(--color-bg-card-hover)] transition-all duration-300 text-left group shadow-[var(--shadow-depth-1)] oneui-card"
           >
-            <div className="h-8 w-8 rounded-sm bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-110 transition-transform">
+            <div className="h-8 w-8 rounded-md bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4 group-hover:scale-110 transition-transform">
               <MessageSquare size={16} strokeWidth={2} />
             </div>
-            <div className="text-xs font-bold text-white flex items-center justify-between group-hover:text-emerald-400 transition-colors">
-              Secure Inbox <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400" />
+            <div className="text-xs font-bold text-[var(--color-text-main)] flex items-center justify-between group-hover:text-[var(--color-brand-emerald)] transition-colors">
+              Secure Inbox <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-brand-emerald)]" />
             </div>
           </button>
 
           <button
             onClick={() => setView('admin-reports')}
-            className="p-5 rounded-sm border border-white/10 bg-[#0A0C12] hover:border-emerald-500/40 hover:bg-white/[0.04] transition-all duration-300 text-left group shadow-lg shadow-black/20 oneui-card"
+            className="p-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] hover:border-[var(--color-brand-emerald)] hover:bg-[var(--color-bg-card-hover)] transition-all duration-300 text-left group shadow-[var(--shadow-depth-1)] oneui-card"
           >
-            <div className="h-8 w-8 rounded-sm bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4 group-hover:scale-110 transition-transform">
+            <div className="h-8 w-8 rounded-md bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-4 group-hover:scale-110 transition-transform">
               <FileSpreadsheet size={16} strokeWidth={2} />
             </div>
-            <div className="text-xs font-bold text-white flex items-center justify-between group-hover:text-emerald-400 transition-colors">
-              Statutory Audits <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-emerald-400" />
+            <div className="text-xs font-bold text-[var(--color-text-main)] flex items-center justify-between group-hover:text-[var(--color-brand-emerald)] transition-colors">
+              Reports <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-brand-emerald)]" />
             </div>
           </button>
         </div>

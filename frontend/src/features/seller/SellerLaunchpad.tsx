@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { api } from '../../api/endpoints';
+import { cn } from '../../lib/utils';
+import { tableHead, tableTh, tableBody, tableTr } from '../../components/ui/Dashboard';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
@@ -26,7 +28,7 @@ const SellerLaunchpad: React.FC = () => {
         },
     });
 
-    if (loadingDashboard || loadingProperties) return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500">Loading Seller Launchpad...</div>;
+    if (loadingDashboard || loadingProperties) return <div className="min-h-screen bg-[var(--color-bg-deep)] flex items-center justify-center text-[var(--color-text-dim)]">Loading Seller Launchpad...</div>;
 
     const metrics = sellerData.metrics;
 
@@ -59,17 +61,17 @@ const SellerLaunchpad: React.FC = () => {
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">
             {/* Hero Section */}
-            <div className="relative overflow-hidden bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-2xl">
+            <div className="relative overflow-hidden bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-8 rounded-xl shadow-[var(--shadow-depth-1)]">
                 <div className="relative z-10 flex justify-between items-start flex-wrap gap-6">
                     <div>
-                        <h1 className="text-4xl font-bold text-white mb-2">Welcome, {sellerData.name} 👋</h1>
-                        <p className="text-zinc-400 text-lg">Manage your property listings, view offers, and track inquiries.</p>
+                        <h1 className="text-4xl font-bold text-[var(--color-text-main)] mb-2">Welcome, {sellerData.name} 👋</h1>
+                        <p className="text-[var(--color-text-muted)] text-lg">Manage your property listings, view offers, and track inquiries.</p>
                     </div>
                     <div className="flex gap-3">
-                        <button className="px-5 py-2 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all flex items-center gap-2">
+                        <button className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-bold rounded-xl transition-all flex items-center gap-2">
                             <span>➕</span> List Property
                         </button>
-                        <button className="px-5 py-2 bg-zinc-800 text-white font-bold rounded-xl border border-zinc-700 hover:bg-zinc-700 transition-all flex items-center gap-2">
+                        <button className="px-5 py-2 bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] font-bold rounded-xl border border-[var(--color-border)] hover:bg-[var(--color-bg-card-hover)] transition-all flex items-center gap-2">
                             <span>🤝</span> View Offers
                         </button>
                     </div>
@@ -85,35 +87,35 @@ const SellerLaunchpad: React.FC = () => {
                     { label: 'Sold', value: metrics.sold, icon: '💰', color: 'text-green-500' },
                     { label: 'Total Offers', value: metrics.totalOffers, icon: '🏷️', color: 'text-emerald-500' },
                     { label: 'Pending Offers', value: metrics.pendingOffers, icon: '⏳', color: 'text-orange-500' },
-                    { label: 'Inquiries', value: metrics.inquiries, icon: '💬', color: 'text-zinc-400' },
+                    { label: 'Inquiries', value: metrics.inquiries, icon: '💬', color: 'text-[var(--color-text-muted)]' },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl flex flex-col items-center text-center hover:border-zinc-600 transition-all">
+                    <div key={i} className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-5 rounded-xl flex flex-col items-center text-center hover:border-[var(--color-border-hover)] transition-all">
                         <div className="text-2xl mb-2">{stat.icon}</div>
                         <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-                        <div className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">{stat.label}</div>
+                        <div className="text-[10px] font-medium text-[var(--color-text-dim)] uppercase tracking-wider">{stat.label}</div>
                     </div>
                 ))}
             </div>
 
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl h-[400px] flex flex-col">
+                <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-6 rounded-xl h-[400px] flex flex-col">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                        <h3 className="text-xl font-bold text-[var(--color-text-main)] flex items-center gap-2">
                             <span>📊</span> Listing Overview
                         </h3>
-                        <span className="px-3 py-1 bg-blue-500/10 text-blue-400 text-xs font-bold rounded-full border border-blue-500/20">Status</span>
+                        <span className="px-3 py-1 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20 text-xs font-bold rounded-full">Status</span>
                     </div>
                     <div className="flex-1 relative">
                         <Doughnut data={listingChartData} options={{ maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#71717a' } } } }} />
                     </div>
                 </div>
-                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl h-[400px] flex flex-col">
+                <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-6 rounded-xl h-[400px] flex flex-col">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                        <h3 className="text-xl font-bold text-[var(--color-text-main)] flex items-center gap-2">
                             <span>📈</span> Offers & Inquiries
                         </h3>
-                        <span className="px-3 py-1 bg-green-500/10 text-green-400 text-xs font-bold rounded-full border border-green-500/20">Summary</span>
+                        <span className="px-3 py-1 bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20 text-xs font-bold rounded-full">Summary</span>
                     </div>
                     <div className="flex-1 relative">
                         <Bar data={offersChartData} options={{ maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#71717a' }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { ticks: { color: '#71717a' }, grid: { display: false } } } }} />
@@ -122,62 +124,62 @@ const SellerLaunchpad: React.FC = () => {
             </div>
 
             {/* My Listings Table */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden">
-                <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+            <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+                <div className="p-6 border-b border-[var(--color-border)] flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         <span className="text-xl">🏢</span>
-                        <h2 className="text-xl font-bold text-white">My Listings</h2>
+                        <h2 className="text-xl font-bold text-[var(--color-text-main)]">My Listings</h2>
                     </div>
-                    <button className="text-xs text-zinc-500 hover:text-white transition-colors flex items-center gap-1">
+                    <button className="text-xs text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] transition-colors flex items-center gap-1">
                         <span className="text-lg">➕</span> Add New
                     </button>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-zinc-800/50 text-zinc-400 text-xs uppercase tracking-wider">
-                            <tr className="border-b border-zinc-800">
-                                <th className="px-6 py-4 font-medium">Image</th>
-                                <th className="px-6 py-4 font-medium">Title</th>
-                                <th className="px-6 py-4 font-medium">Type</th>
-                                <th className="px-6 py-4 font-medium">Price</th>
-                                <th className="px-6 py-4 font-medium">Location</th>
-                                <th className="px-6 py-4 font-medium">Agent</th>
-                                <th className="px-6 py-4 font-medium">Status</th>
-                                <th className="px-6 py-4 font-medium">Views</th>
-                                <th className="px-6 py-4 font-medium text-right">Actions</th>
+                        <thead className={tableHead}>
+                            <tr>
+                                <th className={tableTh}>Image</th>
+                                <th className={tableTh}>Title</th>
+                                <th className={tableTh}>Type</th>
+                                <th className={tableTh}>Price</th>
+                                <th className={tableTh}>Location</th>
+                                <th className={tableTh}>Agent</th>
+                                <th className={tableTh}>Status</th>
+                                <th className={tableTh}>Views</th>
+                                <th className={cn(tableTh, 'text-right')}>Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-800">
+                        <tbody className={tableBody}>
                             {properties.map((p: any) => (
-                                <tr key={p.id} className="hover:bg-zinc-800/30 transition-colors group">
+                                <tr key={p.id} className={cn(tableTr, "group")}>
                                     <td className="px-6 py-4">
                                         {p.image ? (
-                                            <img src={p.image} alt="" className="w-12 h-12 rounded-lg object-cover border border-zinc-700" />
+                                            <img src={p.image} alt="" className="w-12 h-12 rounded-lg object-cover border border-[var(--color-border)]" />
                                         ) : (
-                                            <div className="w-12 h-12 bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-600 border border-zinc-700">🖼️</div>
+                                            <div className="w-12 h-12 bg-[var(--color-bg-elevated)] rounded-lg flex items-center justify-center text-[var(--color-text-dim)] border border-[var(--color-border)]">🖼️</div>
                                         )}
                                     </td>
                                     <td className="px-6 py-4">
                                         <a href="#" className="text-sm font-bold text-green-500 hover:underline">{p.title}</a>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-zinc-400">{p.type}</td>
-                                    <td className="px-6 py-4 text-sm font-bold text-white">{p.price?.toLocaleString()} Frw</td>
-                                    <td className="px-6 py-4 text-sm text-zinc-500">{p.location}</td>
-                                    <td className="px-6 py-4 text-sm text-zinc-300">{p.agent}</td>
+                                    <td className="px-6 py-4 text-sm text-[var(--color-text-muted)]">{p.type}</td>
+                                    <td className="px-6 py-4 text-sm font-bold text-[var(--color-text-main)]">{p.price?.toLocaleString()} Frw</td>
+                                    <td className="px-6 py-4 text-sm text-[var(--color-text-dim)]">{p.location}</td>
+                                    <td className="px-6 py-4 text-sm text-[var(--color-text-muted)]">{p.agent}</td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                            p.status === 'listed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                            p.status === 'under_negotiation' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                            'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                            p.status === 'listed' ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20' :
+                                            p.status === 'under_negotiation' ? 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20' :
+                                            'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20'
                                         }`}>
                                             {p.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-zinc-500">{p.views}</td>
+                                    <td className="px-6 py-4 text-sm text-[var(--color-text-dim)]">{p.views}</td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button className="p-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-lg border border-zinc-700 transition-colors" title="Edit">✏️</button>
-                                            <button className="p-2 bg-zinc-800 text-zinc-400 hover:text-red-400 rounded-lg border border-zinc-700 transition-colors" title="Delete">🗑️</button>
+                                            <button className="p-2 bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] rounded-lg border border-[var(--color-border)] transition-colors" title="Edit">✏️</button>
+                                            <button className="p-2 bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-red-600 dark:hover:text-red-400 rounded-lg border border-[var(--color-border)] transition-colors" title="Delete">🗑️</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -186,7 +188,7 @@ const SellerLaunchpad: React.FC = () => {
                         {properties.length === 0 && (
                             <tbody>
                                 <tr>
-                                    <td colSpan={10} className="p-10 text-center text-zinc-500">No listings found.</td>
+                                    <td colSpan={10} className="p-10 text-center text-[var(--color-text-dim)]">No listings found.</td>
                                 </tr>
                             </tbody>
                         )}
@@ -224,22 +226,22 @@ export default SellerLaunchpad;
         ],
     };
 
-    if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500">Loading Seller Launchpad...</div>;
+    if (loading) return <div className="min-h-screen bg-[var(--color-bg-deep)] flex items-center justify-center text-[var(--color-text-dim)]">Loading Seller Launchpad...</div>;
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">
             {/* Hero Section * /}
-            <div className="relative overflow-hidden bg-zinc-900 border border-zinc-800 p-8 rounded-3xl shadow-2xl">
+            <div className="relative overflow-hidden bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-8 rounded-xl shadow-[var(--shadow-depth-1)]">
                 <div className="relative z-10 flex justify-between items-start flex-wrap gap-6">
                     <div>
-                        <h1 className="text-4xl font-bold text-white mb-2">Welcome, {sellerData.name} 👋</h1>
-                        <p className="text-zinc-400 text-lg">Manage your property listings, view offers, and track inquiries.</p>
+                        <h1 className="text-4xl font-bold text-[var(--color-text-main)] mb-2">Welcome, {sellerData.name} 👋</h1>
+                        <p className="text-[var(--color-text-muted)] text-lg">Manage your property listings, view offers, and track inquiries.</p>
                     </div>
                     <div className="flex gap-3">
-                        <button className="px-5 py-2 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-all flex items-center gap-2">
+                        <button className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-bold rounded-xl transition-all flex items-center gap-2">
                             <span>➕</span> List Property
                         </button>
-                        <button className="px-5 py-2 bg-zinc-800 text-white font-bold rounded-xl border border-zinc-700 hover:bg-zinc-700 transition-all flex items-center gap-2">
+                        <button className="px-5 py-2 bg-[var(--color-bg-elevated)] text-[var(--color-text-main)] font-bold rounded-xl border border-[var(--color-border)] hover:bg-[var(--color-bg-card-hover)] transition-all flex items-center gap-2">
                             <span>🤝</span> View Offers
                         </button>
                     </div>
@@ -255,35 +257,35 @@ export default SellerLaunchpad;
                     { label: 'Sold', value: sellerData.metrics.sold, icon: '💰', color: 'text-green-500' },
                     { label: 'Total Offers', value: sellerData.metrics.totalOffers, icon: '🏷️', color: 'text-emerald-500' },
                     { label: 'Pending Offers', value: sellerData.metrics.pendingOffers, icon: '⏳', color: 'text-orange-500' },
-                    { label: 'Inquiries', value: sellerData.metrics.inquiries, icon: '💬', color: 'text-zinc-400' },
+                    { label: 'Inquiries', value: sellerData.metrics.inquiries, icon: '💬', color: 'text-[var(--color-text-muted)]' },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl flex flex-col items-center text-center hover:border-zinc-600 transition-all">
+                    <div key={i} className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-5 rounded-xl flex flex-col items-center text-center hover:border-[var(--color-border-hover)] transition-all">
                         <div className="text-2xl mb-2">{stat.icon}</div>
                         <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-                        <div className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">{stat.label}</div>
+                        <div className="text-[10px] font-medium text-[var(--color-text-dim)] uppercase tracking-wider">{stat.label}</div>
                     </div>
                 ))}
             </div>
 
             {/* Charts Row * /}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl h-[400px] flex flex-col">
+                <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-6 rounded-xl h-[400px] flex flex-col">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                        <h3 className="text-xl font-bold text-[var(--color-text-main)] flex items-center gap-2">
                             <span>📊</span> Listing Overview
                         </h3>
-                        <span className="px-3 py-1 bg-blue-500/10 text-blue-400 text-xs font-bold rounded-full border border-blue-500/20">Status</span>
+                        <span className="px-3 py-1 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20 text-xs font-bold rounded-full">Status</span>
                     </div>
                     <div className="flex-1 relative">
                         <Doughnut data={listingChartData} options={{ maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#71717a' } } } }} />
                     </div>
                 </div>
-                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl h-[400px] flex flex-col">
+                <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-6 rounded-xl h-[400px] flex flex-col">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                        <h3 className="text-xl font-bold text-[var(--color-text-main)] flex items-center gap-2">
                             <span>📈</span> Offers & Inquiries
                         </h3>
-                        <span className="px-3 py-1 bg-green-500/10 text-green-400 text-xs font-bold rounded-full border border-green-500/20">Summary</span>
+                        <span className="px-3 py-1 bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20 text-xs font-bold rounded-full">Summary</span>
                     </div>
                     <div className="flex-1 relative">
                         <Bar data={offersChartData} options={{ maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#71717a' }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { ticks: { color: '#71717a' }, grid: { display: false } } } }} />
@@ -292,20 +294,20 @@ export default SellerLaunchpad;
             </div>
 
             {/* My Listings Table * /}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden">
-                <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+            <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+                <div className="p-6 border-b border-[var(--color-border)] flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         <span className="text-xl">🏢</span>
-                        <h2 className="text-xl font-bold text-white">My Listings</h2>
+                        <h2 className="text-xl font-bold text-[var(--color-text-main)]">My Listings</h2>
                     </div>
-                    <button className="text-xs text-zinc-500 hover:text-white transition-colors flex items-center gap-1">
+                    <button className="text-xs text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] transition-colors flex items-center gap-1">
                         <span className="text-lg">➕</span> Add New
                     </button>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-zinc-800/50 text-zinc-400 text-xs uppercase tracking-wider">
-                            <tr className="border-b border-zinc-800">
+                        <thead className="bg-[var(--color-bg-elevated)] border-b border-[var(--color-border)] text-[11px] uppercase tracking-wider text-[var(--color-text-muted)]">
+                            <tr className="border-b border-[var(--color-border)]">
                                 <th className="px-6 py-4 font-medium">Image</th>
                                 <th className="px-6 py-4 font-medium">Title</th>
                                 <th className="px-6 py-4 font-medium">Type</th>
@@ -317,37 +319,37 @@ export default SellerLaunchpad;
                                 <th className="px-6 py-4 font-medium text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-800">
+                        <tbody className="divide-y divide-[var(--color-border)]">
                             {properties.map(p => (
-                                <tr key={p.id} className="hover:bg-zinc-800/30 transition-colors group">
+                                <tr key={p.id} className="hover:bg-[var(--color-bg-card-hover)] transition-colors group">
                                     <td className="px-6 py-4">
                                         {p.image ? (
-                                            <img src={p.image} alt="" className="w-12 h-12 rounded-lg object-cover border border-zinc-700" />
+                                            <img src={p.image} alt="" className="w-12 h-12 rounded-lg object-cover border border-[var(--color-border)]" />
                                         ) : (
-                                            <div className="w-12 h-12 bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-600 border border-zinc-700">🖼️</div>
+                                            <div className="w-12 h-12 bg-[var(--color-bg-elevated)] rounded-lg flex items-center justify-center text-[var(--color-text-dim)] border border-[var(--color-border)]">🖼️</div>
                                         )}
                                     </td>
                                     <td className="px-6 py-4">
                                         <a href="#" className="text-sm font-bold text-green-500 hover:underline">{p.title}</a>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-zinc-400">{p.type}</td>
-                                    <td className="px-6 py-4 text-sm font-bold text-white">{p.price.toLocaleString()} Frw</td>
-                                    <td className="px-6 py-4 text-sm text-zinc-500">{p.location}</td>
-                                    <td className="px-6 py-4 text-sm text-zinc-300">{p.agent}</td>
+                                    <td className="px-6 py-4 text-sm text-[var(--color-text-muted)]">{p.type}</td>
+                                    <td className="px-6 py-4 text-sm font-bold text-[var(--color-text-main)]">{p.price.toLocaleString()} Frw</td>
+                                    <td className="px-6 py-4 text-sm text-[var(--color-text-dim)]">{p.location}</td>
+                                    <td className="px-6 py-4 text-sm text-[var(--color-text-muted)]">{p.agent}</td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                            p.status === 'listed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                            p.status === 'under_negotiation' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                            'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                            p.status === 'listed' ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20' :
+                                            p.status === 'under_negotiation' ? 'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20' :
+                                            'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20'
                                         }`}>
                                             {p.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-zinc-500">{p.views}</td>
+                                    <td className="px-6 py-4 text-sm text-[var(--color-text-dim)]">{p.views}</td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button className="p-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-lg border border-zinc-700 transition-colors" title="Edit">✏️</button>
-                                            <button className="p-2 bg-zinc-800 text-zinc-400 hover:text-red-400 rounded-lg border border-zinc-700 transition-colors" title="Delete">🗑️</button>
+                                            <button className="p-2 bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] rounded-lg border border-[var(--color-border)] transition-colors" title="Edit">✏️</button>
+                                            <button className="p-2 bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-red-600 dark:hover:text-red-400 rounded-lg border border-[var(--color-border)] transition-colors" title="Delete">🗑️</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -355,7 +357,7 @@ export default SellerLaunchpad;
                         </tbody>
                     </table>
                     {properties.length === 0 && (
-                        <div className="p-10 text-center text-zinc-500">No listings found.</div>
+                        <div className="p-10 text-center text-[var(--color-text-dim)]">No listings found.</div>
                     )}
                 </div>
             </div>

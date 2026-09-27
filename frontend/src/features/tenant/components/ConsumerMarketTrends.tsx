@@ -40,7 +40,7 @@ export const ConsumerMarketTrends: React.FC<ConsumerMarketTrendsProps> = ({ onEx
       {/* Header */}
       <div>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-bold uppercase tracking-wider mb-2">
-          <TrendingUp size={13} /> Kigali Real Estate Telemetry
+          <TrendingUp size={13} /> Kigali Real Estate Market Insights
         </div>
         <h3 className="text-xl font-bold text-zinc-900 dark:text-white">
           Market Trends & Valuation Benchmarks

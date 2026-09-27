@@ -36,6 +36,7 @@ from .api_views import (
     consumer_maintenance_requests, consumer_saved_properties,
     consumer_market_trends, consumer_ai_recommendations,
     admin_properties_list_create, admin_property_detail_manage, admin_property_assign_agent,
+    admin_upload_listing_media, admin_manage_listing_media,
     admin_tenants_list_create, admin_tenant_detail_manage,
     admin_owners_list_create, admin_owner_detail_manage,
     admin_sellers_list_create, admin_seller_detail_manage,
@@ -206,7 +207,9 @@ urlpatterns = [
     # Admin Entity Managers CRUD & Inspection APIs
     path('api/admin/properties/', admin_properties_list_create, name='api_admin_properties'),
     path('api/admin/properties/<int:pk>/', admin_property_detail_manage, name='api_admin_property_detail'),
+    path('api/admin/properties/<int:pk>/media/', admin_upload_listing_media, name='api_admin_property_media_upload'),
     path('api/admin/properties/<int:pk>/assign-agent/', admin_property_assign_agent, name='api_admin_property_assign_agent'),
+    path('api/admin/media/<int:pk>/', admin_manage_listing_media, name='api_admin_media_manage'),
     path('api/admin/tenants/', admin_tenants_list_create, name='api_admin_tenants'),
     path('api/admin/tenants/<int:pk>/', admin_tenant_detail_manage, name='api_admin_tenant_detail'),
     path('api/admin/owners/', admin_owners_list_create, name='api_admin_owners'),

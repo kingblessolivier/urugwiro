@@ -50,6 +50,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'urugwiro.security_middleware.SecurityHeadersMiddleware',  # Security headers
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -224,10 +225,36 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:5174',
 ]
 
+# ── Security Headers ─────────────────────────────────────────────────────────
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
+# Only enable these in production (HTTPS)
+# SECURE_SSL_REDIRECT = True
+# SECURE_HSTS_SECONDS = 31536000
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# SECURE_HSTS_PRELOAD = True
+# SESSION_COOKIE_SECURE = True
+# CSRF_COOKIE_SECURE = True
+
+# ── Rate Limiting (django-ratelimit) ──────────────────────────────────────────
+RATELIMIT_ENABLE = True
+RATELIMIT_USE_CACHE = 'default'
+
 # ── AI Chatbot (Anthropic Claude API) ────────────────────────
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 CLAUDE_MODEL = os.environ.get('CLAUDE_MODEL', 'claude-haiku-4-5-20251001')
 POE_MAX_HISTORY = 20  # max conversation turns stored in session
+
+# ── Cache (for rate limiting) ─────────────────────────────────────────────
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'urugwiro-cache',
+    }
+}
 
 # ── System Logging ────────────────────────────────────────────────────────────
 LOGS_DIR = BASE_DIR / 'logs'

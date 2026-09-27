@@ -47,6 +47,14 @@ export const api = {
         updateProperty: (id: number | string, data: any) => apiClient.patch(`/admin/properties/${id}/`, data),
         deleteProperty: (id: number | string) => apiClient.delete(`/admin/properties/${id}/`),
         assignPropertyAgent: (id: number | string, agentId: number | string) => apiClient.post(`/admin/properties/${id}/assign-agent/`, { agent_id: agentId }),
+        uploadMedia: (listingId: string | number, formData: FormData) =>
+            apiClient.post(`/admin/properties/${listingId}/media/`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            }),
+        deleteMedia: (mediaId: string | number) =>
+            apiClient.delete(`/admin/media/${mediaId}/`),
+        updateMedia: (id: string | number, data: any) =>
+            apiClient.patch(`/admin/media/${id}/`, data),
 
         tenants: () => apiClient.get('/admin/tenants/'),
         createTenant: (data: any) => apiClient.post('/admin/tenants/', data),
@@ -216,7 +224,7 @@ export const api = {
             }),
     },
 
-    // Digital Contracts & Sovereign Closing Suite
+    // Digital Contracts & Closing Suite
     contracts: {
         generate: (dealId: string, data?: { contract_type?: string; custom_terms?: string; requires_spousal_consent?: boolean }) =>
             apiClient.post(`/deals/${dealId}/contracts/generate/`, data || {}),
@@ -260,7 +268,7 @@ export const api = {
         update: (data: any) => apiClient.post('/system/settings/', data),
     },
 
-    // Real-Time Chat & Sovereign Communications
+    // Real-Time Chat & Communications
     chat: {
         contacts: () => apiClient.get('/chat/contacts/'),
         history: (contactId: number | string, sinceId?: number) =>
@@ -279,7 +287,7 @@ export const api = {
         convert: (id: number | string) => apiClient.post(`/proposals/${id}/convert/`),
     },
 
-    // Sovereign Reports & CSV Exports
+    // Reports & CSV Exports
     reports: {
         exportUrl: (reportType: string) => `/api/reports/export/${reportType}/`,
     },

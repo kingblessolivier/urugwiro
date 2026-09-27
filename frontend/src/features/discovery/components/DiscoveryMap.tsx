@@ -102,7 +102,7 @@ const DiscoveryMap: React.FC<DiscoveryMapProps> = ({ listings, onListingClick })
       {/* Floating Badge */}
       <div className="absolute top-4 left-4 z-[400] pointer-events-none">
         <span className="flex items-center gap-1.5 px-3 py-1.5 bg-black/70 backdrop-blur-md text-white text-xs font-bold rounded-full border border-white/20 shadow-lg">
-          <Navigation size={12} className="text-emerald-400" /> OpenStreetMap GIS Spatial
+          <Navigation size={12} className="text-emerald-400" /> Map results
         </span>
       </div>
 
@@ -147,7 +147,7 @@ const DiscoveryMap: React.FC<DiscoveryMapProps> = ({ listings, onListingClick })
                     onClick={() => onListingClick(String(listing.id))}
                     className="w-full mt-1.5 py-1 text-[11px] font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors cursor-pointer"
                   >
-                    View Showroom →
+                    View Details →
                   </button>
                 )}
               </div>

@@ -13,6 +13,7 @@ import AdminReports from './features/admin/AdminReports';
 import AdminUserManagement from './features/admin/AdminUserManagement';
 import AdminPropertyWizard from './features/admin/AdminPropertyWizard';
 import AdminInbox from './features/admin/AdminInbox';
+import AdminPropertyDetail from './features/admin/AdminPropertyDetail';
 import { BuyerTenantDashboard } from './features/tenant/BuyerTenantDashboard';
 import { AgentDashboard } from './features/agent/AgentDashboard';
 import OwnerLaunchpad from './features/owner/OwnerLaunchpad';
@@ -54,6 +55,12 @@ function App() {
     setView('listing-detail');
   };
 
+  const navigateToAdminPropertyDetail = (id: string) => {
+    setPreviousView(view);
+    setSelectedListingId(id);
+    setView('admin-property-detail');
+  };
+
   const goExplore = (query?: string) => {
     setDiscoveryQuery(query || '');
     setView('discovery');
@@ -71,6 +78,8 @@ function App() {
             <ListingDetail listingId={selectedListingId || ''} onBack={() => setView(previousView || 'discovery')} />
           </ErrorBoundary>
         );
+      case 'admin-property-detail':
+        return <AdminPropertyDetail propertyId={selectedListingId || ''} onBack={() => setView(previousView || 'admin-listings')} />;
       case 'seller-dashboard':
         return <SellerDashboard onNavigate={setView} onListingClick={navigateToListing} />;
       case 'seller-wizard':
@@ -78,7 +87,8 @@ function App() {
       case 'admin':
         return <AdminHub setView={setView} />;
       case 'admin-listings':
-        return <AdminListingsPage onListingClick={navigateToListing} />;
+        return <AdminListingsPage onListingClick={navigateToAdminPropertyDetail} />;
+
       case 'admin-verification':
         return <VerificationWorkspace />;
       case 'admin-settings':

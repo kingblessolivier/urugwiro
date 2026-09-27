@@ -119,7 +119,7 @@ const InteractiveUnitMatrix: React.FC<InteractiveUnitMatrixProps> = ({
                   'p-3 rounded-xl border-2 text-center transition-all cursor-pointer',
                   sellingMode === mode
                     ? 'border-emerald-500 shadow-sm shadow-emerald-500/10'
-                    : 'border-transparent hover:border-white/10',
+                    : 'border-transparent hover:border-[var(--color-border-hover)]',
                 )}
                 style={{
                   background: sellingMode === mode
@@ -183,23 +183,23 @@ const InteractiveUnitMatrix: React.FC<InteractiveUnitMatrixProps> = ({
                 onClick={() => setExpandedFloor(isExpanded ? null : floor.floor)}
                 className={cn(
                   'w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all cursor-pointer',
-                  isExpanded ? 'border-emerald-500/40 bg-emerald-500/[0.06]' : 'border-white/10 hover:border-white/20 bg-white/[0.02]',
+                  isExpanded ? 'border-emerald-500/40 bg-emerald-500/[0.06]' : 'border-[var(--color-border)] hover:border-[var(--color-border-hover)] bg-[var(--color-bg-surface)]',
                   isTopFloor && 'rounded-t-2xl',
                   floor.floor === 1 && 'rounded-b-2xl',
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <Building2 size={16} className={cn(isExpanded ? 'text-emerald-400' : 'text-zinc-500')} />
+                  <Building2 size={16} className={cn(isExpanded ? 'text-emerald-400' : '')} style={isExpanded ? undefined : { color: 'var(--color-text-dim)' }} />
                   <span className="text-sm font-bold" style={{ color: 'var(--color-text-main)' }}>
                     {isTopFloor && floor.floor > 2 ? 'Rooftop / Penthouse' : `Floor ${floor.floor}`}
                     {floor.floor === 1 && ' (Ground)'}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-semibold text-zinc-500">
+                  <span className="text-[10px] font-semibold" style={{ color: 'var(--color-text-dim)' }}>
                     {floor.units.length} unit{floor.units.length !== 1 ? 's' : ''}
                   </span>
-                  {isExpanded ? <ChevronUp size={14} className="text-emerald-400" /> : <ChevronDown size={14} className="text-zinc-500" />}
+                  {isExpanded ? <ChevronUp size={14} className="text-emerald-400" /> : <ChevronDown size={14} style={{ color: 'var(--color-text-dim)' }} />}
                 </div>
               </button>
 
@@ -216,7 +216,7 @@ const InteractiveUnitMatrix: React.FC<InteractiveUnitMatrixProps> = ({
                             'relative aspect-square rounded-xl border p-3 transition-all cursor-pointer flex flex-col items-center justify-center text-center group/unit overflow-hidden',
                             isUnitSelected
                               ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/[0.1] scale-105 z-10'
-                              : 'border-white/10 bg-white/[0.02] hover:border-emerald-500/50 hover:bg-emerald-500/[0.05]',
+                              : 'border-[var(--color-border)] bg-[var(--color-bg-surface)] hover:border-emerald-500/50 hover:bg-emerald-500/[0.05]',
                           )}
                         >
                           {readOnly ? (
@@ -224,14 +224,14 @@ const InteractiveUnitMatrix: React.FC<InteractiveUnitMatrixProps> = ({
                               <div className={cn(
                                 "w-2 h-2 rounded-full mb-1",
                                 unit.status === 'available' ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.6)]' :
-                                unit.status === 'reserved' ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]' : 'bg-zinc-600'
+                                unit.status === 'reserved' ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]' : 'bg-[var(--color-text-dim)]'
                               )} />
-                              <span className="text-xs font-bold text-white">{unit.unitId}</span>
-                              <span className="text-[9px] text-zinc-500">{unit.bedrooms}BR · {unit.areaSqm}m²</span>
+                              <span className="text-xs font-bold" style={{ color: 'var(--color-text-main)' }}>{unit.unitId}</span>
+                              <span className="text-[9px]" style={{ color: 'var(--color-text-dim)' }}>{unit.bedrooms}BR · {unit.areaSqm}m²</span>
                             </div>
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                               <span className="text-xs font-bold text-white">{unit.unitId}</span>
+                               <span className="text-xs font-bold" style={{ color: 'var(--color-text-main)' }}>{unit.unitId}</span>
                             </div>
                           )}
                           <div className="absolute inset-0 opacity-0 group-hover/unit:opacity-100 transition-opacity flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
@@ -244,7 +244,8 @@ const InteractiveUnitMatrix: React.FC<InteractiveUnitMatrixProps> = ({
                       <button
                         type="button"
                         onClick={() => addUnit(floorIndex)}
-                        className="aspect-square rounded-xl border border-dashed border-white/10 flex flex-col items-center justify-center text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/30 transition-all cursor-pointer group/add"
+                        className="aspect-square rounded-xl border border-dashed border-[var(--color-border)] flex flex-col items-center justify-center hover:text-emerald-500 hover:border-emerald-500/30 transition-all cursor-pointer group/add"
+                        style={{ color: 'var(--color-text-dim)' }}
                       >
                         <Plus size={16} className="group-hover/add:scale-110 transition-transform" />
                         <span className="text-[9px] font-bold uppercase mt-1">Add Unit</span>

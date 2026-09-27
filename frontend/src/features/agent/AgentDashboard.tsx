@@ -22,6 +22,12 @@ import { AgentEarningsLedger } from './components/AgentEarningsLedger';
 import { AgentLeadsManager } from './components/AgentLeadsManager';
 import { AgentProfileSettings } from './components/AgentProfileSettings';
 import { ChatWindow } from '../chat/ChatWindow';
+import { AgentCalendar } from '../../components/AgentCalendar';
+import { AgentRouteOptimizer } from '../../components/AgentRouteOptimizer';
+import { AgentCounterOffer } from '../../components/AgentCounterOffer';
+import { AgentStageAutomation } from '../../components/AgentStageAutomation';
+import { AgentPayout } from '../../components/AgentPayout';
+import { TaskList } from '../../components/TaskList';
 
 export type AgentTab =
   | 'overview'
@@ -92,7 +98,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
     badge?: number | string;
     badgeColor?: string;
   }> = [
-    { id: 'overview', label: 'Overview Cockpit', icon: LayoutDashboard },
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'portfolio', label: 'Assigned Portfolio', icon: Building2 },
     {
       id: 'visits',
@@ -119,7 +125,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
     },
     {
       id: 'messages',
-      label: 'Sovereign Chat',
+      label: 'Messages',
       icon: MessageSquare,
       badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined,
       badgeColor: 'bg-sky-500 text-white',
@@ -130,7 +136,24 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <AgentLaunchpad onSelectTab={(tab) => setActiveTab(tab as AgentTab)} />;
+        return (
+          <div className="max-w-7xl mx-auto space-y-8 p-6">
+            <AgentLaunchpad onSelectTab={(tab) => setActiveTab(tab as AgentTab)} />
+            {/* Phase 2: Agent Tools */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <AgentCalendar events={[]} />
+              <AgentRouteOptimizer visits={[]} />
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <AgentCounterOffer originalOffer={0} listingPrice={0} />
+              <AgentStageAutomation dealId="" dealType="sale" currentStage="offer_accepted" />
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <AgentPayout payouts={[]} />
+              <TaskList />
+            </div>
+          </div>
+        );
       case 'portfolio':
         return <AgentPropertyManager onScheduleVisit={() => setActiveTab('visits')} />;
       case 'visits':

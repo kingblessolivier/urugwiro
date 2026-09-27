@@ -85,7 +85,7 @@ export const RentPaymentModal: React.FC<RentPaymentModalProps> = ({
               </div>
               <div>
                 <h4 className="text-xl font-bold text-zinc-900 dark:text-white">Receipt Confirmed</h4>
-                <p className="text-xs text-zinc-500 mt-1">Transaction recorded to sovereign tenant ledger.</p>
+                <p className="text-xs text-zinc-500 mt-1">Transaction recorded to payment history.</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/10 text-left space-y-2 text-xs font-mono">

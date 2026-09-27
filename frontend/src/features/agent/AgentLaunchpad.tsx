@@ -101,7 +101,7 @@ export const AgentLaunchpad: React.FC<AgentLaunchpadProps> = ({ onSelectTab }) =
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider">
-              <ShieldCheck size={14} /> Certified Field Broker Cockpit
+              <ShieldCheck size={14} /> Agent Dashboard
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
               Welcome back, <span className="text-emerald-500">{profile.name}</span> 👋
@@ -295,7 +295,7 @@ export const AgentLaunchpad: React.FC<AgentLaunchpadProps> = ({ onSelectTab }) =
             <Building2 size={20} />
           </div>
           <h4 className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-emerald-500 transition-colors">
-            Assigned Inventory Dossiers
+            Assigned Properties & Inventory
           </h4>
           <p className="text-xs text-zinc-500 mt-1">
             Access cadastral UPI numbers, owner contact cards, and generate AI listing narratives.

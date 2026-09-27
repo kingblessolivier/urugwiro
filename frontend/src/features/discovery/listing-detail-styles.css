@@ -1,0 +1,362 @@
+/* ═══════════════════════════════════════════════════════════════
+   LISTING DETAIL — LUXURY SOVEREIGN SHOWROOM STYLES
+   Premium design system for high-end property presentation
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Keyframes ───────────────────────────────────────────────── */
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.2); }
+    50%      { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+}
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(32px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-32px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes ken-burns {
+    0%   { transform: scale(1); }
+    100% { transform: scale(1.08); }
+}
+
+@keyframes gradient-shift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes border-glow {
+    0%, 100% { border-color: rgba(52, 211, 153, 0.2); }
+    50%      { border-color: rgba(52, 211, 153, 0.5); }
+}
+
+@keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@keyframes ticker {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* ─── Utility Classes ─────────────────────────────────────────── */
+
+.ld-fade-in-up {
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ld-fade-in-up-delay-1 { animation-delay: 80ms; }
+.ld-fade-in-up-delay-2 { animation-delay: 160ms; }
+.ld-fade-in-up-delay-3 { animation-delay: 240ms; }
+.ld-fade-in-up-delay-4 { animation-delay: 320ms; }
+.ld-fade-in-up-delay-5 { animation-delay: 400ms; }
+.ld-fade-in-up-delay-6 { animation-delay: 480ms; }
+
+.ld-fade-in-scale {
+    animation: fadeInScale 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ld-slide-in-right {
+    animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ld-slide-in-left {
+    animation: slideInLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─── Glassmorphism Surfaces ─────────────────────────────────── */
+
+.ld-glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ld-glass-strong {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(28px) saturate(200%);
+    -webkit-backdrop-filter: blur(28px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.ld-glass-dark {
+    background: rgba(11, 15, 20, 0.85);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Premium Card Hover ─────────────────────────────────────── */
+
+.ld-card-hover {
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ld-card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.3),
+                 0 0 0 1px rgba(52, 211, 153, 0.15);
+}
+
+/* ─── Skeleton Shimmer ───────────────────────────────────────── */
+
+.ld-skeleton {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.04) 25%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.04) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* ─── Image Treatments ───────────────────────────────────────── */
+
+.ld-ken-burns {
+    animation: ken-burns 20s ease-in-out infinite alternate;
+}
+
+.ld-img-zoom {
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ld-img-zoom:hover {
+    transform: scale(1.05);
+}
+
+/* ─── Gradient Overlays ──────────────────────────────────────── */
+
+.ld-gradient-overlay {
+    background: linear-gradient(
+        180deg,
+        rgba(11, 15, 20, 0) 0%,
+        rgba(11, 15, 20, 0.3) 40%,
+        rgba(11, 15, 20, 0.85) 100%
+    );
+}
+
+.ld-gradient-overlay-top {
+    background: linear-gradient(
+        0deg,
+        rgba(11, 15, 20, 0) 0%,
+        rgba(11, 15, 20, 0.6) 100%
+    );
+}
+
+.ld-gradient-text {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%);
+    background-size: 200% 200%;
+    animation: gradient-shift 4s ease infinite;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* ─── Floating Badge ─────────────────────────────────────────── */
+
+.ld-float-badge {
+    animation: float 3s ease-in-out infinite;
+}
+
+.ld-float-badge-delay-1 { animation-delay: 0.5s; }
+.ld-float-badge-delay-2 { animation-delay: 1s; }
+
+/* ─── Premium Button ─────────────────────────────────────────── */
+
+.ld-btn-primary {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    box-shadow: 0 4px 20px rgba(5, 150, 105, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ld-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(5, 150, 105, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.ld-btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(5, 150, 105, 0.3);
+}
+
+/* ─── Tag / Chip ─────────────────────────────────────────────── */
+
+.ld-tag {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.ld-tag-emerald {
+    background: rgba(5, 150, 105, 0.15);
+    border-color: rgba(5, 150, 105, 0.3);
+    color: #34d399;
+}
+
+/* ─── Section Divider ────────────────────────────────────────── */
+
+.ld-section-divider {
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.08) 20%,
+        rgba(255, 255, 255, 0.08) 80%,
+        transparent 100%
+    );
+}
+
+/* ─── Scroll-triggered reveal ────────────────────────────────── */
+
+.ld-reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ld-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ─── Custom scrollbar ───────────────────────────────────────── */
+
+.ld-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.ld-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ld-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+
+.ld-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* ─── Line clamp ─────────────────────────────────────────────── */
+
+.ld-line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ld-line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ─── Responsive helpers ─────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .ld-fade-in-up { animation-duration: 0.4s; }
+    .ld-card-hover:hover { transform: translateY(-2px); }
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .ld-fade-in-up,
+    .ld-fade-in-scale,
+    .ld-slide-in-right,
+    .ld-slide-in-left,
+    .ld-ken-burns,
+    .ld-float-badge,
+    .ld-gradient-text {
+        animation: none !important;
+    }
+
+    .ld-card-hover,
+    .ld-btn-primary,
+    .ld-img-zoom {
+        transition: none !important;
+    }
+}
+
+/* ─── Scrollbars — custom thumbnail strip + mobile section pill scroller ─── */
+
+.ld-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-brand-emerald) transparent;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+.ld-scrollbar::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+}
+
+.ld-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ld-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--color-brand-emerald) 35%, transparent);
+    border-radius: 999px;
+}
+
+.ld-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--color-brand-emerald) 70%, transparent);
+}
+
+/* ─── Responsive mobile hero — preserve immersion ────────────── */
+
+@media (max-width: 640px) {
+    .ld-ken-burns {
+        animation-duration: 18s;
+    }
+}
+
+/* ─── Reduced opacity when section anchors reach extreme — a11y ─ */
+
+html {
+    scroll-behavior: smooth;
+}

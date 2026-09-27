@@ -151,7 +151,7 @@ const AdminPropertyManager: React.FC = () => {
         <div className="space-y-1">
           <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-emerald-400">Inventory Management</span>
           <h1 className="text-3xl lg:text-4xl font-serif font-bold text-white tracking-tight mt-1">Sale Properties</h1>
-          <p className="text-xs text-zinc-500 font-mono uppercase tracking-wider mt-1">Oversee properties, inspect dossiers, and assign verified agents.</p>
+          <p className="text-xs text-zinc-500 font-mono uppercase tracking-wider mt-1">Oversee properties, inspect details, and assign verified agents.</p>
         </div>
         <Button
           onClick={() => setIsAddOpen(true)}
@@ -286,7 +286,7 @@ const AdminPropertyManager: React.FC = () => {
                         <button
                           onClick={() => setInspectProperty(p)}
                           className="p-1.5 rounded-sm border border-white/10 text-zinc-400 hover:text-white hover:bg-white/[0.05] transition-colors"
-                          title="View Dossier"
+                          title="View Details"
                         >
                           <Eye size={15} />
                         </button>
@@ -327,14 +327,14 @@ const AdminPropertyManager: React.FC = () => {
         />
       </div>
 
-      {/* View Property Dossier Modal */}
+      {/* View Property Details Modal */}
       {inspectProperty && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
           <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-[#0b101b] p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between border-b border-white/10 pb-4">
               <div>
                 <span className="font-mono text-emerald-400 font-bold text-xs uppercase">
-                  Property Dossier #{inspectProperty.id}
+                  Property Details #{inspectProperty.id}
                 </span>
                 <h3 className="text-xl font-bold text-white mt-1">{inspectProperty.title}</h3>
                 <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5">
@@ -398,7 +398,7 @@ const AdminPropertyManager: React.FC = () => {
                 onClick={() => setInspectProperty(null)}
                 className="px-4 py-2 rounded-xl border border-white/10 text-xs font-semibold text-zinc-400 hover:text-white"
               >
-                Close Dossier
+                Close
               </button>
             </div>
           </div>

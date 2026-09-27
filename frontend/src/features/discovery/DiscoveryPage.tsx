@@ -1,38 +1,232 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import FilterPane from './components/FilterPane';
 import ResultsGrid from './components/ResultsGrid';
 import DiscoveryMap from './components/DiscoveryMap';
 import { api } from '../../api/endpoints';
-import { Sparkles, Image as ImageIcon, SlidersHorizontal, Map, Grid } from 'lucide-react';
+import { Sparkles, Image as ImageIcon, SlidersHorizontal, Map, Grid, List, Heart, GitCompareArrows, X } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { LoadingState, ErrorState } from '../../components/ui/Dashboard';
+import { useAuth } from '../../context/AuthContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface DiscoveryPageProps {
     onListingClick?: (id: string) => void;
     initialQuery?: string;
 }
 
-const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQuery = '' }) => {
-    const [filters, setFilters] = useState({
-        search: initialQuery,
-        type: 'All',
-        purpose: 'All',
-        category: 'All',
-        minPrice: '',
-        maxPrice: '',
-        city: '',
-        province: '',
-        district: '',
-        sector: '',
-        sort: 'newest',
+// ─── URL State Management ─────────────────────────────────────────────────────
+function getFiltersFromURL(): Record<string, string> {
+    const params = new URLSearchParams(window.location.search);
+    const filters: Record<string, string> = {};
+    ['search', 'type', 'purpose', 'category', 'minPrice', 'maxPrice', 'bedrooms', 'bathrooms', 'verification', 'furnished', 'city', 'province', 'district', 'sector', 'sort'].forEach(key => {
+        const val = params.get(key);
+        if (val !== null && val !== '') filters[key] = val;
     });
+    const view = params.get('view');
+    if (view === 'grid' || view === 'list' || view === 'map') filters.view = view;
+    const saved = params.get('saved');
+    if (saved === 'true') filters.savedOnly = 'true';
+    return filters;
+}
+
+function updateURLFilters(filters: Record<string, string | undefined>) {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, val]) => {
+        if (val !== undefined && val !== '' && val !== 'All') {
+            params.set(key, val);
+        }
+    });
+    const newURL = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+    window.history.replaceState(null, '', newURL);
+}
+
+const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQuery = '' }) => {
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
+
+    const urlFilters = useMemo(() => getFiltersFromURL(), []);
+
+    const [filters, setFilters] = useState(() => ({
+        search: urlFilters.search || initialQuery || '',
+        type: urlFilters.type || 'All',
+        purpose: urlFilters.purpose || 'All',
+        category: urlFilters.category || 'All',
+        minPrice: urlFilters.minPrice || '',
+        maxPrice: urlFilters.maxPrice || '',
+        bedrooms: urlFilters.bedrooms || '',
+        bathrooms: urlFilters.bathrooms || '',
+        verification: urlFilters.verification || '',
+        furnished: urlFilters.furnished || '',
+        city: urlFilters.city || '',
+        province: urlFilters.province || '',
+        district: urlFilters.district || '',
+        sector: urlFilters.sector || '',
+        sort: urlFilters.sort || 'newest',
+    }));
 
     const [intentQuery, setIntentQuery] = useState('');
     const [isAnalyzingIntent, setIsAnalyzingIntent] = useState(false);
     const [isVisualSearching, setIsVisualSearching] = useState(false);
     const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-    const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>(
+        (urlFilters.view as 'grid' | 'list' | 'map') || 'grid'
+    );
+    const [savedIds, setSavedIds] = useState<Set<string>>(() => {
+        try { return new Set(JSON.parse(localStorage.getItem('urugwiro_saved_listings') || '[]')); } catch { return new Set(); }
+    });
+    const [comparedIds, setComparedIds] = useState<Set<string>>(new Set());
+    const [showSavedOnly, setShowSavedOnly] = useState(urlFilters.savedOnly === 'true');
     const [listings, setListings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Fetch user's saved properties from backend if authenticated
+    const savedPropertiesQuery = useQuery({
+        queryKey: ['consumer-saved-properties'],
+        queryFn: async () => {
+            const res = await api.consumer.savedProperties();
+            return Array.isArray(res.data) ? res.data : [];
+        },
+        enabled: !!user,
+    });
+
+    // Ingest backend saved properties into savedIds
+    useEffect(() => {
+        if (savedPropertiesQuery.data && Array.isArray(savedPropertiesQuery.data)) {
+            const idsFromBackend = savedPropertiesQuery.data
+                .map((item: any) => String(item.id || item.listing?.id || item.listing))
+                .filter(Boolean);
+            if (idsFromBackend.length > 0) {
+                setSavedIds((current) => {
+                    const merged = new Set(current);
+                    idsFromBackend.forEach((id: string) => merged.add(id));
+                    try {
+                        localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...merged]));
+                    } catch {}
+                    return merged;
+                });
+            }
+        }
+    }, [savedPropertiesQuery.data]);
+
+    // Also ingest is_liked from returned listings into savedIds
+    useEffect(() => {
+        if (listings.length > 0) {
+            const likedListings = listings.filter((l: any) => l.is_liked).map((l: any) => String(l.id));
+            if (likedListings.length > 0) {
+                setSavedIds((current) => {
+                    const merged = new Set(current);
+                    likedListings.forEach((id: string) => merged.add(id));
+                    try {
+                        localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...merged]));
+                    } catch {}
+                    return merged;
+                });
+            }
+        }
+    }, [listings]);
+
+    // ─── Sync filters to URL ────────────────────────────────────────────────────
+    useEffect(() => {
+        updateURLFilters({
+            search: filters.search,
+            type: filters.type,
+            purpose: filters.purpose,
+            category: filters.category,
+            minPrice: filters.minPrice,
+            maxPrice: filters.maxPrice,
+            bedrooms: filters.bedrooms,
+            bathrooms: filters.bathrooms,
+            verification: filters.verification,
+            furnished: filters.furnished,
+            city: filters.city,
+            province: filters.province,
+            district: filters.district,
+            sector: filters.sector,
+            sort: filters.sort,
+            view: viewMode,
+            saved: showSavedOnly ? 'true' : undefined,
+        });
+    }, [filters, viewMode, showSavedOnly]);
+
+    const visibleListings = useMemo(() => {
+        if (!showSavedOnly) return listings;
+
+        const matchedFromListings = listings.filter((listing) => savedIds.has(String(listing.id)));
+        const matchedIds = new Set(matchedFromListings.map((l) => String(l.id)));
+
+        // Include any saved properties from user's account that might not be in the current filtered listings
+        const extraSaved = (savedPropertiesQuery.data || [])
+            .filter((item: any) => !matchedIds.has(String(item.id)))
+            .map((item: any) => ({
+                id: String(item.id),
+                title: item.title,
+                price: item.price,
+                currency: item.currency || 'RWF',
+                listing_type: item.purpose === 'rent' ? 'For Rent' : 'For Sale',
+                category: item.category,
+                location: item.location || [item.district, item.sector].filter(Boolean).join(', ') || 'Rwanda',
+                media: item.image ? [{ url: item.image }] : [],
+                status: item.status || 'listed',
+                is_liked: true,
+            }));
+
+        return [...matchedFromListings, ...extraSaved];
+    }, [showSavedOnly, listings, savedIds, savedPropertiesQuery.data]);
+
+    const comparedListings = listings.filter((listing) => comparedIds.has(String(listing.id)));
+
+    const toggleSaved = async (id: string) => {
+        const isCurrentlySaved = savedIds.has(id);
+        setSavedIds((current) => {
+            const next = new Set(current);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            try {
+                localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...next]));
+            } catch {}
+            return next;
+        });
+
+        // Optimistically update local listing state
+        setListings((current) =>
+            current.map((l) =>
+                String(l.id) === id ? { ...l, is_liked: !isCurrentlySaved } : l
+            )
+        );
+
+        if (user) {
+            try {
+                await api.listings.like(id);
+                queryClient.invalidateQueries({ queryKey: ['consumer-saved-properties'] });
+                queryClient.invalidateQueries({ queryKey: ['consumer-dashboard'] });
+                queryClient.invalidateQueries({ queryKey: ['listing-detail', id] });
+                queryClient.invalidateQueries({ queryKey: ['homepage-listings'] });
+            } catch (err) {
+                console.error('Failed to toggle save on backend:', err);
+                setSavedIds((current) => {
+                    const rollback = new Set(current);
+                    if (isCurrentlySaved) rollback.add(id); else rollback.delete(id);
+                    try {
+                        localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...rollback]));
+                    } catch {}
+                    return rollback;
+                });
+                setListings((current) =>
+                    current.map((l) =>
+                        String(l.id) === id ? { ...l, is_liked: isCurrentlySaved } : l
+                    )
+                );
+            }
+        }
+    };
+
+    const toggleCompared = (id: string) => {
+        setComparedIds((current) => {
+            const next = new Set(current);
+            if (next.has(id)) next.delete(id);
+            else if (next.size < 3) next.add(id);
+            return next;
+        });
+    };
 
     useEffect(() => {
         if (initialQuery !== undefined) {
@@ -49,9 +243,12 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
         }
     }, [initialQuery]);
 
+    const [error, setError] = useState<string | null>(null);
+
     useEffect(() => {
         const fetchListings = async () => {
             setLoading(true);
+            setError(null);
             try {
                 // Sanitize parameters so empty values or 'All' are not sent as literal search terms
                 const cleanedParams: Record<string, any> = {};
@@ -64,13 +261,18 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                 if (filters.sector && filters.sector !== 'All') cleanedParams.sector = filters.sector;
                 if (filters.minPrice) cleanedParams.min_price = filters.minPrice;
                 if (filters.maxPrice) cleanedParams.max_price = filters.maxPrice;
+                if (filters.bedrooms) cleanedParams.bedrooms = filters.bedrooms;
+                if (filters.bathrooms) cleanedParams.bathrooms = filters.bathrooms;
+                if (filters.verification) cleanedParams.verification_level = filters.verification;
+                if (filters.furnished) cleanedParams.furnished = filters.furnished;
                 if (filters.sort) cleanedParams.sort = filters.sort;
 
                 const response = await api.listings.list(cleanedParams);
                 const data = response.data;
                 setListings(Array.isArray(data) ? data : data?.results || []);
-            } catch (error) {
-                console.error('Error fetching listings:', error);
+            } catch (err) {
+                console.error('Error fetching listings:', err);
+                setError('Failed to load properties. Please try again.');
                 setListings([]);
             } finally {
                 setLoading(false);
@@ -78,7 +280,7 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
         };
 
         fetchListings();
-    }, [filters]);
+    }, [filters.search, filters.type, filters.purpose, filters.category, filters.minPrice, filters.maxPrice, filters.bedrooms, filters.bathrooms, filters.verification, filters.furnished, filters.city, filters.province, filters.district, filters.sector, filters.sort]);
 
     const handleIntentSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -226,7 +428,18 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                                 <span>Filter</span>
                             </button>
 
-                            {/* Map / Grid View Toggle on all screen sizes */}
+                            <button
+                                type="button"
+                                onClick={() => setShowSavedOnly((current) => !current)}
+                                className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2.5 text-xs font-semibold transition-colors ${showSavedOnly ? 'border-red-500/40 bg-red-500/10 text-red-300' : 'hover:border-emerald-500/40'}`}
+                                style={!showSavedOnly ? { borderColor: 'var(--color-border)', background: 'var(--color-bg-card)', color: 'var(--color-text-muted)' } : undefined}
+                                title="Show saved listings"
+                            >
+                                <Heart size={14} className={showSavedOnly ? 'fill-red-400' : ''} />
+                                <span className="hidden sm:inline">Saved {savedIds.size > 0 ? `(${savedIds.size})` : ''}</span>
+                            </button>
+
+                            {/* Map / List / Grid View Toggle */}
                             <div
                                 className="flex items-center rounded-xl border p-1"
                                 style={{ borderColor: 'var(--color-border)', background: 'var(--color-input-bg)' }}
@@ -243,6 +456,15 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                                 >
                                     <Grid size={13} />
                                     <span className="hidden sm:inline">Grid</span>
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('list')}
+                                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all oneui-press cursor-pointer ${viewMode === 'list' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'hover:text-emerald-500'}`}
+                                    style={viewMode !== 'list' ? { color: 'var(--color-text-dim)' } : undefined}
+                                    title="Show comparison list"
+                                >
+                                    <List size={13} />
+                                    <span className="hidden sm:inline">List</span>
                                 </button>
                                 <button
                                     onClick={() => setViewMode('map')}
@@ -272,6 +494,19 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                     </div>
                 )}
 
+                {comparedListings.length > 0 && (
+                    <div className="border-b px-4 py-3 lg:px-6" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)' }}>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="mr-1 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400"><GitCompareArrows size={15} /> Compare ({comparedListings.length}/3)</span>
+                            {comparedListings.map((listing) => (
+                                <button key={listing.id} type="button" onClick={() => toggleCompared(String(listing.id))} className="inline-flex max-w-[180px] items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs text-zinc-200 hover:border-red-500/40 hover:text-red-300" title="Remove from comparison">
+                                    <span className="truncate">{listing.title}</span><X size={12} />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Content View: Split Catalog Grid & GIS Map */}
                 <div className="flex flex-1 overflow-hidden">
                     {/* Catalog Results Grid */}
@@ -288,16 +523,67 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                                 style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)', color: 'var(--color-text-muted)' }}
                             >
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                <span>{listings.length} properties cataloged</span>
+                                <span>{visibleListings.length} properties found</span>
                             </div>
                         </div>
 
-                        <ResultsGrid
-                            listings={listings}
-                            loading={loading || isVisualSearching}
-                            onListingClick={onListingClick}
-                            columns={viewMode === 'grid' ? 3 : 2}
-                        />
+                        {loading || isVisualSearching ? (
+                            <LoadingState />
+                        ) : error ? (
+                            <ErrorState
+                                title="Failed to load properties"
+                                message={error}
+                                onRetry={() => {
+                                    setError(null);
+                                    // Trigger refetch by toggling a no-op filter
+                                    setFilters((prev) => ({ ...prev, _retry: Date.now() } as any));
+                                }}
+                            />
+                        ) : visibleListings.length === 0 ? (
+                            <div className="text-center py-16">
+                                <div className="w-16 h-16 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] flex items-center justify-center mx-auto mb-4">
+                                    <Map size={32} className="text-[var(--color-text-dim)]" />
+                                </div>
+                                <h3 className="text-lg font-bold text-[var(--color-text-main)]">No properties found</h3>
+                                <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+                                    {showSavedOnly
+                                        ? 'You have no saved properties matching your filters.'
+                                        : 'Try adjusting your filters or search terms to find what you\'re looking for.'}
+                                </p>
+                                <div className="mt-6 flex justify-center gap-3">
+                                    {showSavedOnly ? (
+                                        <Button variant="outline" onClick={() => setShowSavedOnly(false)}>
+                                            Show All Properties
+                                        </Button>
+                                    ) : (
+                                        <Button variant="outline" onClick={() => {
+                                            setFilters({
+                                                search: '', type: 'All', purpose: 'All', category: 'All',
+                                                minPrice: '', maxPrice: '', bedrooms: '', bathrooms: '',
+                                                verification: '', furnished: '', city: '', province: '',
+                                                district: '', sector: '', sort: 'newest',
+                                            });
+                                        }}>
+                                            Clear All Filters
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <ResultsGrid
+                                listings={visibleListings}
+                                loading={false}
+                                onListingClick={onListingClick}
+                                columns={viewMode === 'grid' ? 3 : 2}
+                                viewMode={viewMode === 'map' ? 'grid' : viewMode}
+                                savedIds={savedIds}
+                                comparedIds={comparedIds}
+                                onToggleSave={toggleSaved}
+                                onToggleCompare={toggleCompared}
+                                isSavedOnly={showSavedOnly}
+                                onClearSavedFilter={() => setShowSavedOnly(false)}
+                            />
+                        )}
                     </section>
 
                     {/* Spatial GIS Map Container - Only shown when in map mode */}
@@ -306,7 +592,7 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                             className="relative flex-1 md:w-1/2 xl:w-[42%] border-l"
                             style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)' }}
                         >
-                            <DiscoveryMap listings={listings} onListingClick={onListingClick} />
+                            <DiscoveryMap listings={visibleListings} onListingClick={onListingClick} />
                         </section>
                     )}
                 </div>

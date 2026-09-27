@@ -64,7 +64,7 @@ export const AgentPropertyDrawer: React.FC<AgentPropertyDrawerProps> = ({
             </span>
             <div>
               <h2 className="text-base font-bold text-zinc-900 dark:text-white">Assigned Asset Inspection</h2>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Representation & Cadastral Portfolio Dossier</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">Property Details & Representation</p>
             </div>
           </div>
           <button
@@ -79,7 +79,7 @@ export const AgentPropertyDrawer: React.FC<AgentPropertyDrawerProps> = ({
         <div className="p-6 space-y-6 flex-1">
           {isLoading ? (
             <div className="h-64 flex items-center justify-center text-zinc-400 text-sm">
-              Loading property intelligence...
+              Loading property details...
             </div>
           ) : !details ? (
             <div className="h-64 flex items-center justify-center text-zinc-400 text-sm">
@@ -321,7 +321,7 @@ export const AgentPropertyDrawer: React.FC<AgentPropertyDrawerProps> = ({
             onClick={onClose}
             className="rounded-2xl font-bold text-xs py-3 border-zinc-300 dark:border-white/10 text-zinc-700 dark:text-zinc-300"
           >
-            Close Dossier
+            Close
           </Button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Heart, MapPin, Eye, Calendar, ArrowRight, ExternalLink } from 'lucide-react';
 import { api } from '../../../api/endpoints';
 import { Pagination } from '../../../components/ui/Pagination';
@@ -29,8 +29,10 @@ export const ConsumerSavedWatchlist: React.FC<ConsumerSavedWatchlistProps> = ({
   onListingClick,
   onScheduleVisit,
 }) => {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
+  const [removingId, setRemovingId] = useState<number | null>(null);
 
   const { data: saved = [], isLoading } = useQuery<SavedProperty[]>({
     queryKey: ['consumer-saved-properties'],
@@ -90,14 +92,43 @@ export const ConsumerSavedWatchlist: React.FC<ConsumerSavedWatchlistProps> = ({
                     <img
                       src={prop.image}
                       alt={prop.title}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80';
+                      }}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-[10px] font-bold text-white uppercase tracking-wider">
                       {prop.purpose}
                     </div>
-                    <div className="absolute top-3 right-3 p-1.5 rounded-full bg-rose-500 text-white shadow-md">
-                      <Heart size={14} fill="currentColor" />
-                    </div>
+                    <button
+                      type="button"
+                      disabled={removingId === prop.id}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setRemovingId(prop.id);
+                        try {
+                          await api.listings.like(prop.id);
+                          try {
+                            const raw = localStorage.getItem('urugwiro_saved_listings');
+                            if (raw) {
+                              const set = new Set(JSON.parse(raw));
+                              set.delete(String(prop.id));
+                              localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...set]));
+                            }
+                          } catch {}
+                          await queryClient.invalidateQueries({ queryKey: ['consumer-saved-properties'] });
+                          await queryClient.invalidateQueries({ queryKey: ['consumer-dashboard'] });
+                          await queryClient.invalidateQueries({ queryKey: ['homepage-listings'] });
+                          await queryClient.invalidateQueries({ queryKey: ['listing-detail', String(prop.id)] });
+                        } finally {
+                          setRemovingId(null);
+                        }
+                      }}
+                      className="absolute top-3 right-3 p-1.5 rounded-full bg-rose-500 hover:bg-rose-600 active:scale-90 text-white shadow-md transition-all cursor-pointer"
+                      title="Remove from saved"
+                    >
+                      <Heart size={14} fill="currentColor" className={removingId === prop.id ? 'animate-spin' : ''} />
+                    </button>
                   </div>
 
                   <div className="p-4 space-y-2">
@@ -127,7 +158,7 @@ export const ConsumerSavedWatchlist: React.FC<ConsumerSavedWatchlistProps> = ({
                     }}
                     className="w-full py-2.5 rounded-2xl bg-zinc-100 dark:bg-white/[0.05] hover:bg-rose-500 hover:text-white text-zinc-800 dark:text-white font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <span>Inspect Details</span>
+                    <span>View Details</span>
                     <ExternalLink size={13} />
                   </button>
                 </div>

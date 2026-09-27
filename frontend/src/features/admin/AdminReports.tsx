@@ -251,39 +251,39 @@ const AdminReports: React.FC = () => {
     {
       label: 'Deals Pipeline',
       value: totalDealsVolume > 0 ? `${(totalDealsVolume / 1000000).toFixed(1)}M RWF` : '0 RWF',
-      sub: `${deals.length} Active Sovereign Deals`,
+      sub: `${deals.length} Active Deals`,
       icon: TrendingUp,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/10'
+      color: 'text-emerald-700 dark:text-emerald-400',
+      bg: 'bg-emerald-50 dark:bg-emerald-500/10'
     },
     {
       label: 'Total Properties',
       value: listings.length.toString(),
-      sub: 'Verified registry assets',
+      sub: 'Verified listings',
       icon: Building2,
-      color: 'text-blue-400',
-      bg: 'bg-blue-500/10'
+      color: 'text-blue-700 dark:text-blue-400',
+      bg: 'bg-blue-50 dark:bg-blue-500/10'
     },
     {
       label: 'Purchase Offers',
       value: offers.length.toString(),
       sub: `${offers.filter((o: any) => o.status === 'pending').length} Pending review`,
       icon: Users,
-      color: 'text-purple-400',
-      bg: 'bg-purple-500/10'
+      color: 'text-purple-700 dark:text-purple-400',
+      bg: 'bg-purple-50 dark:bg-purple-500/10'
     },
     {
       label: 'Escrow Reserves',
       value: deals.filter((d: any) => d.escrow_status === 'held_in_escrow').length.toString(),
       sub: 'Bank-guaranteed milestones',
       icon: Clock,
-      color: 'text-amber-400',
-      bg: 'bg-amber-500/10'
+      color: 'text-amber-700 dark:text-amber-400',
+      bg: 'bg-amber-50 dark:bg-amber-500/10'
     },
   ];
 
   const reportTypes = [
-    { id: 'deals', label: 'Deals & Conveyance' },
+    { id: 'deals', label: 'Deals' },
     { id: 'offers', label: 'Offers & Bids' },
     { id: 'payments', label: 'Payments' },
     { id: 'properties', label: 'Properties' },
@@ -293,12 +293,12 @@ const AdminReports: React.FC = () => {
   ];
 
   return (
-    <div className="p-8 lg:p-12 bg-[#05070b] min-h-screen text-zinc-100 animate-in fade-in duration-300">
+    <div className="p-8 lg:p-12 bg-transparent min-h-screen text-[var(--color-text-main)] animate-in fade-in duration-300">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div className="space-y-2">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-500 mb-2">Live Registry Intelligence</p>
-            <h1 className="text-4xl font-bold tracking-tight text-white">Reports & <span className="text-emerald-500">Analytics</span></h1>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[var(--color-brand-emerald)] mb-2">Live Reports</p>
+            <h1 className="text-4xl font-bold tracking-tight text-[var(--color-text-main)]">Reports & <span className="text-[var(--color-brand-emerald)]">Analytics</span></h1>
           </div>
           <div className="flex flex-wrap gap-2.5">
             {reportTypes.map(report => (
@@ -307,7 +307,7 @@ const AdminReports: React.FC = () => {
                 href={`/api/reports/export/${report.id}/`}
                 target="_blank"
                 rel="noreferrer"
-                className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:border-emerald-500/40 flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all"
+                className="px-4 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:border-emerald-500/40 flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all"
               >
                 <Download size={13} /> Export {report.label}
               </a>
@@ -318,14 +318,14 @@ const AdminReports: React.FC = () => {
         {/* KPI Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {kpis.map((kpi, i) => (
-            <div key={i} className="p-6 rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl transition-all hover:border-emerald-500/30">
+            <div key={i} className="p-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] transition-all hover:border-emerald-500/30">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-zinc-500 text-sm font-medium uppercase tracking-widest">{kpi.label}</p>
-                  <h3 className="text-3xl font-bold text-white mt-1 font-mono">{kpi.value}</h3>
-                  <p className="text-xs text-zinc-500 mt-2">{kpi.sub}</p>
+                  <p className="text-[var(--color-text-dim)] text-sm font-medium uppercase tracking-widest">{kpi.label}</p>
+                  <h3 className="text-3xl font-bold text-[var(--color-text-main)] mt-1 font-mono">{kpi.value}</h3>
+                  <p className="text-xs text-[var(--color-text-dim)] mt-2">{kpi.sub}</p>
                 </div>
-                <div className={cn("p-3 rounded-2xl", kpi.bg, kpi.color)}>
+                <div className={cn("p-3 rounded-xl border border-[var(--color-border)]", kpi.bg, kpi.color)}>
                   {React.createElement(kpi.icon as any, { size: 24 })}
                 </div>
               </div>
@@ -336,13 +336,13 @@ const AdminReports: React.FC = () => {
         {/* Main Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           {/* Revenue Chart */}
-          <div className="p-8 rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl">
+          <div className="p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)]">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
                   <TrendingUp size={20} />
                 </div>
-                <h3 className="text-xl font-bold text-white">Monthly Revenue</h3>
+                <h3 className="text-xl font-bold text-[var(--color-text-main)]">Monthly Revenue</h3>
               </div>
               <Badge variant="neutral" className="text-[10px] uppercase tracking-widest">Real Database Records</Badge>
             </div>
@@ -352,7 +352,7 @@ const AdminReports: React.FC = () => {
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                  y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#71717a' } },
+                  y: { grid: { color: 'rgba(113,113,122,0.15)' }, ticks: { color: '#71717a' } },
                   x: { grid: { display: false }, ticks: { color: '#71717a' } }
                 }
               }} />
@@ -360,13 +360,13 @@ const AdminReports: React.FC = () => {
           </div>
 
           {/* User Growth Chart */}
-          <div className="p-8 rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl">
+          <div className="p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)]">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                <div className="p-2 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
                   <Users size={20} />
                 </div>
-                <h3 className="text-xl font-bold text-white">User Signups Growth</h3>
+                <h3 className="text-xl font-bold text-[var(--color-text-main)]">User Signups Growth</h3>
               </div>
               <Badge variant="neutral" className="text-[10px] uppercase tracking-widest">By Month ({new Date().getFullYear()})</Badge>
             </div>
@@ -376,7 +376,7 @@ const AdminReports: React.FC = () => {
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                  y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#71717a' } },
+                  y: { grid: { color: 'rgba(113,113,122,0.15)' }, ticks: { color: '#71717a' } },
                   x: { grid: { display: false }, ticks: { color: '#71717a' } }
                 }
               }} />
@@ -387,12 +387,12 @@ const AdminReports: React.FC = () => {
         {/* Distribution Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Property Types */}
-          <div className="p-8 rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl lg:col-span-1">
+          <div className="p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] lg:col-span-1">
             <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+              <div className="p-2 rounded-lg bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400">
                 <PieChart size={20} />
               </div>
-              <h3 className="text-xl font-bold text-white">Asset Classes</h3>
+              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Asset Classes</h3>
             </div>
             <div className="h-[250px] relative">
               <Doughnut data={propTypeData} options={{
@@ -404,12 +404,12 @@ const AdminReports: React.FC = () => {
           </div>
 
           {/* Maintenance Breakdown */}
-          <div className="p-8 rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl lg:col-span-1">
+          <div className="p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] lg:col-span-1">
             <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+              <div className="p-2 rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
                 <AlertCircle size={20} />
               </div>
-              <h3 className="text-xl font-bold text-white">Maintenance Status</h3>
+              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Maintenance Status</h3>
             </div>
             <div className="h-[250px] relative">
               <Doughnut data={maintData} options={{
@@ -421,44 +421,44 @@ const AdminReports: React.FC = () => {
           </div>
 
           {/* Leases Overview */}
-          <div className="p-8 rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl lg:col-span-1">
+          <div className="p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] lg:col-span-1">
             <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400">
+              <div className="p-2 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
                 <Calendar size={20} />
               </div>
-              <h3 className="text-xl font-bold text-white">Tenancy Leases</h3>
+              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Tenancy Leases</h3>
             </div>
             <div className="space-y-6">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-zinc-400">Active Leases</span>
-                  <span className="text-white font-bold">{leasesStats.active} / {leasesStats.total}</span>
+                  <span className="text-[var(--color-text-muted)]">Active Leases</span>
+                  <span className="text-[var(--color-text-main)] font-bold">{leasesStats.active} / {leasesStats.total}</span>
                 </div>
-                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500" style={{ width: `${leasesStats.activePct}%` }} />
+                <div className="h-2 w-full bg-[var(--color-bg-elevated)] rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-600 dark:bg-emerald-500" style={{ width: `${leasesStats.activePct}%` }} />
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-zinc-400">Expiring (30d)</span>
-                  <span className="text-white font-bold">{leasesStats.expiring} / {leasesStats.total}</span>
+                  <span className="text-[var(--color-text-muted)]">Expiring (30d)</span>
+                  <span className="text-[var(--color-text-main)] font-bold">{leasesStats.expiring} / {leasesStats.total}</span>
                 </div>
-                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                <div className="h-2 w-full bg-[var(--color-bg-elevated)] rounded-full overflow-hidden">
                   <div className="h-full bg-amber-500" style={{ width: `${leasesStats.expiringPct}%` }} />
                 </div>
               </div>
               <div className="pt-6 grid grid-cols-3 gap-4 text-center">
-                <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
-                  <div className="text-lg font-bold text-white font-mono">{leasesStats.total}</div>
-                  <div className="text-[10px] uppercase text-zinc-500">Total</div>
+                <div className="p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
+                  <div className="text-lg font-bold text-[var(--color-text-main)] font-mono">{leasesStats.total}</div>
+                  <div className="text-[10px] uppercase text-[var(--color-text-dim)]">Total</div>
                 </div>
-                <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                  <div className="text-lg font-bold text-emerald-400 font-mono">{leasesStats.active}</div>
-                  <div className="text-[10px] uppercase text-emerald-500/70">Active</div>
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20">
+                  <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400 font-mono">{leasesStats.active}</div>
+                  <div className="text-[10px] uppercase text-emerald-700/70 dark:text-emerald-500/70">Active</div>
                 </div>
-                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
-                  <div className="text-lg font-bold text-amber-400 font-mono">{leasesStats.expiring}</div>
-                  <div className="text-[10px] uppercase text-amber-500/70">Expiring</div>
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20">
+                  <div className="text-lg font-bold text-amber-700 dark:text-amber-400 font-mono">{leasesStats.expiring}</div>
+                  <div className="text-[10px] uppercase text-amber-700/70 dark:text-amber-500/70">Expiring</div>
                 </div>
               </div>
             </div>

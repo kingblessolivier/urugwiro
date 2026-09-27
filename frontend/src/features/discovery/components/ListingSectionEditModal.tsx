@@ -310,7 +310,7 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
       icon: MapPin,
     },
     cadastre: {
-      title: 'RLMUA Cadastre & Sovereign Trust Evidence',
+      title: 'RLMUA Cadastre & Title Verification',
       subtitle: 'Update national Land UPI number and verification level',
       icon: ShieldCheck,
     },
@@ -321,25 +321,26 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-      <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-[#0b101b] p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-2xl rounded-3xl border p-6 sm:p-8 shadow-[var(--shadow-depth-3)] space-y-6 max-h-[90vh] overflow-y-auto" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)', color: 'var(--color-text-main)' }}>
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-white/10 pb-4">
+        <div className="flex items-start justify-between border-b pb-4" style={{ borderColor: 'var(--color-border)' }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[var(--color-brand-emerald)]">
               <SectionIcon size={20} />
             </div>
             <div>
-              <span className="font-mono text-emerald-400 font-bold text-xs uppercase tracking-wider block">
+              <span className="font-mono text-[var(--color-brand-emerald)] font-bold text-xs uppercase tracking-wider block">
                 Listing Section Editor
               </span>
-              <h3 className="text-xl font-bold text-white mt-0.5">{currentMeta.title}</h3>
-              <p className="text-xs text-zinc-400">{currentMeta.subtitle}</p>
+              <h3 className="text-xl font-bold mt-0.5" style={{ color: 'var(--color-text-main)' }}>{currentMeta.title}</h3>
+              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{currentMeta.subtitle}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-zinc-400 hover:text-white bg-white/[0.04] hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-2 rounded-xl transition-colors cursor-pointer hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-main)]"
+            style={{ color: 'var(--color-text-muted)' }}
           >
             <X size={18} />
           </button>
@@ -351,7 +352,7 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
           {sectionKey === 'header' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                   Property Title
                 </label>
                 <input
@@ -359,13 +360,13 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                     Price ({currency})
                   </label>
                   <input
@@ -373,17 +374,17 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                     required
                     value={price}
                     onChange={(e) => setPrice(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white font-mono text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] font-mono text-sm focus:outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                     Currency
                   </label>
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-emerald-500"
                   >
                     <option value="RWF">RWF (Rwandan Franc)</option>
                     <option value="USD">USD ($)</option>
@@ -393,13 +394,13 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                     Purpose
                   </label>
                   <select
                     value={purpose}
                     onChange={(e) => setPurpose(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-emerald-500"
                   >
                     <option value="sale">For Sale</option>
                     <option value="rent">For Rent</option>
@@ -407,13 +408,13 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                     Status
                   </label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-emerald-500"
                   >
                     <option value="listed">Active / Listed</option>
                     <option value="under_negotiation">Under Offer</option>
@@ -424,13 +425,13 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
 
                 {purpose === 'rent' && (
                   <div>
-                    <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                       Rental Cycle
                     </label>
                     <select
                       value={rentalFrequency}
                       onChange={(e) => setRentalFrequency(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-emerald-500"
                     >
                       <option value="per_month">Per Month</option>
                       <option value="per_year">Per Year</option>
@@ -441,7 +442,7 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                   Physical Address
                 </label>
                 <input
@@ -449,46 +450,46 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="e.g. KG 9 Ave, Nyarutarama, Kigali"
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                     District
                   </label>
                   <input
                     type="text"
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                     Sector
                   </label>
                   <input
                     type="text"
                     value={sector}
                     onChange={(e) => setSector(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
 
               {isAdmin && (
                 <div>
-                  <label className="block text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--color-brand-emerald)] uppercase tracking-wider mb-1.5">
                     Verification Level (Admin Authority)
                   </label>
                   <select
                     value={verificationLevel}
                     onChange={(e) => setVerificationLevel(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-emerald-500/30 text-white text-sm focus:outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-emerald-500/30 text-[var(--color-text-main)] text-sm focus:outline-none focus:border-emerald-500"
                   >
-                    <option value="verified">Verified Sovereign Trust</option>
+                    <option value="verified">Verified Title</option>
                     <option value="pending">Pending Document Audit</option>
                     <option value="rejected">Rejected</option>
                     <option value="none">Not Submitted</option>
@@ -502,7 +503,7 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
           {sectionKey === 'overview' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                   Property Overview & Narrative
                 </label>
                 <textarea
@@ -510,10 +511,10 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Detail the architectural design, security, finishes, compound layout, and location highlights..."
-                  className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm focus:outline-none focus:border-emerald-500 resize-none leading-relaxed"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm focus:outline-none focus:border-emerald-500 resize-none leading-relaxed"
                 />
-                <p className="text-xs text-zinc-500 mt-1">
-                  Supports multi-paragraph text. This will appear under Property Overview & Intelligence.
+                <p className="text-xs text-[var(--color-text-dim)] mt-1">
+                  Supports multi-paragraph text. This will appear under Property Overview & Details.
                 </p>
               </div>
             </div>
@@ -524,7 +525,7 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
             <div className="space-y-5">
               {/* Existing Photos */}
               <div>
-                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
                   Existing Photos ({existingMedia.length})
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-56 overflow-y-auto pr-1">
@@ -534,7 +535,7 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                     return (
                       <div
                         key={m.id || idx}
-                        className="relative group rounded-xl overflow-hidden border border-white/10 aspect-[4/3]"
+                        className="relative group rounded-xl overflow-hidden border border-[var(--color-border)] aspect-[4/3]"
                       >
                         <img src={url} alt={caption} className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
@@ -557,7 +558,7 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
               {/* Staged New Photos */}
               {stagedNewPhotos.length > 0 && (
                 <div>
-                  <label className="block text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-[var(--color-brand-emerald)] uppercase tracking-wider mb-2">
                     New Photos to Upload ({stagedNewPhotos.length})
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -584,15 +585,15 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
               )}
 
               {/* Add New Photo Form */}
-              <div className="p-4 rounded-2xl border border-white/10 bg-white/[0.02] space-y-3">
-                <span className="text-xs font-bold text-white block">Add New High-Res Photo</span>
+              <div className="p-4 rounded-2xl border bg-[var(--color-bg-surface)] space-y-3" style={{ borderColor: 'var(--color-border)' }}>
+                <span className="text-xs font-bold block" style={{ color: 'var(--color-text-main)' }}>Add New High-Res Photo</span>
                 <div>
                   <input
                     type="url"
                     value={newPhotoUrl}
                     onChange={(e) => setNewPhotoUrl(e.target.value)}
                     placeholder="Paste image URL (https://...)"
-                    className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-xs focus:outline-none focus:border-emerald-500"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-xs focus:outline-none focus:border-emerald-500"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -601,12 +602,12 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                     value={newPhotoCaption}
                     onChange={(e) => setNewPhotoCaption(e.target.value)}
                     placeholder="Caption (e.g. Master Bedroom)"
-                    className="px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-xs focus:outline-none focus:border-emerald-500"
+                    className="px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-xs focus:outline-none focus:border-emerald-500"
                   />
                   <select
                     value={newPhotoCategory}
                     onChange={(e) => setNewPhotoCategory(e.target.value)}
-                    className="px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white text-xs focus:outline-none focus:border-emerald-500"
+                    className="px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-xs focus:outline-none focus:border-emerald-500"
                   >
                     <option value="Exterior">Exterior</option>
                     <option value="Interior">Interior</option>
@@ -622,7 +623,7 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                   type="button"
                   onClick={handleAddStagedPhoto}
                   disabled={!newPhotoUrl.trim()}
-                  className="w-full py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                  className="w-full py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-[var(--color-brand-emerald)] border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
                 >
                   <Plus size={14} /> Stage Photo for Upload
                 </button>
@@ -637,71 +638,71 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                 <>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Bedrooms
                       </label>
                       <input
                         type="number"
                         value={bedrooms}
                         onChange={(e) => setBedrooms(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Bathrooms
                       </label>
                       <input
                         type="number"
                         value={bathrooms}
                         onChange={(e) => setBathrooms(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Built Area (m²)
                       </label>
                       <input
                         type="number"
                         value={builtUpArea}
                         onChange={(e) => setBuiltUpArea(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Plot Size (m²)
                       </label>
                       <input
                         type="number"
                         value={compoundSize}
                         onChange={(e) => setCompoundSize(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Year Built
                       </label>
                       <input
                         type="number"
                         value={yearBuilt}
                         onChange={(e) => setYearBuilt(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Apartment Selling Mode
                       </label>
                       <select
                         value={apartmentSellingMode}
                         onChange={(e) => setApartmentSellingMode(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       >
                         <option value="per_unit">Per Unit</option>
                         <option value="per_floor">Per Floor</option>
@@ -711,39 +712,39 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                   </div>
 
                   <div className="flex flex-wrap gap-4 pt-2">
-                    <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                    <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer">
                       <input
                         type="checkbox"
                         checked={isFurnished}
                         onChange={(e) => setIsFurnished(e.target.checked)}
-                        className="rounded border-white/20 text-emerald-500 focus:ring-0"
+                        className="rounded border-[var(--color-border-hover)] text-emerald-600 focus:ring-0"
                       />
                       Furnished
                     </label>
-                    <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                    <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer">
                       <input
                         type="checkbox"
                         checked={hasSwimmingPool}
                         onChange={(e) => setHasSwimmingPool(e.target.checked)}
-                        className="rounded border-white/20 text-emerald-500 focus:ring-0"
+                        className="rounded border-[var(--color-border-hover)] text-emerald-600 focus:ring-0"
                       />
                       Swimming Pool
                     </label>
-                    <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                    <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer">
                       <input
                         type="checkbox"
                         checked={hasGarden}
                         onChange={(e) => setHasGarden(e.target.checked)}
-                        className="rounded border-white/20 text-emerald-500 focus:ring-0"
+                        className="rounded border-[var(--color-border-hover)] text-emerald-600 focus:ring-0"
                       />
                       Landscaped Garden
                     </label>
-                    <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                    <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer">
                       <input
                         type="checkbox"
                         checked={balcony}
                         onChange={(e) => setBalcony(e.target.checked)}
-                        className="rounded border-white/20 text-emerald-500 focus:ring-0"
+                        className="rounded border-[var(--color-border-hover)] text-emerald-600 focus:ring-0"
                       />
                       Balcony / Terrace
                     </label>
@@ -755,18 +756,18 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Cadastral Area (m²)
                       </label>
                       <input
                         type="number"
                         value={totalArea}
                         onChange={(e) => setTotalArea(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Master Plan Zoning Code
                       </label>
                       <input
@@ -774,32 +775,32 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                         value={zoningCode}
                         onChange={(e) => setZoningCode(e.target.value)}
                         placeholder="e.g. R1, R2, C1"
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Permitted Height
                       </label>
                       <input
                         type="text"
                         value={maxPermittedFloors}
                         onChange={(e) => setMaxPermittedFloors(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Terrain / Topography
                       </label>
                       <input
                         type="text"
                         value={terrain}
                         onChange={(e) => setTerrain(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                   </div>
@@ -810,61 +811,61 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                 <div className="space-y-3">
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Make
                       </label>
                       <input
                         type="text"
                         value={make}
                         onChange={(e) => setMake(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Model
                       </label>
                       <input
                         type="text"
                         value={model}
                         onChange={(e) => setModel(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Year
                       </label>
                       <input
                         type="number"
                         value={vehYear}
                         onChange={(e) => setVehYear(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Mileage (km)
                       </label>
                       <input
                         type="number"
                         value={mileage}
                         onChange={(e) => setMileage(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1">
+                      <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">
                         Plate Number
                       </label>
                       <input
                         type="text"
                         value={plateNumber}
                         onChange={(e) => setPlateNumber(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                        className="w-full px-3 py-2 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                       />
                     </div>
                   </div>
@@ -878,48 +879,48 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                     Water Tank Capacity (Liters)
                   </label>
                   <input
                     type="number"
                     value={waterTankCapacity}
                     onChange={(e) => setWaterTankCapacity(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                     Road Access Type
                   </label>
                   <input
                     type="text"
                     value={roadAccessType}
                     onChange={(e) => setRoadAccessType(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                     Backup Generator Capacity (kVA)
                   </label>
                   <input
                     type="number"
                     value={generatorKva}
                     onChange={(e) => setGeneratorKva(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] text-sm"
                   />
                 </div>
                 <div className="flex items-center gap-2 pt-6">
-                  <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={hasBackupGenerator}
                       onChange={(e) => setHasBackupGenerator(e.target.checked)}
-                      className="rounded border-white/20 text-emerald-500 focus:ring-0"
+                      className="rounded border-[var(--color-border-hover)] text-emerald-600 focus:ring-0"
                     />
                     Generator Installed
                   </label>
@@ -927,21 +928,21 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
               </div>
 
               <div className="flex flex-wrap gap-4 pt-2">
-                <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={hasFiberInternet}
                     onChange={(e) => setHasFiberInternet(e.target.checked)}
-                    className="rounded border-white/20 text-emerald-500 focus:ring-0"
+                    className="rounded border-[var(--color-border-hover)] text-emerald-600 focus:ring-0"
                   />
                   Optical Fiber Ready
                 </label>
-                <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={hasThreePhasePower}
                     onChange={(e) => setHasThreePhasePower(e.target.checked)}
-                    className="rounded border-white/20 text-emerald-500 focus:ring-0"
+                    className="rounded border-[var(--color-border-hover)] text-emerald-600 focus:ring-0"
                   />
                   3-Phase Power
                 </label>
@@ -954,7 +955,7 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                     Latitude
                   </label>
                   <input
@@ -962,11 +963,11 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                     value={latitude}
                     onChange={(e) => setLatitude(e.target.value)}
                     placeholder="-1.9441"
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white font-mono text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] font-mono text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                     Longitude
                   </label>
                   <input
@@ -974,12 +975,12 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                     value={longitude}
                     onChange={(e) => setLongitude(e.target.value)}
                     placeholder="30.0619"
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white font-mono text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] font-mono text-sm"
                   />
                 </div>
               </div>
-              <p className="text-xs text-zinc-500">
-                Updating coordinates will dynamically relocate the OpenStreetMap interactive marker on the live showroom page.
+              <p className="text-xs text-[var(--color-text-dim)]">
+                Updating coordinates will dynamically relocate the OpenStreetMap interactive marker on the live property details page.
               </p>
             </div>
           )}
@@ -988,7 +989,7 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
           {sectionKey === 'cadastre' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
                   Rwandan Land UPI Number
                 </label>
                 <input
@@ -996,19 +997,19 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
                   value={upiNumber}
                   onChange={(e) => setUpiNumber(e.target.value)}
                   placeholder="e.g. 1/02/11/04/1820"
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-white font-mono text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-[var(--color-text-main)] font-mono text-sm"
                 />
               </div>
 
               {isAdmin && (
                 <div>
-                  <label className="block text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--color-brand-emerald)] uppercase tracking-wider mb-1.5">
                     Trust Evidence Status (Admin Authority)
                   </label>
                   <select
                     value={verificationLevel}
                     onChange={(e) => setVerificationLevel(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-emerald-500/30 text-white text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-input-bg)] border border-emerald-500/30 text-[var(--color-text-main)] text-sm"
                   >
                     <option value="verified">Verified (RLMUA Audited & Registered)</option>
                     <option value="pending">Pending Audit</option>
@@ -1020,11 +1021,12 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
           )}
 
           {/* Submit Actions */}
-          <div className="pt-4 border-t border-white/10 flex items-center justify-end gap-3">
+          <div className="pt-4 border-t flex items-center justify-end gap-3" style={{ borderColor: 'var(--color-border)' }}>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-white/10 text-xs font-semibold text-zinc-400 hover:text-white cursor-pointer"
+              className="px-4 py-2.5 rounded-xl border text-xs font-semibold cursor-pointer hover:text-[var(--color-text-main)]"
+              style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
             >
               Cancel
             </button>

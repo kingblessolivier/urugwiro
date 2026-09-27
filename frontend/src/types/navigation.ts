@@ -17,6 +17,7 @@ export type AppView =
   | 'admin-reports'
   | 'admin-users'
   | 'admin-property-wizard'
+  | 'admin-property-detail'
   | 'admin-inbox'
   | 'login'
   | 'register'
@@ -64,25 +65,25 @@ export interface UserRoleLike {
 export function getViewFriendlyName(view: AppView): string {
   switch (view) {
     case 'admin':
-      return 'Admin Executive Cockpit';
+      return 'Admin Dashboard';
     case 'admin-listings':
-      return 'Admin Unified Listings';
+      return 'Admin Listings';
     case 'admin-verification':
-      return 'Admin Title Verification Bureau';
+      return 'Admin Verification';
     case 'admin-settings':
-      return 'System Settings & Telemetry';
+      return 'Admin Settings';
     case 'admin-enquiries':
-      return 'Admin Customer Inquiries';
+      return 'Admin Inquiries';
     case 'admin-offers':
-      return 'Admin Deal Pipeline & Offers';
+      return 'Admin Deals & Offers';
     case 'admin-reports':
-      return 'Admin Reports & Telemetry';
+      return 'Admin Reports';
     case 'admin-users':
-      return 'Admin User Directory';
+      return 'Admin Users';
     case 'admin-property-wizard':
-      return 'Admin Asset Registration';
+      return 'Admin Add Listing';
     case 'admin-inbox':
-      return 'Admin Command Inbox';
+      return 'Admin Inbox';
     case 'seller-dashboard':
       return 'Seller Studio & Inventory';
     case 'seller-wizard':
@@ -145,7 +146,7 @@ export function isViewAllowedForUser(view: AppView, user: UserRoleLike | null | 
   const role = (user.role || '').toLowerCase();
   const isAdmin = role === 'admin' || Boolean(user.is_staff);
 
-  // Platform Admins have sovereign access to every view
+  // Platform Admins have full access to every view
   if (isAdmin) {
     return true;
   }

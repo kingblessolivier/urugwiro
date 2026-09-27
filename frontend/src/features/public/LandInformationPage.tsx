@@ -39,7 +39,7 @@ const LandInformationPage: React.FC<LandInformationPageProps> = ({ onNavigate })
   <div style={{ background: 'var(--color-bg-deep)', color: 'var(--color-text-main)' }} className="min-h-screen transition-colors duration-300">
     <PageHero
       eyebrow="Cadastral Knowledge"
-      title="Sovereign Land Title & Cadastre Guide."
+      title="Land Title & Cadastre Guide."
       description="Essential legal, regulatory, and cadastral guidance for safely acquiring and developing land parcels across Rwanda. Clear procedural clarity before capital deployment."
     />
 
@@ -57,7 +57,7 @@ const LandInformationPage: React.FC<LandInformationPageProps> = ({ onNavigate })
         <div>
           <p className="font-semibold text-amber-600 dark:text-amber-400">Regulatory Advisory & Compliance</p>
           <p className="mt-1 text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-            All cadastral intelligence presented on Urugwiro is curated for educational and due diligence preparation. Official transfer of freehold or emphyteutic leasehold titles must be finalized before a certified public notary through official government channels (IremboGov / RLMUA).
+            All land information presented on Urugwiro is curated for educational and due diligence preparation. Official transfer of freehold or emphyteutic leasehold titles must be finalized before a certified public notary through official government channels (IremboGov / RLMUA).
           </p>
         </div>
       </div>

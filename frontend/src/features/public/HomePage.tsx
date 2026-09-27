@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../context/AuthContext';
 import {
   ArrowRight,
   Building2,
@@ -20,6 +21,7 @@ import {
 import { ListingCard } from '../../components/ui/ListingCard';
 import type { ListingCardData } from '../../components/ui/ListingCard';
 import { Button } from '../../components/ui/Button';
+import { SkeletonGrid, ErrorState } from '../../components/ui/Dashboard';
 import { api } from '../../api/endpoints';
 import type { AppView } from '../../types/navigation';
 import { cn } from '../../lib/utils';
@@ -73,9 +75,9 @@ const HERO_SLIDES: HeroSlide[] = [
     icon: Car,
     query: 'vehicle',
     image: '/images/hero/car.jpg',
-    title: 'Certified Vehicles, Full Dossier',
+    title: 'Certified Vehicles, Inspection & History',
     cornerBadge: 'RRA Customs Cleared',
-    systemExplanation: 'Physical mechanical inspection and cleared registration dossier with Rwanda Revenue Authority.',
+    systemExplanation: 'Physical mechanical inspection and verified registration with Rwanda Revenue Authority.',
     watermark: 'EXECUTIVE',
   },
   {
@@ -125,15 +127,81 @@ const mapApiListing = (item: Record<string, unknown>): ListingCardData => {
     verification_level: (item.verification_level as ListingCardData['verification_level']) || 'none',
     media,
     specs: (item.specs as ListingCardData['specs']) || undefined,
+    is_liked: Boolean(item.is_liked),
   };
 };
 
 const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onListingClick }) => {
   const { isDark } = useTheme();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
+
+  const [savedIds, setSavedIds] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('urugwiro_saved_listings') || '[]')); } catch { return new Set(); }
+  });
+
+  const savedPropertiesQuery = useQuery({
+    queryKey: ['consumer-saved-properties'],
+    queryFn: async () => {
+      const res = await api.consumer.savedProperties();
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    if (savedPropertiesQuery.data && Array.isArray(savedPropertiesQuery.data)) {
+      const idsFromBackend = savedPropertiesQuery.data
+        .map((item: any) => String(item.id || item.listing?.id || item.listing))
+        .filter(Boolean);
+      if (idsFromBackend.length > 0) {
+        setSavedIds((current) => {
+          const merged = new Set(current);
+          idsFromBackend.forEach((id: string) => merged.add(id));
+          try {
+            localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...merged]));
+          } catch {}
+          return merged;
+        });
+      }
+    }
+  }, [savedPropertiesQuery.data]);
+
+  const toggleSaved = async (id: string) => {
+    const isCurrentlySaved = savedIds.has(id);
+    setSavedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      try {
+        localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+
+    if (user) {
+      try {
+        await api.listings.like(id);
+        queryClient.invalidateQueries({ queryKey: ['consumer-saved-properties'] });
+        queryClient.invalidateQueries({ queryKey: ['consumer-dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['listing-detail', id] });
+        queryClient.invalidateQueries({ queryKey: ['homepage-listings'] });
+      } catch (err) {
+        console.error('Failed to toggle save on homepage:', err);
+        setSavedIds((current) => {
+          const rollback = new Set(current);
+          if (isCurrentlySaved) rollback.add(id); else rollback.delete(id);
+          try {
+            localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...rollback]));
+          } catch {}
+          return rollback;
+        });
+      }
+    }
+  };
 
   useEffect(() => {
     if (isPaused) return;
@@ -244,27 +312,19 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
             </div>
           ))}
 
-          {/* Architectural Spatial Micro-Grid */}
-          <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:28px_28px] opacity-35 pointer-events-none" />
-
-          {/* Deep Cinematic Radial Vignette */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(5,7,11,0.45)_65%,#05070b_100%)] pointer-events-none" />
+          {/* Legibility scrim — lighter in light mode so the hero never reads as "black" */}
+          <div className={cn('absolute inset-0 pointer-events-none', isDark ? 'bg-black/50' : 'bg-black/25')} />
 
           {/* Subtle shaded architectural watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
-            <span className="text-[17vw] sm:text-[16vw] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-white/[0.035] leading-none whitespace-nowrap drop-shadow-2xl">
+            <span className="text-[17vw] sm:text-[16vw] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-white/[0.06] leading-none whitespace-nowrap">
               {currentSlide.watermark}
             </span>
           </div>
 
-          {/* Balanced cinematic overlays */}
-          <div className="absolute inset-0 bg-black/30" />
-          <div className="absolute inset-x-0 top-0 h-32 sm:h-44 bg-gradient-to-b from-[#05070b] via-[#05070b]/70 to-transparent pointer-events-none" />
-          <div className="absolute inset-x-0 bottom-0 h-44 sm:h-60 bg-gradient-to-t from-[#05070b] via-[#05070b]/80 to-transparent pointer-events-none" />
-
-          {/* Brand ambient glows */}
-          <div className="absolute top-1/4 left-1/4 h-[300px] w-[300px] sm:h-[600px] sm:w-[600px] rounded-full bg-emerald-500/[0.10] blur-[150px] pointer-events-none" />
-          <div className="absolute bottom-1/4 right-1/4 h-[260px] w-[260px] sm:h-[500px] sm:w-[500px] rounded-full bg-[#f98604]/[0.07] blur-[150px] pointer-events-none" />
+          {/* Top/bottom fades melt the photo into the page canvas (theme-aware) */}
+          <div className="absolute inset-x-0 top-0 h-24 sm:h-32 bg-gradient-to-b from-[var(--color-bg-deep)] to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-40 sm:h-56 bg-gradient-to-t from-[var(--color-bg-deep)] to-transparent pointer-events-none" />
         </div>
 
         {/* ━━━ 40-DEGREE GREEN CORNER SYSTEM SASH (Spanning Banner) ━━━ */}
@@ -285,8 +345,11 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
 
           {/* System Explanation: Green background spanning entire text */}
           <div className="flex justify-center px-2">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-100 text-xs sm:text-sm font-medium backdrop-blur-xl shadow-[0_4px_24px_rgba(16,185,129,0.25)] max-w-2xl text-center">
-              <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
+            <div className={cn(
+              'inline-flex items-center gap-2 px-4 py-2 rounded-[var(--radius-card)] border text-xs sm:text-sm font-medium backdrop-blur-md shadow-[var(--shadow-depth-2)] max-w-2xl text-center',
+              isDark ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-100' : 'bg-white/95 border-emerald-200 text-emerald-900'
+            )}>
+              <CheckCircle2 size={15} className={cn('shrink-0', isDark ? 'text-emerald-400' : 'text-emerald-600')} />
               <span className="leading-snug">{currentSlide.systemExplanation}</span>
             </div>
           </div>
@@ -296,32 +359,33 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
 
           {/* Clean Floating Search Bar (Single sleek inline bar on all screens) */}
           <form onSubmit={submitSearch} className="pt-1 sm:pt-2 max-w-2xl mx-auto w-full">
-            <div className="flex items-center gap-1.5 sm:gap-2 rounded-2xl border border-white/25 hover:border-emerald-400/60 focus-within:border-emerald-400/80 bg-black/75 p-1.5 sm:p-2 backdrop-blur-2xl shadow-[0_16px_48px_rgba(0,0,0,0.75)] transition-all">
+            <div className={cn(
+              'flex items-center gap-1.5 sm:gap-2 rounded-[var(--radius-card)] border p-1.5 sm:p-2 backdrop-blur-md shadow-[var(--shadow-depth-3)] transition-all',
+              isDark ? 'border-white/15 bg-black/70' : 'border-[var(--color-border)] bg-white/95'
+            )}>
               <div className="flex flex-1 items-center gap-2 sm:gap-3 px-2 sm:px-4 min-w-0">
-                <Search size={16} className="text-emerald-400 shrink-0 sm:hidden" />
-                <Search size={18} className="text-emerald-400 shrink-0 hidden sm:block" />
+                <Search size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 sm:hidden" />
+                <Search size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0 hidden sm:block" />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onFocus={() => setIsPaused(true)}
                   onBlur={() => setIsPaused(false)}
                   placeholder="Search listings — location, type, keyword..."
-                  className="w-full bg-transparent py-2 sm:py-3 text-white outline-none placeholder:text-zinc-400 text-xs sm:text-sm min-w-0 font-medium"
+                  className="w-full bg-transparent py-2 sm:py-3 text-[var(--color-text-main)] outline-none placeholder:text-[var(--color-text-dim)] text-xs sm:text-sm min-w-0 font-medium"
                 />
                 {query && (
                   <button
                     type="button"
                     onClick={() => setQuery('')}
-                    className="text-zinc-400 hover:text-white p-1 text-xs shrink-0"
+                    className="text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] p-1 text-xs shrink-0"
+                    aria-label="Clear search"
                   >
                     ×
                   </button>
                 )}
               </div>
-              <Button
-                variant="primary"
-                className="shrink-0 rounded-xl px-4 sm:px-7 py-2 sm:py-3 font-bold bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white transition-all active:scale-[0.97] shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 text-xs sm:text-sm cursor-pointer border border-emerald-400/20"
-              >
+              <Button type="submit" variant="primary" className="shrink-0 px-4 sm:px-7 py-2 sm:py-3 text-xs sm:text-sm">
                 Search
               </Button>
             </div>
@@ -333,17 +397,23 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
         <div className="relative z-10 mx-auto max-w-7xl w-full flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4 text-xs">
           {/* Active slide caption — real listing from DB */}
           {heroListing ? (
-            <div className="flex items-center justify-center gap-2 text-zinc-200 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/15 text-[11px] sm:text-xs max-w-full shadow-2xl">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 shrink-0 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                <CheckCircle2 size={10} className="text-emerald-400" />
+            <div className={cn(
+              'flex items-center justify-center gap-2 backdrop-blur-md px-4 py-2 rounded-full border text-[11px] sm:text-xs max-w-full shadow-[var(--shadow-depth-2)]',
+              isDark ? 'bg-black/60 border-white/15' : 'bg-white/95 border-[var(--color-border)]'
+            )}>
+              <span className={cn(
+                'inline-flex items-center gap-1 text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full border',
+                isDark ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+              )}>
+                <CheckCircle2 size={10} />
                 <span>Verified</span>
               </span>
-              <span className="text-zinc-600">•</span>
-              <span className="font-semibold text-white truncate max-w-[120px] xs:max-w-[180px] sm:max-w-[320px]">{heroListing.title}</span>
+              <span className="text-[var(--color-text-dim)]">•</span>
+              <span className="font-semibold text-[var(--color-text-main)] truncate max-w-[120px] xs:max-w-[180px] sm:max-w-[320px]">{heroListing.title}</span>
               {heroListing.price > 0 && (
                 <>
-                  <span className="text-zinc-500">•</span>
-                  <span className="text-emerald-400 font-mono font-bold whitespace-nowrap">
+                  <span className="text-[var(--color-text-dim)]">•</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold whitespace-nowrap">
                     {heroListing.price.toLocaleString()} {heroListing.currency}
                   </span>
                 </>
@@ -351,23 +421,29 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
               <button
                 type="button"
                 onClick={() => onListingClick?.(heroListing.id)}
-                className="ml-1 text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap group"
+                className="ml-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap group"
               >
                 <span>View</span>
                 <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
               </button>
             </div>
           ) : (
-            <div className="flex items-center justify-center gap-2 text-zinc-200 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/15 text-[11px] sm:text-xs max-w-full shadow-2xl">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 shrink-0 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                <CheckCircle2 size={10} className="text-emerald-400" />
+            <div className={cn(
+              'flex items-center justify-center gap-2 backdrop-blur-md px-4 py-2 rounded-full border text-[11px] sm:text-xs max-w-full shadow-[var(--shadow-depth-2)]',
+              isDark ? 'bg-black/60 border-white/15' : 'bg-white/95 border-[var(--color-border)]'
+            )}>
+              <span className={cn(
+                'inline-flex items-center gap-1 text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full border',
+                isDark ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+              )}>
+                <CheckCircle2 size={10} />
                 <span>Live</span>
               </span>
-              <span className="text-zinc-400">{currentSlide.pillLabel}</span>
+              <span className="text-[var(--color-text-muted)]">{currentSlide.pillLabel}</span>
               <button
                 type="button"
                 onClick={() => onExplore(currentSlide.query)}
-                className="ml-1 text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap group"
+                className="ml-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap group"
               >
                 <span>Explore</span>
                 <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
@@ -376,18 +452,20 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
           )}
 
 
-          {/* Clean Controls with finger-friendly touch targets and glowing active pill */}
-          <div className="flex items-center gap-1.5 sm:gap-2 bg-black/60 backdrop-blur-xl px-2.5 sm:px-3 py-1.5 rounded-full border border-white/15 shadow-2xl">
+          {/* Slide controls */}
+          <div className={cn(
+            'flex items-center gap-1.5 sm:gap-2 backdrop-blur-md px-2.5 sm:px-3 py-1.5 rounded-full border shadow-[var(--shadow-depth-2)]',
+            isDark ? 'bg-black/60 border-white/15' : 'bg-white/95 border-[var(--color-border)]'
+          )}>
             <button
               type="button"
               onClick={() => setActiveSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
               aria-label="Previous slide"
-              className="h-7 w-7 sm:h-6 sm:w-6 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center cursor-pointer transition-all active:scale-90"
+              className="h-7 w-7 sm:h-6 sm:w-6 rounded-full hover:bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] flex items-center justify-center cursor-pointer transition-all active:scale-90"
             >
               <ChevronLeft size={15} />
             </button>
 
-            {/* Slide dots with glowing active pill */}
             <div className="flex items-center gap-1.5 px-2">
               {HERO_SLIDES.map((_, idx) => (
                 <button
@@ -396,10 +474,10 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
                   onClick={() => setActiveSlide(idx)}
                   aria-label={`Go to slide ${idx + 1}`}
                   className={cn(
-                    "h-1.5 rounded-full transition-all duration-300 cursor-pointer",
-                    activeSlide === idx 
-                      ? "w-7 bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]" 
-                      : "w-2 bg-white/25 hover:bg-white/60 hover:w-3"
+                    'h-1.5 rounded-full transition-all duration-300 cursor-pointer',
+                    activeSlide === idx
+                      ? 'w-7 bg-emerald-500'
+                      : 'w-2 bg-[var(--color-border-hover)] hover:bg-[var(--color-text-dim)] hover:w-3'
                   )}
                 />
               ))}
@@ -409,7 +487,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
               type="button"
               onClick={() => setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
               aria-label="Next slide"
-              className="h-7 w-7 sm:h-6 sm:w-6 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white flex items-center justify-center cursor-pointer transition-all active:scale-90"
+              className="h-7 w-7 sm:h-6 sm:w-6 rounded-full hover:bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] flex items-center justify-center cursor-pointer transition-all active:scale-90"
             >
               <ChevronRight size={15} />
             </button>
@@ -486,14 +564,30 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
           {featured.length > 0 ? (
             <div className="grid gap-4 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
               {featured.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} onClick={onListingClick} />
+                <ListingCard
+                  key={listing.id}
+                  listing={listing}
+                  onClick={onListingClick}
+                  saved={savedIds.has(String(listing.id)) || Boolean(listing.is_liked)}
+                  onToggleSave={toggleSaved}
+                />
               ))}
             </div>
+          ) : listingsQuery.isLoading || listingsQuery.isFetching ? (
+            <SkeletonGrid count={6} />
+          ) : listingsQuery.isError ? (
+            <ErrorState
+              title="Failed to load listings"
+              message="We encountered an error loading featured properties. Please try again."
+              onRetry={() => listingsQuery.refetch()}
+            />
           ) : (
-            <div className="grid gap-4 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="aspect-[4/5] animate-pulse rounded-2xl" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }} />
-              ))}
+            <div className="text-center py-16">
+              <div className="w-16 h-16 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] flex items-center justify-center mx-auto mb-4">
+                <Building2 size={32} className="text-[var(--color-text-dim)]" />
+              </div>
+              <h3 className="text-lg font-bold text-[var(--color-text-main)]">No listings available</h3>
+              <p className="mt-2 text-sm text-[var(--color-text-muted)]">Check back soon for new verified properties across Rwanda.</p>
             </div>
           )}
 

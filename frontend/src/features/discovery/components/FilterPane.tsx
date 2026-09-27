@@ -68,6 +68,10 @@ const FilterPane: React.FC<FilterProps> = ({ filters, setFilters }) => {
               category: 'All',
               minPrice: '',
               maxPrice: '',
+              bedrooms: '',
+              bathrooms: '',
+              verification: '',
+              furnished: '',
               city: '',
               province: '',
               district: '',
@@ -121,10 +125,10 @@ const FilterPane: React.FC<FilterProps> = ({ filters, setFilters }) => {
             value={filters.category || 'All'}
             onChange={(e) => updateFilter('category', e.target.value)}
           >
-            <option value="All">All Asset Classes</option>
+            <option value="All">All Property Types</option>
             <option value="house">Houses & Standalone Villas</option>
             <option value="apartment">Apartments & Building Units</option>
-            <option value="land">Sovereign Land & Parcels</option>
+            <option value="land">Land & Plots</option>
             <option value="car">Vehicles & Fleet</option>
             <option value="motorbike">Motorcycles & Scooters</option>
             <option value="hotel">Commercial & Hospitality</option>
@@ -152,6 +156,38 @@ const FilterPane: React.FC<FilterProps> = ({ filters, setFilters }) => {
             onChange={(e) => updateFilter('maxPrice', e.target.value)}
           />
         </div>
+      </div>
+
+      {(filters.category === 'All' || filters.category === 'house' || filters.category === 'apartment' || filters.category === 'hotel') && (
+        <div className="grid grid-cols-2 gap-2">
+          <label className="block">
+            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Bedrooms</span>
+            <select className={selectClass} style={inputStyle} value={filters.bedrooms || ''} onChange={(e) => updateFilter('bedrooms', e.target.value)}>
+              <option value="">Any</option><option value="1">1+</option><option value="2">2+</option><option value="3">3+</option><option value="4">4+</option><option value="5">5+</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Bathrooms</span>
+            <select className={selectClass} style={inputStyle} value={filters.bathrooms || ''} onChange={(e) => updateFilter('bathrooms', e.target.value)}>
+              <option value="">Any</option><option value="1">1+</option><option value="2">2+</option><option value="3">3+</option><option value="4">4+</option>
+            </select>
+          </label>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block">
+          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Verification</span>
+          <select className={selectClass} style={inputStyle} value={filters.verification || ''} onChange={(e) => updateFilter('verification', e.target.value)}>
+            <option value="">Any</option><option value="verified">Verified</option><option value="professional">Professional</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>Furnished</span>
+          <select className={selectClass} style={inputStyle} value={filters.furnished || ''} onChange={(e) => updateFilter('furnished', e.target.value)}>
+            <option value="">Any</option><option value="true">Yes</option><option value="false">No</option>
+          </select>
+        </label>
       </div>
 
       {/* Rwanda Cascading Administrative Hierarchy */}
