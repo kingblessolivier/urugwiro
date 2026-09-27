@@ -11,6 +11,33 @@ import { OnboardingTour } from '../onboarding/OnboardingTour';
 import { isAuthView, type AppView } from '../../types/navigation';
 import { cn } from '../../lib/utils';
 
+/* ────────────────────────────────────────────────────────────────
+   CRASH BARRIER — on any child error, silently renders null.
+   React class ErrorBoundary required (no hook equivalent exists).
+   Prevents any tour/layout subcomponent crash from a full white-screen.
+   ──────────────────────────────────────────────────────────────── */
+interface ErrorSwallowState { hasError: boolean; }
+class OnboardingTourErrorBoundary extends React.Component<{ children: React.ReactNode }, ErrorSwallowState> {
+  declare state: ErrorSwallowState;
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(): ErrorSwallowState {
+    return { hasError: true };
+  }
+  componentDidCatch(error: unknown, info: unknown): void {
+    try {
+      // eslint-disable-next-line no-console
+      console.warn('[OnboardingTourErrorBoundary] suppressed non-fatal error to prevent white-screen —', error, info);
+    } catch { /* noop */ }
+  }
+  render(): React.ReactNode {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
+
 interface PublicLayoutProps {
   view: AppView;
   onNavigate: (view: AppView) => void;

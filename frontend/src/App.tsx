@@ -1,31 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import DiscoveryPage from './features/discovery/DiscoveryPage';
 import ListingDetail from './features/discovery/ListingDetail';
-import ListingWizard from './features/seller/ListingWizard';
-import { SellerDashboard } from './features/seller/SellerDashboard';
-import VerificationWorkspace from './features/admin/VerificationWorkspace';
-import AdminHub from './features/admin/AdminHub';
-import AdminListingsPage from './features/admin/AdminListingsPage';
-import SystemSettings from './features/admin/SystemSettings';
-import AdminEnquiries from './features/admin/AdminEnquiries';
-import AdminOffers from './features/admin/AdminOffers';
-import AdminReports from './features/admin/AdminReports';
-import AdminUserManagement from './features/admin/AdminUserManagement';
-import AdminPropertyWizard from './features/admin/AdminPropertyWizard';
-import AdminInbox from './features/admin/AdminInbox';
-import AdminPropertyDetail from './features/admin/AdminPropertyDetail';
-import { BuyerTenantDashboard } from './features/tenant/BuyerTenantDashboard';
-import { AgentDashboard } from './features/agent/AgentDashboard';
-import OwnerLaunchpad from './features/owner/OwnerLaunchpad';
-import LoginPage from './features/auth/LoginPage';
-import RegisterPage from './features/auth/RegisterPage';
-import AboutPage from './features/public/AboutPage';
-import ContactPage from './features/public/ContactPage';
-import UpdatesPage from './features/public/UpdatesPage';
-import HomePage from './features/public/HomePage';
-import LandInformationPage from './features/public/LandInformationPage';
-import ServicesPage from './features/public/ServicesPage';
-import AssetProposalPage from './features/public/AssetProposalPage';
 import { PublicLayout } from './components/layout/PublicLayout';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { AccessRestricted } from './components/auth/AccessRestricted';
@@ -33,6 +8,42 @@ import { useAuth } from './context/AuthContext';
 import { isAuthView, isPublicView, isAdminView, isViewAllowedForUser, type AppView } from './types/navigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
+// Lazy load heavy dashboard components for code splitting
+const ListingWizard = lazy(() => import('./features/seller/ListingWizard'));
+const SellerDashboard = lazy(() => import('./features/seller/SellerDashboard'));
+const VerificationWorkspace = lazy(() => import('./features/admin/VerificationWorkspace'));
+const AdminHub = lazy(() => import('./features/admin/AdminHub'));
+const AdminListingsPage = lazy(() => import('./features/admin/AdminListingsPage'));
+const SystemSettings = lazy(() => import('./features/admin/SystemSettings'));
+const AdminEnquiries = lazy(() => import('./features/admin/AdminEnquiries'));
+const AdminOffers = lazy(() => import('./features/admin/AdminOffers'));
+const AdminReports = lazy(() => import('./features/admin/AdminReports'));
+const AdminUserManagement = lazy(() => import('./features/admin/AdminUserManagement'));
+const AdminPropertyWizard = lazy(() => import('./features/admin/AdminPropertyWizard'));
+const AdminInbox = lazy(() => import('./features/admin/AdminInbox'));
+const AdminPropertyDetail = lazy(() => import('./features/admin/AdminPropertyDetail'));
+const BuyerTenantDashboard = lazy(() => import('./features/tenant/BuyerTenantDashboard'));
+const AgentDashboard = lazy(() => import('./features/agent/AgentDashboard'));
+const OwnerLaunchpad = lazy(() => import('./features/owner/OwnerLaunchpad'));
+const LoginPage = lazy(() => import('./features/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./features/auth/RegisterPage'));
+const AboutPage = lazy(() => import('./features/public/AboutPage'));
+const ContactPage = lazy(() => import('./features/public/ContactPage'));
+const UpdatesPage = lazy(() => import('./features/public/UpdatesPage'));
+const HomePage = lazy(() => import('./features/public/HomePage'));
+const LandInformationPage = lazy(() => import('./features/public/LandInformationPage'));
+const ServicesPage = lazy(() => import('./features/public/ServicesPage'));
+const AssetProposalPage = lazy(() => import('./features/public/AssetProposalPage'));
+
+// Loading fallback for lazy components
+const PageLoader: React.FC = () => (
+  <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-10 h-10 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+      <span className="text-xs tracking-widest uppercase text-[var(--color-text-dim)]">Loading...</span>
+    </div>
+  </div>
+);
 
 function App() {
   const { user } = useAuth();
@@ -45,8 +56,6 @@ function App() {
     return 'home';
   });
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
-  const [discoveryQuery, setDiscoveryQuery] = useState('');
-
   const [previousView, setPreviousView] = useState<AppView>('discovery');
 
   const navigateToListing = (id: string) => {
@@ -62,7 +71,6 @@ function App() {
   };
 
   const goExplore = (query?: string) => {
-    setDiscoveryQuery(query || '');
     setView('discovery');
   };
 
@@ -71,7 +79,7 @@ function App() {
       case 'home':
         return <HomePage onExplore={goExplore} onSell={() => setView('seller-wizard')} onNavigate={setView} onListingClick={navigateToListing} />;
       case 'discovery':
-        return <DiscoveryPage initialQuery={discoveryQuery} onListingClick={navigateToListing} />;
+        return <DiscoveryPage initialQuery={''} onListingClick={navigateToListing} />;
       case 'listing-detail':
         return (
           <ErrorBoundary onReset={() => setView(previousView || 'discovery')}>
@@ -88,7 +96,6 @@ function App() {
         return <AdminHub setView={setView} />;
       case 'admin-listings':
         return <AdminListingsPage onListingClick={navigateToAdminPropertyDetail} />;
-
       case 'admin-verification':
         return <VerificationWorkspace />;
       case 'admin-settings':
@@ -133,7 +140,6 @@ function App() {
     }
   };
 
-  // Role-Based Access Control Guard
   const isAllowed = isViewAllowedForUser(view, user);
 
   if (!isAllowed) {
@@ -168,8 +174,6 @@ function App() {
     );
   }
 
-  // Dedicated authorized launchpads (seller-dashboard, tenant-dashboard, buyer-dashboard, agent-dashboard, owner-dashboard)
-  // Render full-screen workspace without public consumer marketplace navbar
   if (view === 'seller-dashboard') {
     return <SellerDashboard onNavigate={setView} onListingClick={navigateToListing} />;
   }

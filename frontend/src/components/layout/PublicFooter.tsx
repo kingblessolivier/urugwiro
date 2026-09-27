@@ -41,7 +41,7 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ onNavigate }) => {
                     color: 'var(--color-text-muted)',
                   }}
                 >
-                  {name[0]}
+                  {(name && name[0]) || '•'}
                 </button>
               ))}
             </div>

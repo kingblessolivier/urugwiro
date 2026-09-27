@@ -74,13 +74,28 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
   };
 
   const getInitials = () => {
-    if (!user) return 'U';
-    if (user.full_name) {
-      const parts = user.full_name.trim().split(' ');
-      if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-      return parts[0].slice(0, 2).toUpperCase();
+    try {
+      if (!user) return 'U';
+      if (user.full_name && typeof user.full_name === 'string') {
+        const trimmed = user.full_name.trim();
+        if (!trimmed) {
+          return (user.username && typeof user.username === 'string') ? user.username.slice(0, 2).toUpperCase() : 'U';
+        }
+        const parts = trimmed.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2 && parts[0] && parts[1]) {
+          return `${parts[0][0] || parts[0].charAt(0) || ''}${parts[1][0] || parts[1].charAt(0) || ''}`.toUpperCase() || 'U';
+        }
+        if (parts[0]) {
+          return parts[0].slice(0, 2).toUpperCase() || 'U';
+        }
+      }
+      if (user.username && typeof user.username === 'string') {
+        return user.username.slice(0, 2).toUpperCase();
+      }
+      return 'U';
+    } catch (_err) {
+      return 'U';
     }
-    return user.username.slice(0, 2).toUpperCase();
   };
 
   const role = user?.role || 'Buyer';

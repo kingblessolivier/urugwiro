@@ -55,22 +55,6 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ onNavigate }) =>
     const isMountedRef = useRef(true);
 
     useEffect(() => {
-        try {
-            const completed = localStorage.getItem('urugwiro_onboarding_complete');
-            if (!completed) {
-                const timer = setTimeout(() => {
-                    if (isMountedRef.current) {
-                        setIsActive(true);
-                    }
-                }, 2000);
-                return () => clearTimeout(timer);
-            }
-        } catch {
-            // localStorage not available
-        }
-    }, []);
-
-    useEffect(() => {
         isMountedRef.current = true;
         return () => {
             isMountedRef.current = false;
@@ -156,14 +140,15 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ onNavigate }) =>
             break;
         case 'left':
             tooltipStyle = {
-                top: targetRect.top + targetRect.height / 2 - 80,
+                top: Math.max(16, Math.min(window.innerHeight - 160, targetRect.top + targetRect.height / 2 - 80)),
                 right: window.innerWidth - targetRect.left + padding,
                 width: tooltipWidth,
             };
             break;
         case 'right':
+        default:
             tooltipStyle = {
-                top: targetRect.top + targetRect.height / 2 - 80,
+                top: Math.max(16, Math.min(window.innerHeight - 160, targetRect.top + targetRect.height / 2 - 80)),
                 left: targetRect.right + padding,
                 width: tooltipWidth,
             };
@@ -236,3 +221,5 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ onNavigate }) =>
         </div>
     );
 };
+
+export default OnboardingTour;

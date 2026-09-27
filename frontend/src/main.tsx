@@ -6,6 +6,8 @@ import 'leaflet/dist/leaflet.css'
 import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { NotificationProvider } from './context/NotificationContext'
+import { PerformanceMonitor } from './components/performance/PerformanceMonitor'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,9 +32,12 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
+        <NotificationProvider>
+          <AuthProvider>
+            <PerformanceMonitor />
+            <App />
+          </AuthProvider>
+        </NotificationProvider>
       </QueryClientProvider>
     </ThemeProvider>
   </StrictMode>,
