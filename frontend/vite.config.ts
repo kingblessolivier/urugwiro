@@ -6,13 +6,10 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    // Enable minification
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
+    // Enable minification (esbuild is built into Vite, no extra deps needed)
+    minify: 'esbuild',
+    esbuildOptions: {
+      drop: ['console', 'debugger'],
     },
     // Code splitting
     rollupOptions: {
