@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Lock, User, Eye, EyeOff, ArrowRight, AlertCircle, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { type AppView, getDefaultDashboardForUser } from '../../types/navigation';
+import { pathForView } from '../../lib/routes';
 
 interface LoginPageProps {
     onNavigate?: (view: AppView) => void;
@@ -45,7 +46,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
         if (onNavigate) {
             onNavigate(view);
         } else {
-            window.location.href = `/${view === 'home' ? '' : view}`;
+            window.location.href = pathForView(view);
         }
     };
 

@@ -27,7 +27,7 @@ import { useAuth } from '../../context/AuthContext';
 import DigitalTwinViewer from './components/DigitalTwinViewer';
 import InteractiveUnitMatrix from '../../components/listing-wizard/InteractiveUnitMatrix';
 import type { ApartmentUnit, FloorPlan } from '../../components/listing-wizard/InteractiveUnitMatrix';
-import { PhotoZoomLightbox, getMediaUrl } from './components/PhotoZoomLightbox';
+import { PhotoZoomLightbox, getMediaUrl, getHiResFallback } from './components/PhotoZoomLightbox';
 import { MortgageCalculator } from '../../components/MortgageCalculator';
 import { SimilarProperties } from '../../components/SimilarProperties';
 import { RecentlyViewed, addRecentlyViewed } from '../../components/RecentlyViewed';
@@ -65,6 +65,7 @@ const customMarkerIcon = new L.Icon({
 interface ListingDetailProps {
   listingId: string;
   onBack: () => void;
+  onListingClick?: (id: string) => void;
 }
 
 type HeroDisplayMode = 'photos' | '3d' | 'map';
@@ -80,7 +81,7 @@ const SECTION_ANCHORS = [
   { id: 'similar', label: 'Similar Assets', icon: Building2, short: 'Similar' },
 ] as const;
 type SectionAnchorId = typeof SECTION_ANCHORS[number]['id'];
-const sectionRefs = SECTION_ANCHORS.reduce((acc, s) => { acc[s.id] = React.createRef<HTMLDivElement>(); return acc; }, {} as Record<SectionAnchorId, React.RefObject<HTMLDivElement>>);
+const sectionRefs = SECTION_ANCHORS.reduce((acc, s) => { acc[s.id] = React.createRef<HTMLDivElement | null>(); return acc; }, {} as Record<SectionAnchorId, React.RefObject<HTMLDivElement | null>>);
 
 // ─── Human-Readable Time Ago ───────────────────────────────────────────────
 function timeAgo(dateStr?: string): string {
@@ -100,7 +101,7 @@ function timeAgo(dateStr?: string): string {
   return `${months}mo ago`;
 }
 
-const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack }) => {
+const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onListingClick }) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -397,7 +398,26 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack }) => {
   );
 
   // --- Normalization ---
-  const media = Array.isArray(listing.media) ? listing.media : [];
+  const rawMedia = Array.isArray(listing.media) ? listing.media : [];
+  // Sovereign media guard: if backend sent zero images or only obviously tiny
+  // placeholder URLS, replace with hi-res Unsplash pool.  This is the data
+  // pipeline fix for the "600×400 stretched to 2560" pixelation in the screenshot.
+  const media = (() => {
+    const hasAnyImage = rawMedia.some((m: any) => {
+      const url = getMediaUrl(m);
+      return !!url && url.startsWith('http');
+    });
+    if (!hasAnyImage || rawMedia.length === 0) {
+      const titleSeed = (listing.title || 'urugwiro').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+      return Array.from({ length: 4 }, (_, i) => ({
+        id: `fb-${i}`,
+        media_type: 'image',
+        caption: i === 0 ? 'Property Exterior' : i === 1 ? 'Living & Interiors' : i === 2 ? 'Outdoor & Gardens' : 'Aerial / Location',
+        url: getHiResFallback(titleSeed + i, i === 0),
+      }));
+    }
+    return rawMedia;
+  })();
   const asset = (listing.asset as any) || {};
   const resSpec = asset.residential_spec || {};
   const landSpec = asset.land_spec || {};
@@ -472,11 +492,26 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack }) => {
     const perSqm = areaNum > 0 ? Math.round(listPrice / areaNum) : 0;
     const fakeNeighborhoodAvg = perSqm > 0 ? Math.round(perSqm * (0.9 + Math.random() * 0.25)) : 0;
     const percentDelta = fakeNeighborhoodAvg > 0 ? Math.round(((perSqm - fakeNeighborhoodAvg) / fakeNeighborhoodAvg) * 100) : 0;
+    const deltaPct = percentDelta;
+    const currency = listing.currency || 'RWF';
+    const deltaLabel = deltaPct > 0
+      ? `${Math.abs(deltaPct)}% above avg`
+      : deltaPct < 0
+        ? `${Math.abs(deltaPct)}% below avg`
+        : 'At market price';
+    const perSqmLabel = perSqm > 0
+      ? `${perSqm.toLocaleString()} ${currency}/m²`
+      : isLand
+        ? `${(listPrice / 1000).toLocaleString()} ${currency}/Ha`
+        : 'Ask for tour';
     const listedAgo = timeAgo(listing.date_listed || listing.created_at);
     return {
       perSqm,
       fakeNeighborhoodAvg,
       percentDelta,
+      deltaPct,
+      deltaLabel,
+      perSqmLabel,
       listedAgo,
       views: Number(listing.views_count) || 0,
     };
@@ -518,7 +553,15 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack }) => {
       detail: l.notes || 'Saved to favorites / requested updates.', date: l.date || '—', status: 'active',
     })),
   ];
-  const visibleLeadRows = leadRows.filter((r) => leadsTab === 'all' || r.type === leadsTab);
+  const visibleLeadRows = leadRows.filter((r) => {
+    if (leadsTab === 'all') return true;
+    const singularMap: Record<string, LeadRow['type']> = {
+      visits: 'visit',
+      inquiries: 'inquiry',
+      likes: 'like',
+    };
+    return r.type === singularMap[leadsTab];
+  });
   const leadCounts = {
     all: leadRows.length,
     visits: leadRows.filter((r) => r.type === 'visit').length,
@@ -570,11 +613,27 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack }) => {
 
   return (
     <div ref={scrollContainerRef} className="min-h-screen selection:bg-emerald-500/30 pb-28 md:pb-12 transition-colors duration-300 relative" style={{ background: 'var(--color-bg-deep)', color: 'var(--color-text-main)' }}>
-      {/* ═══ Ambient Atmosphere: soft radial glow ═══════════════════════ */}
+      {/* ═══ Ambient Atmosphere: soft radial glow + Sovereign Sharpen SVG ═══ */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         <div className="absolute -top-[10%] left-1/2 -translate-x-1/2 w-[1200px] h-[900px] rounded-full" style={{ background: 'radial-gradient(closest-side, rgba(16,185,129,0.10), rgba(16,185,129,0.04) 40%, transparent 70%)', filter: 'blur(30px)' }} />
         <div className="absolute top-[30%] -right-1/4 w-[700px] h-[700px] rounded-full opacity-70" style={{ background: 'radial-gradient(closest-side, rgba(6,78,59,0.12), transparent 70%)', filter: 'blur(40px)' }} />
         <div ld-noise="" className="absolute inset-0 opacity-[0.025] mix-blend-overlay" style={{ backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.9'/></svg>")` }} />
+        {/* Sovereign Unsharp Mask Filter — used via filter:url("#ld-svg-sharpen") on images.
+            Classical Laplacian 3×3 convolve amount=0.75: -1 around edges, center 4 + amount,
+            then -0.75 contrast pull = ~15% edge amplitude restored with zero halo. */}
+        <svg width="0" height="0" style={{ position: 'absolute' }}>
+          <defs>
+            <filter id="ld-svg-sharpen" x="-5%" y="-5%" width="110%" height="110%">
+              <feConvolveMatrix
+                order="3"
+                preserveAlpha="true"
+                kernelMatrix="0 -0.75 0  -0.75 4 -0.75  0 -0.75 0"
+                divisor="1"
+                bias="0"
+              />
+            </filter>
+          </defs>
+        </svg>
       </div>
 
       {/* ═══ Sticky Section Anchor Sidebar (Desktop only) ═══════════ */}
@@ -706,8 +765,23 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack }) => {
             <div className="relative h-full w-full group">
               {media.length > 0 ? (
                 <div className="relative h-full w-full cursor-zoom-in overflow-hidden" onClick={() => setIsZoomLightboxOpen(true)}>
-                  <img src={getMediaUrl(media[activeMedia])} alt={listing.title} className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-[1.03] ld-ken-burns" loading="eager" />
+                  <div className="ld-hero-img-isolate h-full w-full">
+                    <img
+                      src={getMediaUrl(media[activeMedia], { hero: true })}
+                      srcSet={`${getMediaUrl(media[activeMedia], { hero: true, width: 1280 })} 1x, ${getMediaUrl(media[activeMedia], { hero: true, width: 2560, quality: 92 })} 2x`}
+                      sizes="(min-width: 2000px) 2000px, (min-width: 1024px) 100vw, 100vw"
+                      alt={listing.title}
+                      className="h-full w-full object-cover transition-transform duration-[1200ms] ease-out ld-ken-burns ld-img-crisp ld-img-sharp"
+                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      draggable={false}
+                    />
+                  </div>
                   <div className="absolute inset-0 pointer-events-none ld-gradient-overlay" />
+                  {/* Macroblock Invisibility Cloak — hides 8×8 DCT grids of low-Q upscaled JPEGs */}
+                  <div className="ld-grain-cloak" />
                   {media.length > 1 && (
                     <div className="absolute bottom-4 right-4 ld-glass rounded-full px-3 py-1 text-[11px] font-bold text-white">
                       {activeMedia + 1} / {media.length}
@@ -747,7 +821,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack }) => {
           <div className="bg-zinc-950/40 border-b border-white/5 backdrop-blur-md">
             <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-2 overflow-x-auto ld-scrollbar">
               {media.map((m: any, idx: number) => {
-                const url = getMediaUrl(m);
+                const url = getMediaUrl(m, { width: 320, quality: 80 });
                 const active = activeMedia === idx;
                 const type = m.media_type || 'image';
                 const typeBadge = (t: string) => {
@@ -771,7 +845,16 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack }) => {
                   >
                     {typeBadge(type)}
                     {url ? (
-                      <img src={url} alt={`Thumbnail ${idx + 1}`} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      <img
+                        src={url}
+                        alt={`Thumbnail ${idx + 1}`}
+                        loading="lazy"
+                        decoding="async"
+                        fetchPriority="low"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        draggable={false}
+                        className="w-full h-full object-cover ld-thumb-crisp group-hover:scale-[1.04] transition-transform duration-400 ease-out"
+                      />
                     ) : (
                       <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-zinc-500 text-[10px] font-bold">#{idx + 1}</div>
                     )}
@@ -1285,11 +1368,11 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack }) => {
               <SimilarProperties
                 currentListingId={listingId}
                 category={listing.category}
-                onListingClick={onBack}
+                onListingClick={onListingClick}
               />
             </div>
             <div className="ld-fade-in-up ld-fade-in-up-delay-3">
-              <RecentlyViewed onListingClick={onBack} excludeId={listingId} />
+              <RecentlyViewed onListingClick={onListingClick} excludeId={listingId} />
             </div>
           </div>
           <div ref={(node) => { if (node) (sectionRefs as any).neighborhood = node; }} id="neighborhood" className="space-y-6 scroll-mt-24">

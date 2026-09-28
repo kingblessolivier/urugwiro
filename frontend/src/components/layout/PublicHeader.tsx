@@ -163,6 +163,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
               <button
                 key={link.label}
                 type="button"
+                data-tour={link.view === 'discovery' ? 'explore' : undefined}
                 onClick={() => onNavigate(link.view)}
                 className={cn(
                   'relative rounded-[var(--radius-control)] px-3.5 py-2 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap',

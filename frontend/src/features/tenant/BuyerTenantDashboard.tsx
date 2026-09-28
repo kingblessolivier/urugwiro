@@ -516,3 +516,5 @@ export const BuyerTenantDashboard: React.FC<BuyerTenantDashboardProps> = ({
     </div>
   );
 };
+
+export default BuyerTenantDashboard;

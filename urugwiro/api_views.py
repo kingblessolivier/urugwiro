@@ -3224,6 +3224,217 @@ def seller_listings_list(request):
     return Response(data, status=status.HTTP_200_OK)
 
 
+def _truthy(val):
+    return val in [True, 'true', 'True', 1, '1']
+
+
+def _merge_listing_patch_payload(data):
+    """Flatten nested asset/spec objects so the studio can PATCH the same shape as GET."""
+    merged = dict(data)
+    for nest_key in ['asset', 'residential_spec', 'land_spec', 'vehicle_spec', 'commercial_spec', 'hotel_spec']:
+        nested = data.get(nest_key)
+        if isinstance(nested, dict):
+            for key, value in nested.items():
+                if key not in merged or merged[key] in (None, ''):
+                    merged[key] = value
+    aliases = {
+        'power_capacity_kva': 'power_capacity',
+        'loading_bays_count': 'loading_bays',
+        'parking_capacity': 'parking_spaces',
+        'avg_daily_foot_traffic': 'foot_traffic_score',
+        'has_generator': 'has_backup_generator',
+        'conference_halls_count': 'conference_halls',
+    }
+    for src, dest in aliases.items():
+        if src in merged and dest not in merged:
+            merged[dest] = merged[src]
+    return merged
+
+
+def _apply_field(obj, field, data, kind='str', aliases=None):
+    keys = [field] + (aliases or [])
+    for key in keys:
+        if key not in data or data[key] is None or data[key] == '':
+            continue
+        value = data[key]
+        try:
+            if kind == 'int':
+                setattr(obj, field, int(float(value)))
+            elif kind == 'float':
+                setattr(obj, field, float(value))
+            elif kind == 'bool':
+                setattr(obj, field, _truthy(value))
+            elif kind == 'date':
+                setattr(obj, field, value)
+            else:
+                setattr(obj, field, str(value))
+            return
+        except (ValueError, TypeError):
+            continue
+
+
+def _get_or_create_related(asset, model, related_name, defaults=None):
+    try:
+        return getattr(asset, related_name)
+    except model.DoesNotExist:
+        payload = {'asset': asset}
+        if defaults:
+            payload.update(defaults)
+        return model.objects.create(**payload)
+
+
+def _apply_seller_listing_patch(listing, data, is_admin=False):
+    data = _merge_listing_patch_payload(data)
+
+    if 'title' in data:
+        listing.title = data['title']
+    if 'description' in data:
+        listing.description = data['description']
+    if 'price' in data:
+        listing.price = data['price']
+    if 'currency' in data:
+        listing.currency = data['currency']
+    if 'purpose' in data:
+        listing.purpose = data['purpose']
+    if 'category' in data:
+        listing.category = data['category']
+    if 'address' in data:
+        listing.address = data['address']
+    if 'status' in data:
+        listing.status = data['status']
+    if 'rental_frequency' in data:
+        listing.rental_frequency = data['rental_frequency']
+    if 'verification_level' in data and is_admin:
+        listing.verification_level = data['verification_level']
+    if 'is_featured' in data and is_admin:
+        listing.is_featured = _truthy(data['is_featured'])
+    listing.save()
+
+    asset = listing.asset
+    if not asset:
+        return listing
+
+    for field in ['district', 'sector', 'province', 'cell', 'village']:
+        if field in data and data[field] is not None:
+            setattr(asset, field, data[field])
+    if 'total_area' in data or 'sizeSqm' in data:
+        try:
+            asset.total_area = float(data.get('total_area') or data.get('sizeSqm'))
+        except (ValueError, TypeError):
+            pass
+    for coord in ['latitude', 'longitude']:
+        if coord in data and data[coord] is not None and data[coord] != '':
+            try:
+                setattr(asset, coord, float(data[coord]))
+            except (ValueError, TypeError):
+                pass
+    asset.save()
+
+    category = (listing.category or '').lower()
+    if category in ['house', 'apartment']:
+        spec = _get_or_create_related(asset, ResidentialSpec, 'residential_spec')
+        for f in ['bedrooms', 'bathrooms', 'year_built', 'total_building_floors', 'water_tank_capacity_liters', 'parking_spaces', 'floor_number']:
+            _apply_field(spec, f, data, 'int')
+        for f in ['built_up_area_sqm', 'compound_size_sqm', 'monthly_service_charge', 'backup_generator_kva', 'balcony_area_sqm']:
+            _apply_field(spec, f, data, 'float')
+        for f in ['road_access_type', 'kitchen_type', 'apartment_selling_mode', 'unit_orientation', 'sub_type', 'unit_number', 'parking_slot_number', 'master_plan_zoning', 'security_type', 'electricity_meter']:
+            _apply_field(spec, f, data, 'str')
+        for f in ['is_furnished', 'has_swimming_pool', 'has_garden', 'has_water_tank', 'has_backup_generator', 'has_elevator', 'has_solar_water_heater', 'has_three_phase_power', 'has_fiber_internet', 'has_cctv', 'balcony', 'has_staff_quarters']:
+            if f in data:
+                setattr(spec, f, _truthy(data[f]))
+        spec.save()
+
+    if category == 'land':
+        lspec = _get_or_create_related(asset, LandSpec, 'land_spec')
+        for f in ['upi_number', 'zoning_code', 'max_permitted_floors', 'terrain', 'tenure_type', 'land_use_category', 'road_type', 'soil_type', 'topography', 'title_deed_number', 'drainage_system']:
+            _apply_field(lspec, f, data, 'str')
+        for f in ['lease_years_remaining', 'water_line_distance_meters', 'power_pole_distance_meters']:
+            _apply_field(lspec, f, data, 'int')
+        for f in ['floor_area_ratio', 'building_coverage_ratio', 'slope_gradient_percent']:
+            _apply_field(lspec, f, data, 'float')
+        for f in ['road_access', 'is_encumbrance_free', 'water_onsite', 'electricity_onsite', 'has_fiber_conduit', 'is_in_wetland_buffer_zone']:
+            if f in data:
+                setattr(lspec, f, _truthy(data[f]))
+        lspec.save()
+
+    if category in ['car', 'motorbike']:
+        defaults = {'make': data.get('make') or 'Unknown', 'model': data.get('model') or 'Unknown', 'year': int(data.get('year') or 2020)}
+        try:
+            defaults['year'] = int(float(data.get('year') or 2020))
+        except (ValueError, TypeError):
+            defaults['year'] = 2020
+        vspec = _get_or_create_related(asset, VehicleSpec, 'vehicle_spec', defaults=defaults)
+        for f in ['make', 'model', 'transmission', 'fuel_type', 'plate_number', 'engine_capacity', 'drivetrain', 'vehicle_type', 'condition', 'body_type', 'plate_type', 'vin_chassis_number', 'rra_customs_status']:
+            _apply_field(vspec, f, data, 'str')
+        for f in ['year', 'mileage', 'horsepower', 'seating_capacity']:
+            _apply_field(vspec, f, data, 'int')
+        for f in ['controle_technique_expiry', 'insurance_expiry']:
+            _apply_field(vspec, f, data, 'date')
+        for f in ['has_air_conditioning', 'has_leather_seats', 'has_sunroof', 'has_reverse_camera', 'has_service_history', 'includes_driver', 'includes_helmet', 'has_delivery_rack']:
+            if f in data:
+                setattr(vspec, f, _truthy(data[f]))
+        vspec.save()
+
+    if category in ['hotel', 'commercial']:
+        cspec = _get_or_create_related(asset, CommercialSpec, 'commercial_spec')
+        for f in ['zoning_type']:
+            _apply_field(cspec, f, data, 'str')
+        for f in ['loading_bays', 'parking_spaces', 'foot_traffic_score', 'total_floors']:
+            _apply_field(cspec, f, data, 'int')
+        for f in ['power_capacity']:
+            _apply_field(cspec, f, data, 'float')
+        if 'has_backup_generator' in data:
+            cspec.has_backup_generator = _truthy(data['has_backup_generator'])
+        cspec.save()
+
+        if category == 'hotel':
+            hspec = _get_or_create_related(asset, HotelSpec, 'hotel_spec')
+            for f in ['star_rating', 'total_rooms', 'conference_halls']:
+                _apply_field(hspec, f, data, 'int')
+            for f in ['management_type']:
+                _apply_field(hspec, f, data, 'str')
+            if 'has_restaurant_bar' in data:
+                hspec.has_restaurant_bar = _truthy(data['has_restaurant_bar'])
+            if 'has_commercial_license' in data:
+                hspec.has_commercial_license = _truthy(data['has_commercial_license'])
+            elif 'commercial_license_number' in data:
+                hspec.has_commercial_license = bool(str(data['commercial_license_number']).strip())
+            hspec.save()
+
+    if 'custom_sections' in data:
+        import os
+        from django.conf import settings
+        disc_dir = os.path.join(settings.BASE_DIR, 'urugwiro', 'data', 'discoveries')
+        os.makedirs(disc_dir, exist_ok=True)
+        disc_file = os.path.join(disc_dir, f"{listing.id}.json")
+        with open(disc_file, 'w', encoding='utf-8') as f:
+            json.dump(data['custom_sections'], f, indent=2)
+
+    if 'add_media' in data:
+        items = data['add_media'] if isinstance(data['add_media'], list) else [data['add_media']]
+        for it in items:
+            if it.get('url'):
+                ListingMedia.objects.create(
+                    listing=listing,
+                    file=it['url'],
+                    media_type=it.get('media_type', 'image'),
+                    category=it.get('category', 'Exterior'),
+                    caption=it.get('caption', ''),
+                    order=it.get('order', listing.media.count())
+                )
+
+    delete_ids = []
+    if 'delete_media_id' in data:
+        delete_ids.append(data['delete_media_id'])
+    if 'delete_media_ids' in data:
+        extra = data['delete_media_ids'] if isinstance(data['delete_media_ids'], list) else [data['delete_media_ids']]
+        delete_ids.extend(extra)
+    if delete_ids:
+        ListingMedia.objects.filter(listing=listing, id__in=delete_ids).delete()
+
+    return listing
+
+
 @api_view(['GET', 'PATCH', 'DELETE'])
 def seller_listing_detail_manage(request, pk):
     """
@@ -3337,148 +3548,8 @@ def seller_listing_detail_manage(request, pk):
         return Response(ser, status=status.HTTP_200_OK)
 
     elif request.method == 'PATCH':
-        data = request.data
-        if 'title' in data:
-            listing.title = data['title']
-        if 'description' in data:
-            listing.description = data['description']
-        if 'price' in data:
-            listing.price = data['price']
-        if 'currency' in data:
-            listing.currency = data['currency']
-        if 'purpose' in data:
-            listing.purpose = data['purpose']
-        if 'category' in data:
-            listing.category = data['category']
-        if 'address' in data:
-            listing.address = data['address']
-        if 'status' in data:
-            listing.status = data['status']
-        if 'verification_level' in data and is_admin:
-            listing.verification_level = data['verification_level']
-        if 'is_featured' in data and is_admin:
-            listing.is_featured = data['is_featured'] in [True, 'true', 'True', 1, '1']
-        if 'rental_frequency' in data:
-            listing.rental_frequency = data['rental_frequency']
-        listing.save()
-
-        # Update Asset and Specs if provided
-        asset = listing.asset
-        if asset:
-            if 'district' in data:
-                asset.district = data['district']
-            if 'sector' in data:
-                asset.sector = data['sector']
-            if 'province' in data:
-                asset.province = data['province']
-            if 'cell' in data:
-                asset.cell = data['cell']
-            if 'total_area' in data or 'sizeSqm' in data:
-                try:
-                    asset.total_area = float(data.get('total_area') or data.get('sizeSqm'))
-                except (ValueError, TypeError):
-                    pass
-            if 'latitude' in data and data['latitude'] is not None:
-                try:
-                    asset.latitude = float(data['latitude'])
-                except (ValueError, TypeError):
-                    pass
-            if 'longitude' in data and data['longitude'] is not None:
-                try:
-                    asset.longitude = float(data['longitude'])
-                except (ValueError, TypeError):
-                    pass
-            asset.save()
-
-            # Residential specs
-            if hasattr(asset, 'residential_spec') and asset.residential_spec:
-                spec = asset.residential_spec
-                for f in ['bedrooms', 'bathrooms', 'year_built', 'total_building_floors', 'water_tank_capacity_liters', 'parking_spaces']:
-                    if f in data and data[f] is not None:
-                        try:
-                            setattr(spec, f, int(data[f]))
-                        except (ValueError, TypeError):
-                            pass
-                for f in ['built_up_area_sqm', 'compound_size_sqm', 'monthly_service_charge', 'backup_generator_kva']:
-                    if f in data and data[f] is not None:
-                        try:
-                            setattr(spec, f, float(data[f]))
-                        except (ValueError, TypeError):
-                            pass
-                for s in ['road_access_type', 'kitchen_type', 'apartment_selling_mode', 'unit_orientation', 'sub_type']:
-                    if s in data and data[s] is not None:
-                        setattr(spec, s, str(data[s]))
-                for b in ['is_furnished', 'has_swimming_pool', 'has_garden', 'has_water_tank', 'has_backup_generator', 'has_elevator', 'has_solar_water_heater', 'has_three_phase_power', 'has_fiber_internet', 'has_cctv', 'balcony']:
-                    if b in data:
-                        setattr(spec, b, data[b] in [True, 'true', 'True', 1, '1'])
-                spec.save()
-
-            # Land specs
-            if hasattr(asset, 'land_spec') and asset.land_spec:
-                lspec = asset.land_spec
-                if 'upi_number' in data:
-                    lspec.upi_number = data['upi_number']
-                if 'zoning_code' in data:
-                    lspec.zoning_code = data['zoning_code']
-                if 'max_permitted_floors' in data:
-                    lspec.max_permitted_floors = str(data['max_permitted_floors'])
-                if 'terrain' in data:
-                    lspec.terrain = str(data['terrain'])
-                if 'tenure_type' in data:
-                    lspec.tenure_type = str(data['tenure_type'])
-                if 'floor_area_ratio' in data and data['floor_area_ratio'] is not None:
-                    try:
-                        lspec.floor_area_ratio = float(data['floor_area_ratio'])
-                    except (ValueError, TypeError):
-                        pass
-                if 'building_coverage_ratio' in data and data['building_coverage_ratio'] is not None:
-                    try:
-                        lspec.building_coverage_ratio = float(data['building_coverage_ratio'])
-                    except (ValueError, TypeError):
-                        pass
-                if 'slope_gradient_percent' in data and data['slope_gradient_percent'] is not None:
-                    try:
-                        lspec.slope_gradient_percent = float(data['slope_gradient_percent'])
-                    except (ValueError, TypeError):
-                        pass
-                lspec.save()
-
-            # Vehicle specs
-            if hasattr(asset, 'vehicle_spec') and asset.vehicle_spec:
-                vspec = asset.vehicle_spec
-                for f in ['make', 'model', 'year', 'mileage', 'transmission', 'fuel_type', 'plate_number', 'engine_capacity', 'drivetrain']:
-                    if f in data and data[f] is not None:
-                        setattr(vspec, f, data[f])
-                vspec.save()
-
-        # Custom Discovery Sections Persistence
-        if 'custom_sections' in data:
-            import os, json
-            from django.conf import settings
-            disc_dir = os.path.join(settings.BASE_DIR, 'urugwiro', 'data', 'discoveries')
-            os.makedirs(disc_dir, exist_ok=True)
-            disc_file = os.path.join(disc_dir, f"{listing.id}.json")
-            with open(disc_file, 'w', encoding='utf-8') as f:
-                json.dump(data['custom_sections'], f, indent=2)
-
-        # Media Operations (Add / Delete)
-        from .models import ListingMedia
-        if 'add_media' in data:
-            items = data['add_media'] if isinstance(data['add_media'], list) else [data['add_media']]
-            for it in items:
-                if it.get('url'):
-                    ListingMedia.objects.create(
-                        listing=listing,
-                        file=it['url'],
-                        media_type=it.get('media_type', 'image'),
-                        category=it.get('category', 'Exterior'),
-                        caption=it.get('caption', ''),
-                        order=it.get('order', listing.media.count())
-                    )
-
-        if 'delete_media_id' in data:
-            ListingMedia.objects.filter(listing=listing, id=data['delete_media_id']).delete()
-
+        _apply_seller_listing_patch(listing, request.data, is_admin=is_admin)
+        listing.refresh_from_db()
         return Response(ListingSerializer(listing).data, status=status.HTTP_200_OK)
 
     elif request.method == 'DELETE':
@@ -3520,6 +3591,64 @@ def seller_listing_toggle_status(request, pk):
         'status': listing.status,
         'message': f"Listing status toggled to {listing.status}."
     }, status=status.HTTP_200_OK)
+
+
+def _seller_owns_listing(user, listing):
+    """True if the user is staff/admin or the ListingOwner of the given listing."""
+    is_admin = user.is_staff or user.is_superuser or getattr(user, 'role', None) in ['Admin', 'admin']
+    if is_admin:
+        return True
+    owner = _get_or_create_seller_owner(user)
+    return bool(owner) and listing.owner_id == owner.id
+
+
+@api_view(['POST'])
+def seller_upload_listing_media(request, pk):
+    """Upload a media file to a listing owned by the authenticated seller."""
+    from .models import Listing, ListingMedia
+    from .serializers import ListingMediaSerializer
+    if not request.user or not request.user.is_authenticated:
+        return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    listing = get_object_or_404(Listing, pk=pk)
+    if not _seller_owns_listing(request.user, listing):
+        return Response({'error': 'You do not have permission to modify this listing.'}, status=status.HTTP_403_FORBIDDEN)
+
+    file = request.FILES.get('file')
+    if not file:
+        return Response({'error': 'No file uploaded'}, status=status.HTTP_400_BAD_REQUEST)
+    media = ListingMedia.objects.create(
+        listing=listing,
+        file=file,
+        media_type=request.data.get('media_type', 'image'),
+        category=request.data.get('category', 'Exterior'),
+        caption=request.data.get('caption', ''),
+        order=listing.media.count()
+    )
+    return Response(ListingMediaSerializer(media).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['PATCH', 'DELETE'])
+def seller_manage_listing_media(request, pk):
+    """Update or delete a media item on a listing owned by the authenticated seller."""
+    from .models import ListingMedia
+    from .serializers import ListingMediaSerializer
+    if not request.user or not request.user.is_authenticated:
+        return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    media = get_object_or_404(ListingMedia, pk=pk)
+    if not _seller_owns_listing(request.user, media.listing):
+        return Response({'error': 'You do not have permission to modify this media.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if request.method == 'DELETE':
+        media.delete()
+        return Response({'success': True, 'message': 'Media deleted successfully.'}, status=status.HTTP_200_OK)
+
+    for f in ['caption', 'category', 'room_name', 'order', 'media_type']:
+        if f in request.data:
+            setattr(media, f, request.data[f])
+    media.save()
+    return Response(ListingMediaSerializer(media).data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])

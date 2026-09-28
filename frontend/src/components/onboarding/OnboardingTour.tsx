@@ -47,15 +47,50 @@ const TOUR_STEPS: TourStep[] = [
     },
 ];
 
-export const OnboardingTour: React.FC<OnboardingTourProps> = ({ onNavigate }) => {
+function hasCompletedOnboarding(): boolean {
+    try {
+        return localStorage.getItem('urugwiro_onboarding_complete') === 'true';
+    } catch {
+        return true;
+    }
+}
+
+export const OnboardingTour: React.FC<OnboardingTourProps> = () => {
     const [isActive, setIsActive] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
     const observerRef = useRef<IntersectionObserver | null>(null);
     const isMountedRef = useRef(true);
 
+    const resolveStepIndex = useCallback((from: number): number => {
+        for (let index = from; index < TOUR_STEPS.length; index += 1) {
+            const candidate = TOUR_STEPS[index];
+            if (candidate && document.querySelector(candidate.target)) {
+                return index;
+            }
+        }
+        return -1;
+    }, []);
+
+    const updateTargetRect = useCallback(() => {
+        const step = TOUR_STEPS[currentStep];
+        if (!step) {
+            setTargetRect(null);
+            return;
+        }
+        const element = document.querySelector(step.target);
+        setTargetRect(element ? element.getBoundingClientRect() : null);
+    }, [currentStep]);
+
     useEffect(() => {
         isMountedRef.current = true;
+        if (!hasCompletedOnboarding()) {
+            const firstVisible = resolveStepIndex(0);
+            if (firstVisible >= 0) {
+                setCurrentStep(firstVisible);
+                setIsActive(true);
+            }
+        }
         return () => {
             isMountedRef.current = false;
             if (observerRef.current) {
@@ -63,33 +98,23 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ onNavigate }) =>
                 observerRef.current = null;
             }
         };
-    }, []);
+    }, [resolveStepIndex]);
 
     useEffect(() => {
-        if (isActive) {
-            updateTargetRect();
-            window.addEventListener('resize', updateTargetRect);
-            window.addEventListener('scroll', updateTargetRect);
-            return () => {
-                window.removeEventListener('resize', updateTargetRect);
-                window.removeEventListener('scroll', updateTargetRect);
-            };
-        }
-    }, [isActive, currentStep]);
-
-    const updateTargetRect = useCallback(() => {
-        const step = TOUR_STEPS[currentStep];
-        if (step) {
-            const element = document.querySelector(step.target);
-            if (element) {
-                setTargetRect(element.getBoundingClientRect());
-            }
-        }
-    }, [currentStep]);
+        if (!isActive) return;
+        updateTargetRect();
+        window.addEventListener('resize', updateTargetRect);
+        window.addEventListener('scroll', updateTargetRect);
+        return () => {
+            window.removeEventListener('resize', updateTargetRect);
+            window.removeEventListener('scroll', updateTargetRect);
+        };
+    }, [isActive, currentStep, updateTargetRect]);
 
     const handleNext = () => {
-        if (currentStep < TOUR_STEPS.length - 1) {
-            setCurrentStep((prev) => prev + 1);
+        const nextVisible = resolveStepIndex(currentStep + 1);
+        if (nextVisible >= 0) {
+            setCurrentStep(nextVisible);
         } else {
             handleComplete();
         }
@@ -110,14 +135,14 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ onNavigate }) =>
         }
     };
 
-    if (!isActive || !targetRect) return null;
-
     const step = TOUR_STEPS[currentStep];
+    if (!isActive || !targetRect || !step) return null;
+
     const padding = 12;
     const tooltipWidth = 340;
 
     let tooltipStyle: React.CSSProperties = {};
-    const position = step.position || 'bottom';
+    const position = step.position ?? 'bottom';
 
     switch (position) {
         case 'bottom':

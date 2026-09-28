@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Lock, User, Mail, Eye, EyeOff, ArrowRight, AlertCircle, Building2, KeyRound } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { type AppView, getDefaultDashboardForUser } from '../../types/navigation';
+import { pathForView } from '../../lib/routes';
 
 interface RegisterPageProps {
     onNavigate?: (view: AppView) => void;
@@ -83,7 +84,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
         if (onNavigate) {
             onNavigate(view);
         } else {
-            window.location.href = `/${view === 'home' ? '' : view}`;
+            window.location.href = pathForView(view);
         }
     };
 

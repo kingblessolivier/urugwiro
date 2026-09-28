@@ -16,13 +16,13 @@ export const SpecField: React.FC<SpecFieldProps> = ({
 }) => {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-tight">{label}</label>
+      <label className="text-[10px] uppercase font-bold text-[var(--color-text-dim)] tracking-tight">{label}</label>
       {isEditing ? (
         type === 'select' ? (
           <select
             value={value !== undefined && value !== null ? String(value) : ''}
             onChange={(e) => onChange(name, e.target.value)}
-            className="w-full p-2 rounded-lg bg-black border border-white/10 text-xs text-white outline-none focus:border-emerald-500/50 transition-colors"
+            className="w-full p-2 rounded-lg bg-[var(--color-input-bg)] border border-[var(--color-border)] text-xs text-[var(--color-text-main)] outline-none focus:border-emerald-500/50 transition-colors"
           >
             {options?.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -32,7 +32,7 @@ export const SpecField: React.FC<SpecFieldProps> = ({
           <select
             value={value ? 'true' : 'false'}
             onChange={(e) => onChange(name, e.target.value === 'true')}
-            className="w-full p-2 rounded-lg bg-black border border-white/10 text-xs text-white outline-none focus:border-emerald-500/50 transition-colors"
+            className="w-full p-2 rounded-lg bg-[var(--color-input-bg)] border border-[var(--color-border)] text-xs text-[var(--color-text-main)] outline-none focus:border-emerald-500/50 transition-colors"
           >
             <option value="true">Yes</option>
             <option value="false">No</option>
@@ -42,11 +42,11 @@ export const SpecField: React.FC<SpecFieldProps> = ({
             type={type}
             value={typeof value === 'boolean' ? (value ? 'true' : 'false') : (value ?? '')}
             onChange={(e) => onChange(name, type === 'number' ? Number(e.target.value) : e.target.value)}
-            className="w-full p-2 rounded-lg bg-black border border-white/10 text-xs text-white outline-none focus:border-emerald-500/50 transition-colors"
+            className="w-full p-2 rounded-lg bg-[var(--color-input-bg)] border border-[var(--color-border)] text-xs text-[var(--color-text-main)] outline-none focus:border-emerald-500/50 transition-colors"
           />
         )
       ) : (
-        <div className="text-sm font-mono text-emerald-400 font-medium py-1">
+        <div className="text-sm font-mono text-[var(--color-brand-emerald)] font-medium py-1">
           {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : (value || '—')}
         </div>
       )}

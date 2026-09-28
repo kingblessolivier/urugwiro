@@ -61,7 +61,7 @@ export const PerformanceMonitor: React.FC = () => {
         }
 
         // Log bundle size
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
             console.log('[Performance] Bundle analysis available via: npx vite-bundle-analyzer');
         }
     }, []);

@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV ? '/api' : 'http://localhost:8000/api');
 
 // CSRF token extraction from cookies (Django's csrf_token cookie)
 function getCsrfToken(): string | null {
@@ -61,8 +63,7 @@ apiClient.interceptors.response.use(
                 localStorage.removeItem('refresh_token');
                 localStorage.removeItem('urugwiro_user');
                 localStorage.removeItem('user_role');
-                // Routing is state-based (no react-router); the login screen is the `login` view.
-                window.location.href = `${window.location.pathname}?view=login`;
+                window.location.href = '/login';
                 return Promise.reject(refreshError);
             }
         }

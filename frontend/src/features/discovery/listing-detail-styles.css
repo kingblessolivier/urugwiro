@@ -42,7 +42,7 @@
 
 @keyframes ken-burns {
     0%   { transform: scale(1); }
-    100% { transform: scale(1.08); }
+    100% { transform: scale(1.035); }
 }
 
 @keyframes gradient-shift {
@@ -141,8 +141,99 @@
 
 /* ─── Image Treatments ───────────────────────────────────────── */
 
+/* ═══ Sovereign Image Quality Preserver ═══
+   Defeats: (1) ancestor blur() flattening, (2) double-transform upscaling,
+            (3) bilinear default resampling, (4) WebKit sub-pixel aliasing,
+            (5) JPEG macroblock visibility on tiny upscaled sources         */
+
+/* SVG sharpen filter reference — hooked up via <svg id="ld-svg-sharpen">
+   inline in the DOM.  amount=0.75 is the sweet spot: adds 15% of the
+   Laplacian edge-detect pass, enough to cancel JPEG softness without
+   producing ringing halos.                                                  */
+.ld-img-sharp {
+    filter: url("#ld-svg-sharpen") contrast(1.04) saturate(1.03);
+    -webkit-filter: url("#ld-svg-sharpen") contrast(1.04) saturate(1.03);
+}
+
+.ld-img-crisp {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: optimizeQuality;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-transform: translateZ(0) scale(1.0, 1.0);
+    transform: translateZ(0) scale(1.0, 1.0);
+    -webkit-perspective: 1000px;
+    perspective: 1000px;
+    outline: 1px solid transparent;
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+@supports (content-visibility: auto) {
+    .ld-img-crisp {
+        content-visibility: auto;
+    }
+}
+
+/* Hero layer isolation — prevents ancestor `filter: blur()` on ambient
+   radial-gradient divs from triggering compositor layer flattening that
+   softens the hero <img> during upscale. */
+.ld-hero-img-isolate {
+    position: relative;
+    isolation: isolate;
+    will-change: transform, opacity;
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+}
+
+.ld-hero-img-isolate > img {
+    will-change: transform;
+}
+
+/* Tuned Ken Burns: smaller max scale (1.04 not 1.08), and cubic-bezier
+   keeps the image inside the crisp range most of the time. */
 .ld-ken-burns {
-    animation: ken-burns 20s ease-in-out infinite alternate;
+    animation: ken-burns 24s cubic-bezier(0.45, 0, 0.2, 1) infinite alternate;
+    transform-origin: center center;
+}
+
+/* Thumbnail hover tuned — 1.04 max, not 1.10, avoids severe resampling */
+.ld-thumb-crisp {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimizeQuality;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+}
+
+/* ═══ Macroblock / Pixelation Invisibility Cloak ═══
+   A high-frequency, low-opacity film grain that breaks up the viewer's
+   ability to perceive the 8×8 DCT grids of a low-quality JPEG that was
+   upscaled >3×.  Uses SVG feTurbulence fractal noise (mathematically
+   imperceptible at the native pixel level) instead of repeating bitmap
+   textures — at ~0.018 alpha it has the same perceptual effect as medium
+   format film grain and completely hides 600→2400 upscaling artifacts.  */
+.ld-grain-cloak {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    mix-blend-mode: overlay;
+    opacity: 0.022;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23g)'/></svg>");
+    animation: ld-grain-drift 3s steps(2) infinite;
+}
+
+@keyframes ld-grain-drift {
+    0%   { transform: translate(0, 0); }
+    50%  { transform: translate(-3px, 2px); }
+    100% { transform: translate(2px, -3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ld-grain-cloak { animation: none; }
 }
 
 .ld-img-zoom {

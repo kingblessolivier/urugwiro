@@ -60,7 +60,7 @@ export const SaveSearch: React.FC<SaveSearchProps> = ({ currentFilters }) => {
         Object.entries(search.filters).forEach(([key, val]) => {
             if (val && val !== 'All') params.set(key, val);
         });
-        window.location.href = `/discovery?${params.toString()}`;
+        window.location.href = `/explore?${params.toString()}`;
     };
 
     return (

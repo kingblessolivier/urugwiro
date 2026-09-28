@@ -132,6 +132,12 @@ export const api = {
         updateListing: (id: string | number, data: any) => apiClient.patch(`/seller/listings/${id}/`, data),
         deleteListing: (id: string | number) => apiClient.delete(`/seller/listings/${id}/`),
         toggleStatus: (id: string | number, status?: string) => apiClient.post(`/seller/listings/${id}/status/`, { status }),
+        uploadMedia: (listingId: string | number, formData: FormData) =>
+            apiClient.post(`/seller/listings/${listingId}/media/`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            }),
+        deleteMedia: (mediaId: string | number) => apiClient.delete(`/seller/media/${mediaId}/`),
+        updateMedia: (id: string | number, data: any) => apiClient.patch(`/seller/media/${id}/`, data),
         assignAgent: (id: string | number, data: { agent_id: number; notes?: string }) =>
             apiClient.post(`/seller/listings/${id}/assign-agent/`, data),
         deals: () => apiClient.get('/seller/deals/'),

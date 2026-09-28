@@ -1,21 +1,21 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Package, MessageSquare, HandCoins,
-  ShieldCheck, TrendingUp, Eye, Bell, LogOut, Plus,
+  ShieldCheck, TrendingUp, Bell, LogOut, Plus,
   ArrowUpRight, Search, Sparkles, CheckCircle2,
   Clock, MapPin, Building,
   ArrowRight, ExternalLink, Bot, Menu, X,
-  UserCheck, DollarSign, Edit3, Phone, Heart, Calendar, Users, Mail
+  UserCheck, DollarSign, Phone, Heart, Calendar, Users, Mail,
+  Layers, Activity, FileSpreadsheet, RefreshCw, Cpu, Compass
 } from 'lucide-react';
-import { Badge } from '../../components/ui/Badge';
 import { cn } from '../../lib/utils';
 import { SellerOfferManager } from './SellerOfferManager';
 import { SellerAiCopilot } from './SellerAiCopilot';
 import { ChatWindow } from '../chat/ChatWindow';
 import ListingWizard from './ListingWizard';
 import { PropertyInspectionDrawer } from './components/PropertyInspectionDrawer';
-import { PropertyEditModal } from './components/PropertyEditModal';
+import SellerPropertyEditor from './components/SellerPropertyEditor';
 import { SellerEarningsAndDeals } from './components/SellerEarningsAndDeals';
 import { SellerAgentNetwork } from './components/SellerAgentNetwork';
 import { CustomerLeadsManager, type LeadChannel } from '../../components/crm/CustomerLeadsManager';
@@ -24,11 +24,16 @@ import { OfferComparison } from '../../components/OfferComparison';
 import { ClosingChecklist } from '../../components/ClosingChecklist';
 import { PaymentCollection } from '../../components/PaymentCollection';
 import { TaskList } from '../../components/TaskList';
+import SellerPropertyDetail from './SellerPropertyDetail';
+import SellerListingsTable from './SellerListingsTable';
+import SellerDealPipeline from './SellerDealPipeline';
+import SellerAssetDistribution from './SellerAssetDistribution';
+import SellerAgentManager from './SellerAgentManager';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/endpoints';
 import { Pagination } from '../../components/ui/Pagination';
 
-export type SellerTab = 'overview' | 'listings' | 'leads' | 'visits' | 'inquiries' | 'likes' | 'offers' | 'deals' | 'agents' | 'messages' | 'copilot' | 'verification' | 'new-listing';
+export type SellerTab = 'overview' | 'listings' | 'leads' | 'visits' | 'inquiries' | 'likes' | 'offers' | 'deals' | 'agents' | 'messages' | 'copilot' | 'verification' | 'new-listing' | 'pipeline' | 'assets' | 'agent-network' | 'reports';
 
 interface SellerDashboardProps {
   onNavigate?: (view: any) => void;
@@ -69,14 +74,11 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
       return !prev;
     });
   };
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'house' | 'land' | 'car'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [inventoryPage, setInventoryPage] = useState(1);
-  const [inventoryPageSize, setInventoryPageSize] = useState(6);
+
 
   // Selected property for deep inspection drawer & edit modal
   const [inspectingPropertyId, setInspectingPropertyId] = useState<string | null>(null);
-  const [editingListing, setEditingListing] = useState<any | null>(null);
+  const [editingListingId, setEditingListingId] = useState<string | null>(null);
 
   // 1. Live database listings strictly owned by this authenticated seller
   const { data: rawListings = [], isLoading: _loadingListings, refetch: refetchListings } = useQuery({
@@ -152,17 +154,6 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
       };
     });
   }, [rawListings]);
-
-  const filteredListings = listings.filter(item => {
-    const matchesCat = categoryFilter === 'all' || item.category === categoryFilter;
-    const matchesQuery = !searchQuery || item.title.toLowerCase().includes(searchQuery.toLowerCase()) || item.location.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCat && matchesQuery;
-  });
-
-  const paginatedListings = filteredListings.slice(
-    (inventoryPage - 1) * inventoryPageSize,
-    inventoryPage * inventoryPageSize
-  );
 
   const totalValue = listings.reduce((acc, curr) => acc + curr.price, 0);
   const totalInquiries = listings.reduce((acc, curr) => acc + curr.inquiries, 0);
@@ -269,6 +260,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
       items: [
         { id: 'offers', label: 'Offers & Negotiations', icon: HandCoins, badge: totalOffers > 0 ? `${totalOffers} Active` : undefined },
         { id: 'deals', label: 'Deals & Earnings', icon: DollarSign },
+        { id: 'pipeline', label: 'Deal Pipeline', icon: Layers },
         { id: 'agents', label: 'Assigned Agents', icon: UserCheck },
       ],
     },
@@ -277,6 +269,9 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
       items: [
         { id: 'copilot', label: 'AI Assistant', icon: Sparkles },
         { id: 'verification', label: 'Verification & Title', icon: ShieldCheck },
+        { id: 'assets', label: 'Portfolio Distribution', icon: Compass },
+        { id: 'agent-network', label: 'Agent Network', icon: Users },
+        { id: 'reports', label: 'Reports', icon: FileSpreadsheet },
       ],
     },
   ];
@@ -337,7 +332,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveTab(item.id as SellerTab)}
+                    onClick={() => { setActiveTab(item.id as SellerTab); setEditingListingId(null); }}
                     title={sidebarCollapsed ? item.label : undefined}
                     className={cn(
                       "w-full relative flex items-center rounded-xl text-sm transition-all group",
@@ -479,6 +474,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                         key={item.id}
                         onClick={() => {
                           setActiveTab(item.id as SellerTab);
+                          setEditingListingId(null);
                           setMobileNavOpen(false);
                         }}
                         className={cn(
@@ -564,8 +560,6 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
               onChange={(e) => {
                 setHeaderSearch(e.target.value);
                 if (e.target.value && activeTab !== 'listings') setActiveTab('listings');
-                setSearchQuery(e.target.value);
-                setInventoryPage(1);
               }}
               placeholder="Search inventory..."
               className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl py-2 pl-10 pr-12 text-xs text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500/50 transition-colors"
@@ -634,7 +628,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
           {navItems.map(item => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id as SellerTab)}
+              onClick={() => { setActiveTab(item.id as SellerTab); setEditingListingId(null); }}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5",
                 activeTab === item.id
@@ -655,6 +649,15 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
         {/* TAB CONTENT AREA */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[var(--color-bg-deep)]">
 
+          {/* Full Property Editor (replaces tab content when active) */}
+          {editingListingId ? (
+            <SellerPropertyEditor
+              listingId={editingListingId}
+              onBack={() => setEditingListingId(null)}
+              onChanged={() => refetchListings()}
+            />
+          ) : (
+            <>
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
@@ -1060,214 +1063,29 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
             </div>
           )}
 
-          {/* TAB 2: MY LISTINGS INVENTORY */}
+          {/* TAB 2: MY LISTINGS INVENTORY (admin-style table) */}
           {activeTab === 'listings' && (
             <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
-              
-              {/* Header & Controls */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex flex-col justify-between gap-5 border-b border-[var(--color-border)] pb-8 md:flex-row md:items-end">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-main)] font-display">Asset Inventory</h1>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-brand-emerald)]">Seller Inventory</p>
+                  <h1 className="mt-2 text-3xl lg:text-4xl font-bold text-[var(--color-text-main)] tracking-tight">My Listings</h1>
                 </div>
-                <button
-                  onClick={() => setActiveTab('new-listing')}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-semibold text-sm shadow-[var(--shadow-emerald-soft)] transition-all"
-                >
-                  <Plus size={16} />
-                  <span>List New Asset</span>
-                </button>
-              </div>
-
-              {/* Filters & Search */}
-              <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-3 rounded-2xl">
-                <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-                  {[
-                    { id: 'all', label: 'All Assets' },
-                    { id: 'house', label: 'Homes & Villas' },
-                    { id: 'land', label: 'Titled Land' },
-                    { id: 'car', label: 'Executive Cars' },
-                  ].map((filter) => (
-                    <button
-                      key={filter.id}
-                      onClick={() => {
-                        setCategoryFilter(filter.id as any);
-                        setInventoryPage(1);
-                      }}
-                      className={cn(
-                        "px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap",
-                        categoryFilter === filter.id
-                          ? "bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] border border-emerald-500/40"
-                          : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)]"
-                      )}
-                    >
-                      {filter.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="relative w-full sm:w-64">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)]" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setInventoryPage(1);
-                    }}
-                    placeholder="Search by title or district..."
-                    className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl py-1.5 pl-8 pr-3 text-xs text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-emerald-500/50"
-                  />
-                </div>
-              </div>
-
-              {/* Listing Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredListings.length === 0 ? (
-                  <div className="col-span-full p-16 text-center text-[var(--color-text-dim)] rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
-                    <Package size={40} className="mx-auto text-[var(--color-text-dim)] mb-3" />
-                    <h3 className="text-base font-semibold text-[var(--color-text-main)]">No Properties Found</h3>
-                    <button
-                      onClick={() => {
-                        if (searchQuery || categoryFilter !== 'all') {
-                          setSearchQuery('');
-                          setCategoryFilter('all');
-                          setInventoryPage(1);
-                        } else {
-                          setActiveTab('new-listing');
-                        }
-                      }}
-                      className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-semibold text-xs transition-colors cursor-pointer"
-                    >
-                      {searchQuery || categoryFilter !== 'all' ? 'Reset Filters' : 'List New Asset'}
-                    </button>
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] backdrop-blur-xl px-4 py-2 text-xs font-mono font-bold text-[var(--color-brand-emerald)] shadow-sm">
+                    {listings.length} records
                   </div>
-                ) : (
-                  paginatedListings.map((item) => (
-                    <div
-                      key={item.id}
-                      className="group rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] hover:border-emerald-500/30 overflow-hidden flex flex-col transition-all duration-300"
-                    >
-                      {/* Thumbnail */}
-                      <div className="relative h-48 w-full overflow-hidden bg-[var(--color-bg-elevated)]">
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                        
-                        <div className="absolute top-3 left-3 flex gap-2">
-                          <Badge
-                            variant={item.status === 'Active' ? 'success' : 'neutral'}
-                            className={cn(
-                              "text-[10px] uppercase font-mono px-2 py-0.5",
-                              item.status === 'Active' ? "bg-emerald-950/80 text-[#6ee7b7] border border-emerald-500/40" : "bg-black/80 text-[#d4d4d8] border border-[rgba(255,255,255,0.2)]"
-                            )}
-                          >
-                            {item.status}
-                          </Badge>
-                          {item.verified && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-[#6ee7b7] border border-emerald-500/30 font-semibold flex items-center gap-1">
-                              <ShieldCheck size={10} /> RLMUA Verified
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
-                          <span className="text-lg font-bold font-mono text-[#fff]">
-                            {item.price.toLocaleString()} <span className="text-xs text-[#d4d4d8] font-sans">{item.currency}</span>
-                          </span>
-                          {item.upiNumber && (
-                            <span className="text-[10px] font-mono text-[#e4e4e7] bg-black/60 px-1.5 py-0.5 rounded border border-[rgba(255,255,255,0.15)]">
-                              UPI: {item.upiNumber}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Body */}
-                      <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                        <div>
-                          <h3 className="font-semibold text-[var(--color-text-main)] text-base group-hover:text-[var(--color-brand-emerald)] transition-colors line-clamp-1">
-                            {item.title}
-                          </h3>
-                          <p className="text-xs text-[var(--color-text-muted)] flex items-center gap-1 mt-1">
-                            <MapPin size={12} className="text-[var(--color-text-dim)]" />
-                            {item.location}
-                          </p>
-                        </div>
-
-                        {/* Performance Bar */}
-                        <div className="grid grid-cols-3 gap-2 py-2.5 px-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-center">
-                          <div>
-                            <span className="text-[10px] text-[var(--color-text-dim)] uppercase block">Views</span>
-                            <span className="text-xs font-mono font-bold text-[var(--color-text-main)]">{item.views}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-[var(--color-text-dim)] uppercase block">Inquiries</span>
-                            <span className="text-xs font-mono font-bold text-[var(--color-text-main)]">{item.inquiries}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-[var(--color-text-dim)] uppercase block">Offers</span>
-                            <span className="text-xs font-mono font-bold text-[var(--color-text-main)]">{item.offers}</span>
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-2 pt-1">
-                          <button
-                            onClick={() => onListingClick ? onListingClick(item.id) : setInspectingPropertyId(item.id)}
-                            className="flex-1 py-2 rounded-xl bg-emerald-500/10 hover:bg-[var(--color-accent-soft-bg)] border border-emerald-500/20 text-xs font-semibold text-[var(--color-brand-emerald)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                            title="Open full property page with section editor"
-                          >
-                            <Eye size={13} />
-                            <span>View Full Property</span>
-                          </button>
-
-                          <button
-                            onClick={async () => {
-                              try {
-                                const res = await api.seller.listingDetail(item.id);
-                                setEditingListing(res.data);
-                              } catch {
-                                setEditingListing(item);
-                              }
-                            }}
-                            className="p-2 rounded-xl bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-card-hover)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors cursor-pointer"
-                            title="Edit Listing Specs"
-                          >
-                            <Edit3 size={14} />
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setActiveTab('copilot');
-                            }}
-                            className="p-2 rounded-xl bg-[var(--color-bg-elevated)] hover:bg-emerald-500/10 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-brand-emerald)] transition-colors cursor-pointer"
-                            title="AI Optimization"
-                          >
-                            <Sparkles size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
+                  <button
+                    onClick={() => setActiveTab('new-listing')}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-semibold text-sm shadow-[var(--shadow-emerald-soft)] transition-all cursor-pointer"
+                  >
+                    <Plus size={16} />
+                    <span>List New Asset</span>
+                  </button>
+                </div>
               </div>
 
-              {filteredListings.length > 0 && (
-                <div className="pt-2">
-                  <Pagination
-                    currentPage={inventoryPage}
-                    totalPages={Math.max(1, Math.ceil(filteredListings.length / inventoryPageSize))}
-                    onPageChange={setInventoryPage}
-                    pageSize={inventoryPageSize}
-                    onPageSizeChange={(sz) => { setInventoryPageSize(sz); setInventoryPage(1); }}
-                    totalItems={filteredListings.length}
-                  />
-                </div>
-              )}
-
+              <SellerListingsTable onListingClick={onListingClick} onEdit={(id) => setEditingListingId(id)} />
             </div>
           )}
 
@@ -1413,6 +1231,35 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
             </div>
           )}
 
+          {/* TAB 10: DEAL PIPELINE */}
+          {activeTab === 'pipeline' && (
+            <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
+              <SellerDealPipeline />
+            </div>
+          )}
+
+          {/* TAB 11: PORTFOLIO DISTRIBUTION */}
+          {activeTab === 'assets' && (
+            <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
+              <SellerAssetDistribution />
+            </div>
+          )}
+
+          {/* TAB 12: AGENT NETWORK */}
+          {activeTab === 'agent-network' && (
+            <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
+              <SellerAgentManager />
+            </div>
+          )}
+
+          {/* TAB 13: REPORTS */}
+          {activeTab === 'reports' && (
+            <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
+              <SellerAnalytics />
+            </div>
+          )}
+            </>
+          )}
         </main>
 
       </div>
@@ -1423,25 +1270,15 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
         onClose={() => setInspectingPropertyId(null)}
         onEdit={(prop) => {
           setInspectingPropertyId(null);
-          setEditingListing(prop);
+          setEditingListingId(String(prop.id));
         }}
         onRefresh={() => {
           refetchListings();
         }}
       />
 
-      {/* Property Edit Modal */}
-      {editingListing && (
-        <PropertyEditModal
-          listing={editingListing}
-          isOpen={!!editingListing}
-          onClose={() => setEditingListing(null)}
-          onSuccess={() => {
-            refetchListings();
-          }}
-        />
-      )}
-
     </div>
   );
 };
+
+export default SellerDashboard;

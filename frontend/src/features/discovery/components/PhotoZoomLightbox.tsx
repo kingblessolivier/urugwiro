@@ -33,10 +33,73 @@ interface PhotoZoomLightboxProps {
   listingTitle?: string;
 }
 
-export function getMediaUrl(item: MediaItem | string | undefined | null): string {
+export function getMediaUrl(
+  item: MediaItem | string | undefined | null,
+  opts?: { width?: number; quality?: number; hero?: boolean }
+): string {
+  const width = opts?.width ?? (opts?.hero ? 2560 : 1600);
+  const quality = opts?.quality ?? 85;
   if (!item) return '';
-  if (typeof item === 'string') return item;
-  return item.url || item.file || item.image || '';
+  const raw = typeof item === 'string' ? item : (item.url || item.file || item.image || '');
+  if (!raw) return '';
+
+  try {
+    const u = new URL(raw);
+    const h = u.hostname.replace(/^www\./, '');
+
+    // Unsplash — force 4K / Retina native resolution at high quality
+    if (h === 'images.unsplash.com') {
+      u.searchParams.set('auto', 'format');
+      u.searchParams.set('fit', 'crop');
+      u.searchParams.set('w', String(width));
+      u.searchParams.set('q', String(quality));
+      if (opts?.hero) u.searchParams.set('dpr', '2');
+      return u.toString();
+    }
+
+    // Picsum — force exact width
+    if (h === 'picsum.photos') {
+      // Picsum supports /id/{id}/{w}/{h} or /seed/{seed}/{w}/{h} or ?random
+      // Rewrite path: anything → /seed/{stable}/{width}
+      const seed = (u.pathname.replace(/\//g, '-').replace(/^-/, '') || 'urugwiro').slice(0, 64) || 'urugwiro';
+      return `https://picsum.photos/seed/${encodeURIComponent(seed)}/${width}/${Math.round(width * 0.62)}`;
+    }
+
+    // LoremFlickr
+    if (h === 'loremflickr.com') {
+      const match = u.pathname.match(/^\/(\d+)\/(\d+)/);
+      const w = match ? Math.max(Number(match[1]), width) : width;
+      const hh = match ? Math.max(Number(match[2]), Math.round(width * 0.62)) : Math.round(width * 0.62);
+      const tail = u.pathname.replace(/^\/\d+\/\d+/, '');
+      return `https://loremflickr.com/${w}/${hh}${tail}`;
+    }
+  } catch {
+    // not a URL, leave alone
+  }
+  return raw;
+}
+
+/** Luxury hi-res fallback image pool — used if backend media is missing or
+ *  the only URL it provided is a tiny 600-pixel placeholder.  Always returns
+ *  estate-appropriate Unsplash 4K photography with explicit w=2560, q=90, dpr=2.
+ */
+const FALLBACK_POOL = [
+  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c',
+  'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9',
+  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750',
+  'https://images.unsplash.com/photo-1613490493576-7fde63acd811',
+  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c',
+  'https://images.unsplash.com/photo-1605146769289-440113cc3d00',
+];
+export function getHiResFallback(index = 0, hero = true): string {
+  const base = FALLBACK_POOL[index % FALLBACK_POOL.length];
+  const params = new URLSearchParams({
+    auto: 'format', fit: 'crop',
+    w: hero ? '2560' : '1600',
+    q: hero ? '92' : '85',
+  });
+  if (hero) params.set('dpr', '2');
+  return `${base}?${params.toString()}`;
 }
 
 export function getMediaCaption(item: MediaItem | string | undefined | null): string {
@@ -242,7 +305,7 @@ export const PhotoZoomLightbox: React.FC<PhotoZoomLightboxProps> = ({
   if (!isOpen || media.length === 0) return null;
 
   const currentMedia = media[currentIndex];
-  const currentUrl = getMediaUrl(currentMedia);
+  const currentUrl = getMediaUrl(currentMedia, { width: 3200, quality: 92, hero: true });
   const currentCaption = getMediaCaption(currentMedia);
 
   return (
@@ -253,6 +316,20 @@ export const PhotoZoomLightbox: React.FC<PhotoZoomLightboxProps> = ({
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
+      {/* Sovereign Unsharp Mask Filter — isolated copy for the lightbox DOM */}
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
+        <defs>
+          <filter id="ld-svg-sharpen-lb" x="-5%" y="-5%" width="110%" height="110%">
+            <feConvolveMatrix
+              order="3"
+              preserveAlpha="true"
+              kernelMatrix="0 -0.75 0  -0.75 4 -0.75  0 -0.75 0"
+              divisor="1"
+              bias="0"
+            />
+          </filter>
+        </defs>
+      </svg>
       {/* ━━━ TOP CONTROL BAR ━━━ */}
       <div className="relative z-30 flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-white/10 bg-black/70 backdrop-blur-xl">
         {/* Left: Info & Badge */}
@@ -391,9 +468,20 @@ export const PhotoZoomLightbox: React.FC<PhotoZoomLightboxProps> = ({
             <img
               ref={imageRef}
               src={currentUrl}
+              srcSet={`${getMediaUrl(currentMedia, { width: 1920, quality: 90, hero: true })} 1x, ${getMediaUrl(currentMedia, { width: 3840, quality: 92, hero: true })} 2x`}
+              sizes="(min-width: 2000px) 2000px, 90vw"
               alt={currentCaption || listingTitle}
               draggable={false}
-              className="max-h-[75vh] max-w-[90vw] object-contain rounded-lg shadow-2xl pointer-events-none select-none"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="max-h-[75vh] max-w-[90vw] object-contain rounded-lg shadow-2xl pointer-events-none select-none ld-img-crisp"
+              style={{
+                willChange: 'transform',
+                filter: 'url("#ld-svg-sharpen-lb") contrast(1.04) saturate(1.03)',
+                WebkitFilter: 'url("#ld-svg-sharpen-lb") contrast(1.04) saturate(1.03)',
+              }}
             />
           ) : (
             <div className="p-12 text-center text-zinc-500">
@@ -448,7 +536,7 @@ export const PhotoZoomLightbox: React.FC<PhotoZoomLightboxProps> = ({
             {showThumbnails && (
               <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none max-w-full">
                 {media.map((item, idx) => {
-                  const thumbUrl = getMediaUrl(item);
+                  const thumbUrl = getMediaUrl(item, { width: 320, quality: 80 });
                   const isSelected = currentIndex === idx;
                   return (
                     <button
@@ -467,7 +555,12 @@ export const PhotoZoomLightbox: React.FC<PhotoZoomLightboxProps> = ({
                         <img
                           src={thumbUrl}
                           alt={`Thumbnail ${idx + 1}`}
-                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                          fetchPriority="low"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          draggable={false}
+                          className="h-full w-full object-cover ld-thumb-crisp"
                         />
                       ) : (
                         <div className="h-full w-full bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-500">

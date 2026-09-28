@@ -51,7 +51,7 @@ export const ListingSectionEditModal: React.FC<ListingSectionEditModalProps> = (
   const resSpec = asset.residential_spec || {};
   const landSpec = asset.land_spec || {};
   const vehSpec = asset.vehicle_spec || {};
-  const isHouse = listing?.category === 'house';
+  const isHouse = listing?.category === 'house' || listing?.category === 'apartment';
   const isLand = listing?.category === 'land';
   const isVehicle = listing?.category === 'car' || listing?.category === 'motorbike';
 

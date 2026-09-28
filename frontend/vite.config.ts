@@ -30,9 +30,23 @@ export default defineConfig({
     sourcemap: process.env.NODE_ENV !== 'production',
   },
   server: {
+    host: 'localhost',
+    port: 5173,
+    strictPort: true,
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5173,
+      clientPort: 5173,
+    },
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'ws://127.0.0.1:8000',
+        ws: true,
         changeOrigin: true,
       },
     },

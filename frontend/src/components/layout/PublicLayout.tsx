@@ -78,7 +78,11 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
       {!isAuth && <PwaInstallPrompt />}
       {!isAuth && <WhatsAppButton />}
       {!isAuth && <LiveChatSupport />}
-      {!isAuth && <OnboardingTour onNavigate={onNavigate} />}
+      {!isAuth && (
+        <OnboardingTourErrorBoundary>
+          <OnboardingTour onNavigate={onNavigate} />
+        </OnboardingTourErrorBoundary>
+      )}
     </div>
   );
 };

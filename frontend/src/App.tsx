@@ -1,4 +1,5 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
+import { BrowserRouter, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import DiscoveryPage from './features/discovery/DiscoveryPage';
 import ListingDetail from './features/discovery/ListingDetail';
 import { PublicLayout } from './components/layout/PublicLayout';
@@ -7,8 +8,15 @@ import { AccessRestricted } from './components/auth/AccessRestricted';
 import { useAuth } from './context/AuthContext';
 import { isAuthView, isPublicView, isAdminView, isViewAllowedForUser, type AppView } from './types/navigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { useNavigateView } from './hooks/useNavigateView';
+import {
+  isAppView,
+  isKnownPath,
+  listingIdFromPathname,
+  pathForView,
+  viewFromPathname,
+} from './lib/routes';
 
-// Lazy load heavy dashboard components for code splitting
 const ListingWizard = lazy(() => import('./features/seller/ListingWizard'));
 const SellerDashboard = lazy(() => import('./features/seller/SellerDashboard'));
 const VerificationWorkspace = lazy(() => import('./features/admin/VerificationWorkspace'));
@@ -35,7 +43,6 @@ const LandInformationPage = lazy(() => import('./features/public/LandInformation
 const ServicesPage = lazy(() => import('./features/public/ServicesPage'));
 const AssetProposalPage = lazy(() => import('./features/public/AssetProposalPage'));
 
-// Loading fallback for lazy components
 const PageLoader: React.FC = () => (
   <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading">
     <div className="flex flex-col items-center gap-3">
@@ -45,100 +52,136 @@ const PageLoader: React.FC = () => (
   </div>
 );
 
-function App() {
+function RoutedApp() {
   const { user } = useAuth();
-  const [view, setView] = useState<AppView>(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const v = params.get('view') as AppView;
-      if (v) return v;
-    } catch {}
-    return 'home';
-  });
-  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
-  const [previousView, setPreviousView] = useState<AppView>('discovery');
+  const location = useLocation();
+  const routerNavigate = useNavigate();
+  const setView = useNavigateView();
+
+  const legacyView = new URLSearchParams(location.search).get('view');
+  if (location.pathname === '/' && legacyView && isAppView(legacyView) && legacyView !== 'home') {
+    return <Navigate to={pathForView(legacyView)} replace />;
+  }
+
+  if (!isKnownPath(location.pathname)) {
+    return <Navigate to="/" replace />;
+  }
+
+  const view = viewFromPathname(location.pathname);
+  const selectedListingId = listingIdFromPathname(location.pathname);
 
   const navigateToListing = (id: string) => {
-    setPreviousView(view);
-    setSelectedListingId(id);
-    setView('listing-detail');
+    setView('listing-detail', { listingId: id });
   };
 
   const navigateToAdminPropertyDetail = (id: string) => {
-    setPreviousView(view);
-    setSelectedListingId(id);
-    setView('admin-property-detail');
+    setView('admin-property-detail', { listingId: id });
   };
 
   const goExplore = (query?: string) => {
-    setView('discovery');
+    setView('discovery', { search: query });
   };
 
-  const renderContent = () => {
-    switch (view) {
-      case 'home':
-        return <HomePage onExplore={goExplore} onSell={() => setView('seller-wizard')} onNavigate={setView} onListingClick={navigateToListing} />;
-      case 'discovery':
-        return <DiscoveryPage initialQuery={''} onListingClick={navigateToListing} />;
-      case 'listing-detail':
-        return (
-          <ErrorBoundary onReset={() => setView(previousView || 'discovery')}>
-            <ListingDetail listingId={selectedListingId || ''} onBack={() => setView(previousView || 'discovery')} />
-          </ErrorBoundary>
-        );
-      case 'admin-property-detail':
-        return <AdminPropertyDetail propertyId={selectedListingId || ''} onBack={() => setView(previousView || 'admin-listings')} />;
-      case 'seller-dashboard':
-        return <SellerDashboard onNavigate={setView} onListingClick={navigateToListing} />;
-      case 'seller-wizard':
-        return <ListingWizard />;
-      case 'admin':
-        return <AdminHub setView={setView} />;
-      case 'admin-listings':
-        return <AdminListingsPage onListingClick={navigateToAdminPropertyDetail} />;
-      case 'admin-verification':
-        return <VerificationWorkspace />;
-      case 'admin-settings':
-        return <SystemSettings />;
-      case 'admin-enquiries':
-        return <AdminEnquiries />;
-      case 'admin-offers':
-        return <AdminOffers />;
-      case 'admin-reports':
-        return <AdminReports />;
-      case 'admin-users':
-        return <AdminUserManagement />;
-      case 'admin-property-wizard':
-        return <AdminPropertyWizard onNavigate={setView} />;
-      case 'admin-inbox':
-        return <AdminInbox />;
-      case 'tenant-dashboard':
-      case 'buyer-dashboard':
-        return <BuyerTenantDashboard onNavigate={setView} onListingClick={navigateToListing} />;
-      case 'agent-dashboard':
-        return <AgentDashboard onNavigate={setView} />;
-      case 'owner-dashboard':
-        return <OwnerLaunchpad onListingClick={navigateToListing} />;
-      case 'login':
-        return <LoginPage onNavigate={setView} />;
-      case 'register':
-        return <RegisterPage onNavigate={setView} />;
-      case 'about':
-        return <AboutPage onNavigate={setView} />;
-      case 'contact':
-        return <ContactPage />;
-      case 'updates':
-        return <UpdatesPage onNavigate={setView} />;
-      case 'land-information':
-        return <LandInformationPage onNavigate={setView} />;
-      case 'services':
-        return <ServicesPage onNavigate={setView} />;
-      case 'submit-proposal':
-        return <AssetProposalPage onNavigate={setView} />;
-      default:
-        return <HomePage onExplore={goExplore} onSell={() => setView('submit-proposal')} onNavigate={setView} onListingClick={navigateToListing} />;
+  const goBack = (fallback: AppView) => {
+    if (location.key !== 'default') {
+      routerNavigate(-1);
+      return;
     }
+    setView(fallback);
   };
+
+  const renderContent = () => (
+    <Suspense fallback={<PageLoader />}>
+      {(() => {
+        switch (view) {
+          case 'home':
+            return (
+              <HomePage
+                onExplore={goExplore}
+                onSell={() => setView('seller-wizard')}
+                onNavigate={setView}
+                onListingClick={navigateToListing}
+              />
+            );
+          case 'discovery':
+            return <DiscoveryPage onListingClick={navigateToListing} />;
+          case 'listing-detail':
+            return (
+              <ErrorBoundary onReset={() => goBack('discovery')}>
+                <ListingDetail
+                  listingId={selectedListingId || ''}
+                  onBack={() => goBack('discovery')}
+                  onListingClick={navigateToListing}
+                />
+              </ErrorBoundary>
+            );
+          case 'admin-property-detail':
+            return (
+              <AdminPropertyDetail
+                propertyId={selectedListingId || ''}
+                onBack={() => goBack('admin-listings')}
+              />
+            );
+          case 'seller-dashboard':
+            return <SellerDashboard onNavigate={setView} onListingClick={navigateToListing} />;
+          case 'seller-wizard':
+            return <ListingWizard />;
+          case 'admin':
+            return <AdminHub setView={setView} />;
+          case 'admin-listings':
+            return <AdminListingsPage onListingClick={navigateToAdminPropertyDetail} />;
+          case 'admin-verification':
+            return <VerificationWorkspace />;
+          case 'admin-settings':
+            return <SystemSettings />;
+          case 'admin-enquiries':
+            return <AdminEnquiries />;
+          case 'admin-offers':
+            return <AdminOffers />;
+          case 'admin-reports':
+            return <AdminReports />;
+          case 'admin-users':
+            return <AdminUserManagement />;
+          case 'admin-property-wizard':
+            return <AdminPropertyWizard onNavigate={setView} />;
+          case 'admin-inbox':
+            return <AdminInbox />;
+          case 'tenant-dashboard':
+          case 'buyer-dashboard':
+            return <BuyerTenantDashboard onNavigate={setView} onListingClick={navigateToListing} />;
+          case 'agent-dashboard':
+            return <AgentDashboard onNavigate={setView} />;
+          case 'owner-dashboard':
+            return <OwnerLaunchpad onListingClick={navigateToListing} />;
+          case 'login':
+            return <LoginPage onNavigate={setView} />;
+          case 'register':
+            return <RegisterPage onNavigate={setView} />;
+          case 'about':
+            return <AboutPage onNavigate={setView} />;
+          case 'contact':
+            return <ContactPage />;
+          case 'updates':
+            return <UpdatesPage onNavigate={setView} />;
+          case 'land-information':
+            return <LandInformationPage onNavigate={setView} />;
+          case 'services':
+            return <ServicesPage onNavigate={setView} />;
+          case 'submit-proposal':
+            return <AssetProposalPage onNavigate={setView} />;
+          default:
+            return (
+              <HomePage
+                onExplore={goExplore}
+                onSell={() => setView('submit-proposal')}
+                onNavigate={setView}
+                onListingClick={navigateToListing}
+              />
+            );
+        }
+      })()}
+    </Suspense>
+  );
 
   const isAllowed = isViewAllowedForUser(view, user);
 
@@ -192,10 +235,16 @@ function App() {
 
   return (
     <PublicLayout view={view} onNavigate={setView} onSearch={goExplore} showFooter={false}>
-      <div className="pt-4">
-        {renderContent()}
-      </div>
+      <div className="pt-4">{renderContent()}</div>
     </PublicLayout>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <RoutedApp />
+    </BrowserRouter>
   );
 }
 
