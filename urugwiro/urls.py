@@ -8,6 +8,9 @@ urlpatterns = [
     path('api/auth/register/', api_views.api_register, name='api_register'),
     path('api/auth/me/', api_views.api_me, name='api_me'),
     path('api/auth/logout/', api_views.api_logout, name='api_logout'),
+    path('api/notifications/', api_views.notifications_list, name='api_notifications'),
+    path('api/notifications/read-all/', api_views.notifications_mark_all_read, name='api_notifications_read_all'),
+    path('api/notifications/<int:pk>/read/', api_views.notification_mark_read, name='api_notification_read'),
 
     # ─── Public Listings ───
     path('api/listings/', api_views.ListingListView.as_view(), name='api_listings'),
@@ -27,6 +30,9 @@ urlpatterns = [
     path('api/updates/', api_views.api_public_updates, name='api_public_updates'),
     path('api/platform-stats/', api_views.api_platform_stats, name='api_platform_stats'),
     path('api/valuation/estimate/', api_views.valuation_estimate, name='api_valuation'),
+    path('api/ai/listing-narrative/', api_views.ai_listing_narrative, name='api_ai_listing_narrative'),
+    path('api/ai/offer-analysis/', api_views.ai_offer_analysis, name='api_ai_offer_analysis'),
+    path('api/listings/visual-search/', api_views.visual_search, name='api_visual_search'),
 
     # ─── Proposals (Public Intake) ───
     path('api/proposals/', api_views.api_proposals_view, name='api_proposals'),

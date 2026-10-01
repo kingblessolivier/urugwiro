@@ -4,17 +4,61 @@ import { SearchX, RotateCcw, Heart } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Pagination } from '../../../components/ui/Pagination';
 
+const compactSpecs = (listing: Listing): Record<string, string | number> => {
+    const residential = listing.asset?.residential_spec || {};
+    const land = listing.asset?.land_spec || {};
+    const vehicle = listing.asset?.vehicle_spec || {};
+    const commercial = listing.asset?.commercial_spec || {};
+    const source: Record<string, unknown> = {
+        Bedrooms: listing.bedrooms || residential.bedrooms,
+        Bathrooms: listing.bathrooms || residential.bathrooms,
+        'Built m²': residential.built_up_area_sqm,
+        'Plot m²': land.plot_size_sqm,
+        'Total m²': listing.asset?.total_area,
+        Furnished: residential.is_furnished ? 'Yes' : undefined,
+        Parking: residential.parking_spaces,
+        'Year built': residential.year_built,
+        UPI: land.upi_number,
+        Terrain: land.terrain,
+        'Road access': land.road_access,
+        Tenure: land.tenure,
+        Make: vehicle.make,
+        Model: vehicle.model,
+        Year: vehicle.year,
+        Mileage: vehicle.mileage ? `${vehicle.mileage} km` : undefined,
+        Fuel: vehicle.fuel_type,
+        Transmission: vehicle.transmission,
+        Floors: commercial.commercial_floors,
+        'Gross m²': commercial.gross_area,
+        'Star rating': commercial.star_rating,
+        Rooms: commercial.total_rooms,
+        Management: commercial.management_type,
+    };
+    return Object.fromEntries(
+        Object.entries(source).filter(([, value]) => value !== undefined && value !== null && value !== '' && value !== false)
+    ) as Record<string, string | number>;
+};
+
 interface Listing {
     id: string;
     title: string;
     price: string | number;
     currency: string;
+    category?: string;
+    purpose?: string;
+    address?: string;
     listing_type: string;
     verification_level?: ListingCardData['verification_level'];
     asset?: {
         name?: string;
         province?: string;
         district?: string;
+        sector?: string;
+        total_area?: number;
+        residential_spec?: Record<string, any>;
+        land_spec?: Record<string, any>;
+        vehicle_spec?: Record<string, any>;
+        commercial_spec?: Record<string, any>;
     };
     media?: { url?: string; file?: string }[];
     location?: string;
@@ -130,15 +174,11 @@ const ResultsGrid: React.FC<ResultsGridProps> = ({
                                 title: listing.title,
                                 price: Number(listing.price) || 0,
                                 currency: listing.currency || 'RWF',
-                                location: listing.location || [listing.asset?.district, listing.asset?.province].filter(Boolean).join(', ') || 'Rwanda',
-                                listing_type: listing.listing_type,
+                                location: listing.address || listing.location || [listing.asset?.district, listing.asset?.province].filter(Boolean).join(', ') || 'Rwanda',
+                                listing_type: listing.listing_type || (listing.purpose === 'rent' ? 'For Rent' : listing.category || 'Property'),
                                 verification_level: listing.verification_level,
                                 media: listing.media,
-                                specs: {
-                                    ...(listing.bedrooms ? { beds: listing.bedrooms } : {}),
-                                    ...(listing.bathrooms ? { baths: listing.bathrooms } : {}),
-                                    ...(listing.area ? { 'm²': listing.area } : {}),
-                                },
+                                specs: compactSpecs(listing),
                                 description: listing.description,
                                 views: listing.views_count ?? listing.views,
                                 status: listing.status,

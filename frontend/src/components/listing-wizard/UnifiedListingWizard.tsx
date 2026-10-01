@@ -82,6 +82,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
   const [securityDeposit, setSecurityDeposit] = useState('');
   const [isNegotiable, setIsNegotiable] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiMessage, setAiMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Stage 3: Media
   const [heroImage, setHeroImage] = useState<File | null>(null);
@@ -223,6 +224,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
   const handleGenerateAi = async () => {
     if (!category) return;
     setIsGeneratingAi(true);
+    setAiMessage(null);
     try {
       const res = await api.seller.generateNarrative({
         title,
@@ -234,8 +236,9 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
       });
       if (res.data?.title) setTitle(res.data.title);
       if (res.data?.narrative) setDescription(res.data.narrative);
-    } catch {
-      // Silent fail
+      setAiMessage({ type: 'success', text: res.data?.provider === 'nvidia' ? 'AI copy generated.' : 'Draft copy prepared from your property details.' });
+    } catch (error: any) {
+      setAiMessage({ type: 'error', text: error.response?.data?.error || 'AI copy could not be generated. Check your AI configuration or write the copy manually.' });
     } finally {
       setIsGeneratingAi(false);
     }
@@ -322,7 +325,13 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
         else if (onNavigate) onNavigate('discovery');
       }, 2000);
     } catch (err: any) {
-      setSubmitError(err.response?.data?.error || err.response?.data?.detail || err.message || 'We could not add this property. Please try again.');
+      const responseData = err.response?.data;
+      const fieldErrors = responseData && typeof responseData === 'object'
+        ? Object.entries(responseData)
+          .map(([field, value]) => `${field}: ${Array.isArray(value) ? value.join(', ') : String(value)}`)
+          .join(' | ')
+        : '';
+      setSubmitError(responseData?.error || responseData?.detail || fieldErrors || err.message || 'We could not add this property. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -390,6 +399,11 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
                   className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer disabled:opacity-50">
                   <Sparkles size={11} /> {isGeneratingAi ? 'Generating...' : 'AI Generate'}
                 </button>
+                {aiMessage && (
+                  <p role="status" className={cn('text-[10px] font-semibold', aiMessage.type === 'success' ? 'text-emerald-500' : 'text-red-400')}>
+                    {aiMessage.text}
+                  </p>
+                )}
               </div>
               {validationErrors.title && <p className={errorClass}>{validationErrors.title}</p>}
               <input type="text" className={inputClass} style={inputStyle} value={title}

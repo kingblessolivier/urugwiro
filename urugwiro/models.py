@@ -1040,6 +1040,7 @@ class ListingProposal(models.Model):
 
 class Notification(models.Model):
     NOTIFICATION_TYPES = [
+        ('new_message', 'New Message'),
         ('new_offer', 'New Offer'),
         ('new_conversation', 'New Conversation'),
         ('new_contact', 'New Contact'),

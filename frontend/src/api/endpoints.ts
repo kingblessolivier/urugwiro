@@ -11,6 +11,12 @@ export const api = {
         logout: (refresh?: string) => apiClient.post('/auth/logout/', { refresh }),
     },
 
+    notifications: {
+        list: () => apiClient.get('/notifications/'),
+        markRead: (id: number | string) => apiClient.post(`/notifications/${id}/read/`),
+        markAllRead: () => apiClient.post('/notifications/read-all/'),
+    },
+
     // Public Listings
     listings: {
         list: (params?: ListingsListParams) => apiClient.get<PaginatedResponse<Listing>>('/listings/', { params }),
@@ -63,7 +69,7 @@ export const api = {
     offers: {
         list: (params?: Record<string, string>) => apiClient.get<Offer[]>('/admin/offers/', { params }),
         create: (data: { listing: number | string; amount: number; notes?: string }) => apiClient.post<Offer>('/admin/offers/', data),
-        updateStatus: (id: number | string, data: { status: string; counter_amount?: number }) => apiClient.put<Offer>(`/admin/offers/${id}/`, data),
+        updateStatus: (id: number | string, data: { status: string; counter_amount?: number; offered_amount?: number; message?: string }) => apiClient.put<Offer>(`/admin/offers/${id}/`, data),
     },
 
     // Visits (Convenience alias)
@@ -111,14 +117,8 @@ export const api = {
         addConversationEvent: (id: string, data: Record<string, unknown>) => apiClient.post(`/seller/conversations/${id}/events/`, data),
         earnings: () => apiClient.get('/seller/earnings/'),
         assignAgent: (id: string | number, data: { agent_id: number | string }) => apiClient.post(`/seller/listings/${id}/assign-agent/`, data),
-        generateNarrative: async (data: { title: string; category: string; subType: string; city: string; district: string; price: string; description?: string }) => {
-            return {
-                data: {
-                    narrative: data?.title || '',
-                    title: data?.title || '',
-                },
-            };
-        },
+        generateNarrative: (data: { title: string; category: string; subType: string; city: string; district: string; price: string; description?: string }) =>
+            apiClient.post('/ai/listing-narrative/', data),
     },
 
     // Owner Executive Dashboard
@@ -248,16 +248,8 @@ export const api = {
 
     // AI helpers
     ai: {
-        analyzeOffer: async (data: { offer_amount: number; asking_price: number; property_title: string }) => {
-            return {
-                data: {
-                    analysis: `Offer evaluated at ${data.offer_amount} RWF for ${data.property_title}. Market valuation is aligned.`,
-                    ai_analysis: `Offer evaluated at ${data.offer_amount} RWF for ${data.property_title}. Market valuation is aligned.`,
-                    discount_percent: 5,
-                    recommended_counter: data.offer_amount,
-                } as AIAnalysisResult,
-            };
-        },
+        analyzeOffer: (data: { offer_amount: number; asking_price: number; property_title: string }) =>
+            apiClient.post<AIAnalysisResult>('/ai/offer-analysis/', data),
         testConnection: async (apiKey?: string, model?: string) => ({
             data: {
                 success: true,

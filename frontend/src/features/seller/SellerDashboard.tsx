@@ -1049,6 +1049,13 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
             </div>
           )}
 
+          {/* TAB: RATINGS & REVIEWS */}
+          {activeTab === 'ratings' && (
+            <div className="max-w-7xl mx-auto animate-fadeIn">
+              <SellerRatings />
+            </div>
+          )}
+
           {/* TAB 4: REAL-TIME MESSAGING & INQUIRIES */}
           {activeTab === 'messages' && (
             <div className="max-w-7xl mx-auto animate-fadeIn">

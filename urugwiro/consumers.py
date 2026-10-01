@@ -274,7 +274,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             push_notification(
                 recipient=recipient,
                 actor=self.user,
-                notification_type='message',
+                notification_type='new_message',
                 message=f'{self.user.get_full_name() or self.user.username}: {content[:60]}',
                 link='',
             )

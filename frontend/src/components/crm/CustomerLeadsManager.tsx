@@ -53,6 +53,7 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
   const [selectedPropertyFilter, setSelectedPropertyFilter] = useState<string>('all');
   const [selectedLead, setSelectedLead] = useState<any | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string>('');
+  const [actionError, setActionError] = useState<string>('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -66,7 +67,7 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
     queryFn: async () => {
       try {
         const res = mode === 'seller' ? await api.seller.visits() : await api.admin.visits();
-        return Array.isArray(res.data) ? res.data : [];
+        return Array.isArray(res.data) ? res.data : (res.data?.results || []);
       } catch (err) {
         logError('Failed to load showing visits:', err);
         return [];
@@ -85,10 +86,10 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
       try {
         if (mode === 'seller') {
           const res = await api.seller.inquiries();
-          return Array.isArray(res.data) ? res.data : [];
+          return Array.isArray(res.data) ? res.data : (res.data?.results || []);
         } else {
           const res = await api.admin.enquiries();
-          return Array.isArray(res.data?.enquiries) ? res.data.enquiries : (Array.isArray(res.data) ? res.data : []);
+          return Array.isArray(res.data?.enquiries) ? res.data.enquiries : (Array.isArray(res.data) ? res.data : (res.data?.results || []));
         }
       } catch (err) {
         logError('Failed to load inquiries:', err);
@@ -107,7 +108,7 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
     queryFn: async () => {
       try {
         const res = mode === 'seller' ? await api.seller.likes() : await api.admin.likes();
-        return Array.isArray(res.data) ? res.data : [];
+        return Array.isArray(res.data) ? res.data : (res.data?.results || []);
       } catch (err) {
         logError('Failed to load likes leads:', err);
         return [];
@@ -125,11 +126,13 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
       }
     },
     onSuccess: () => {
+      setActionError('');
       queryClient.invalidateQueries({ queryKey: [mode === 'seller' ? 'seller-visits' : 'admin-visits'] });
       setActionSuccess('Showing appointment updated successfully.');
       setTimeout(() => setActionSuccess(''), 3500);
       if (selectedLead) setSelectedLead(null);
     },
+    onError: () => setActionError('The appointment could not be updated. Please try again.'),
   });
 
   // Inquiry read status mutation
@@ -142,11 +145,13 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
       }
     },
     onSuccess: () => {
+      setActionError('');
       queryClient.invalidateQueries({ queryKey: [mode === 'seller' ? 'seller-inquiries' : 'admin-enquiries-crm'] });
       setActionSuccess('Inquiry status updated.');
       setTimeout(() => setActionSuccess(''), 3500);
       if (selectedLead) setSelectedLead(null);
     },
+    onError: () => setActionError('The inquiry status could not be updated. Please try again.'),
   });
 
   // Unique properties for filter dropdown
@@ -311,6 +316,12 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
         <div className="fixed top-6 right-6 z-50 px-4 py-3 rounded-2xl border shadow-[var(--shadow-depth-1)] flex items-center gap-2.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 animate-fadeIn">
           <CheckCircle2 size={16} />
           <span>{actionSuccess}</span>
+        </div>
+      )}
+      {actionError && (
+        <div role="alert" className="fixed right-6 top-20 z-50 flex items-center gap-2.5 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-semibold text-red-400 shadow-[var(--shadow-depth-1)] animate-fadeIn">
+          <X size={16} />
+          <span>{actionError}</span>
         </div>
       )}
 

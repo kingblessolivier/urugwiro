@@ -108,6 +108,15 @@ def chat_send_api(request):
         content=content,
         listing=listing,
     )
+
+    from .consumers import push_notification
+    push_notification(
+        recipient=recipient,
+        actor=request.user,
+        notification_type='new_message',
+        message=f"{request.user.get_full_name() or request.user.username}: {content[:80]}",
+        link='/admin/conversations/',
+    )
     
     return Response({
         'id': msg.id,

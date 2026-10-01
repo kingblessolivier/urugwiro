@@ -20,6 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import type { AppView } from '../../types/navigation';
 import { DarkModeToggle } from './DarkModeToggle';
 import { cn } from '../../lib/utils';
+import { NotificationCenter } from '../common/NotificationCenter';
 
 interface SellerLayoutProps {
   currentView: AppView;
@@ -98,6 +99,7 @@ export const SellerLayout: React.FC<SellerLayoutProps> = ({
           </button>
 
           <DarkModeToggle />
+          <NotificationCenter />
 
           <div className="h-5 w-px bg-[var(--color-border-subtle)] hidden sm:block" />
 

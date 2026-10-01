@@ -17,7 +17,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import (
     User, Listing, ListingMedia, SellerProfile, SavedProperty, ListingReview, PropertyInquiry, Updates,
     VerificationDocument, VerificationReview, ListingAuditLog, Offer, Visit, Customer, Conversation, ConversationEvent, Message,
-    FollowUp, Transaction, SellerPayment, CommissionRule, BusinessExpense, ListingProposal, SystemSetting, ArticleCategory, Article, Announcement, Asset,
+    FollowUp, Transaction, SellerPayment, CommissionRule, BusinessExpense, ListingProposal, SystemSetting, ArticleCategory, Article, Announcement, Asset, ResidentialSpec, LandSpec, VehicleSpec, CommercialSpec, HotelSpec, Notification,
 )
 
 # Import serializers
@@ -32,7 +32,7 @@ from .serializers import (
 )
 
 # Services
-from .services import ValuationService
+from .services import ValuationService, generate_listing_narrative, analyze_offer, describe_listing_image
 
 logger = logging.getLogger(__name__)
 
@@ -66,13 +66,71 @@ def get_seller_profile(request):
         return request.user.seller_profile
     return None
 
+def create_listing_asset(data, category, title):
+    asset_type = 'LAND' if category == 'land' else 'VEHICLE' if category in ['car', 'motorbike'] else 'BUILDING'
+    asset = Asset.objects.create(
+        asset_type=asset_type,
+        name=title or 'Property asset',
+        province=data.get('province') or '',
+        district=data.get('district') or '',
+        sector=data.get('sector') or '',
+        cell=data.get('cell') or '',
+        village=data.get('village') or '',
+        total_area=data.get('area_sqm') or data.get('builtAreaSqm') or data.get('plotSizeSqm') or None,
+        latitude=data.get('latitude') or None,
+        longitude=data.get('longitude') or None,
+    )
+    if category == 'land':
+        LandSpec.objects.create(
+            asset=asset,
+            upi_number=data.get('upi_number') or data.get('upiNumber') or None,
+            terrain=data.get('terrain') or None,
+            zoning_code=data.get('zoningCode') or None,
+            road_type=data.get('landRoadType') or None,
+            water_onsite=str(data.get('waterOnsite', '')).lower() == 'true',
+            electricity_onsite=str(data.get('electricityOnsite', '')).lower() == 'true',
+        )
+    elif category in ['car', 'motorbike']:
+        VehicleSpec.objects.create(
+            asset=asset,
+            vehicle_type='Motorcycle' if category == 'motorbike' else 'Car',
+            make=data.get('make') or 'Not specified',
+            model=data.get('model') or 'Not specified',
+            year=int(data.get('year') or 2000),
+            mileage=int(float(data.get('mileage') or 0)),
+            fuel_type=data.get('fuelType') or 'Petrol',
+            transmission=data.get('transmission') or 'Automatic',
+        )
+    elif category == 'hotel':
+        HotelSpec.objects.create(
+            asset=asset,
+            star_rating=int(data.get('starRating') or 1),
+            total_rooms=int(data.get('totalRooms') or 0),
+            management_type=data.get('managementType') or 'Owner-Managed',
+        )
+    else:
+        ResidentialSpec.objects.create(
+            asset=asset,
+            sub_type=data.get('sub_type') or 'SingleFamily',
+            bedrooms=int(data.get('bedrooms') or 0),
+            bathrooms=int(data.get('bathrooms') or 0),
+            built_up_area_sqm=data.get('builtAreaSqm') or None,
+            is_furnished=str(data.get('isFurnished', '')).lower() == 'true',
+            year_built=int(data.get('yearBuilt') or 0) or None,
+            parking_spaces=int(data.get('parkingSpaces') or 0),
+            has_garden=str(data.get('hasGarden', '')).lower() == 'true',
+            has_water_tank=str(data.get('hasWaterTank', '')).lower() == 'true',
+        )
+    return asset
+
 def get_paginated_response(queryset, serializer_class, request, context=None):
+    serializer_context = context or {'request': request}
     paginator = StandardResultsSetPagination()
     page = paginator.paginate_queryset(queryset, request)
     if page is not None:
-        serializer = serializer_class(page, many=True, context=context)
+        serializer = serializer_class(page, many=True, context=serializer_context)
         return paginator.get_paginated_response(serializer.data)
-    serializer = serializer_class(queryset, many=True, context=context)
+    serializer = serializer_class(queryset, many=True, context=serializer_context)
     return Response(serializer.data)
 
 # ==========================================
@@ -278,6 +336,40 @@ def api_logout(request):
 def api_about(request):
     return Response({'about': 'Urugwiro is a real estate platform.'}, status=status.HTTP_200_OK)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def notifications_list(request):
+    notifications = Notification.objects.filter(recipient=request.user)[:50]
+    return Response({
+        'results': [
+            {
+                'id': item.id,
+                'type': item.notification_type,
+                'message': item.message,
+                'link': item.link,
+                'is_read': item.is_read,
+                'created_at': item.created_at,
+                'actor': item.actor.username if item.actor else '',
+            }
+            for item in notifications
+        ],
+        'unread_count': Notification.objects.filter(recipient=request.user, is_read=False).count(),
+    })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def notifications_mark_all_read(request):
+    Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+    return Response({'unread_count': 0})
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def notification_mark_read(request, pk):
+    notification = get_object_or_404(Notification, pk=pk, recipient=request.user)
+    notification.is_read = True
+    notification.save(update_fields=['is_read'])
+    return Response({'id': notification.id, 'is_read': True})
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def api_contact_submit(request):
@@ -332,6 +424,22 @@ def api_contact_submit(request):
                         recipient=listing.seller.user,
                         listing=listing,
                         content=message,
+                    )
+                from .consumers import push_notification
+                push_notification(
+                    recipient=listing.seller.user,
+                    actor=request.user if request.user.is_authenticated else None,
+                    notification_type='new_contact',
+                    message=f'New inquiry about {listing.title}',
+                    link='/admin/enquiries/',
+                )
+                for admin_user in User.objects.filter(role__in=['admin', 'owner', 'staff']).exclude(id=listing.seller.user_id):
+                    push_notification(
+                        recipient=admin_user,
+                        actor=request.user if request.user.is_authenticated else None,
+                        notification_type='new_contact',
+                        message=f'New inquiry about {listing.title}',
+                        link='/admin/enquiries/',
                     )
                 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -460,7 +568,8 @@ def seller_create_listing(request):
     data = request.data.copy()
     serializer = ListingCreateSerializer(data=data)
     if serializer.is_valid():
-        listing = serializer.save(seller=profile)
+        asset = create_listing_asset(data, data.get('category') or 'house', data.get('title'))
+        listing = serializer.save(seller=profile, asset=asset)
         # Create a default slug
         listing.slug = slugify(f"{listing.title}-{listing.id}")
         listing.save()
@@ -510,7 +619,7 @@ def seller_upload_listing_media(request, pk):
     data['listing'] = listing.id
     serializer = ListingMediaSerializer(data=data)
     if serializer.is_valid():
-        serializer.save()
+        serializer.save(listing=listing)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -781,6 +890,24 @@ def consumer_visit_book(request):
         notes=request.data.get('notes', '') or (f"Time slot: {preferred_time_val}" if preferred_time_val else ''),
         status='requested'
     )
+
+    if listing.seller and listing.seller.user_id:
+        from .consumers import push_notification
+        push_notification(
+            recipient=listing.seller.user,
+            actor=request.user if request.user.is_authenticated else None,
+            notification_type='visit_request',
+            message=f'New visit request for {listing.title}',
+            link='/seller/visits/',
+        )
+        for admin_user in User.objects.filter(role__in=['admin', 'owner', 'staff']).exclude(id=listing.seller.user_id):
+            push_notification(
+                recipient=admin_user,
+                actor=request.user if request.user.is_authenticated else None,
+                notification_type='visit_request',
+                message=f'New visit request for {listing.title}',
+                link='/admin/visits/',
+            )
     
     if conversation:
         ConversationEvent.objects.create(
@@ -1041,14 +1168,29 @@ def admin_properties_list_create(request):
         listings = Listing.objects.all().order_by('-date_listed')
         return get_paginated_response(listings, ListingSerializer, request)
     elif request.method == 'POST':
-        serializer = ListingCreateSerializer(data=request.data)
+        data = request.data.copy()
+        if not data.get('description'):
+            data['description'] = f"{data.get('title') or 'Property'} in {data.get('district') or 'Rwanda'}. Contact Urugwiro to arrange a viewing and verify the property details."
+        if not data.get('address'):
+            data['address'] = ', '.join(filter(None, [data.get('sector'), data.get('district'), data.get('province')])) or 'Rwanda'
+        serializer = ListingCreateSerializer(data=data)
         if serializer.is_valid():
             seller_id = request.data.get('seller_id')
-            seller = get_object_or_404(SellerProfile, pk=seller_id) if seller_id else SellerProfile.objects.first()
+            seller = get_object_or_404(SellerProfile, pk=seller_id) if seller_id else getattr(request.user, 'seller_profile', None)
+            if not seller and request.user.is_authenticated:
+                seller = SellerProfile.objects.create(
+                    user=request.user,
+                    name=request.user.get_full_name() or request.user.username,
+                    email=request.user.email or 'admin@urugwiro.rw',
+                    phone_number='Not provided',
+                    status='approved',
+                    is_verified=True,
+                )
             if not seller:
                 return Response({'error': 'Create a seller profile before adding a property.'}, status=status.HTTP_400_BAD_REQUEST)
             # Create a default slug
-            listing = serializer.save(seller=seller)
+            asset = create_listing_asset(data, data.get('category') or 'house', data.get('title'))
+            listing = serializer.save(seller=seller, asset=asset)
             listing.slug = slugify(f"{listing.title}-{listing.id}")
             listing.save()
             return Response(ListingSerializer(listing).data, status=status.HTTP_201_CREATED)
@@ -1081,7 +1223,7 @@ def admin_upload_listing_media(request, pk):
     data['listing'] = listing.id
     serializer = ListingMediaSerializer(data=data)
     if serializer.is_valid():
-        serializer.save()
+        serializer.save(listing=listing)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1542,18 +1684,49 @@ def manage_system_settings(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def valuation_estimate(request):
-    property_type = request.data.get('property_type')
-    size = request.data.get('size')
-    location = request.data.get('location')
-    
-    if not property_type or not size:
-        return Response({'error': 'Property type and size are required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-    estimate = ValuationService.estimate_value(property_type, float(size), location)
-    
-    return Response({
-        'estimate': estimate,
-        'property_type': property_type,
-        'size': size,
-        'location': location
-    })
+    category = request.data.get('category') or request.data.get('property_type')
+    district = request.data.get('district')
+    sector = request.data.get('sector')
+    size = request.data.get('area_sqm') or request.data.get('size')
+    if not category:
+        return Response({'error': 'Property category is required'}, status=status.HTTP_400_BAD_REQUEST)
+    estimate = ValuationService.get_valuation_estimate(category, district, sector, size=size)
+    return Response({**estimate, 'currency': 'RWF', 'property_type': category, 'size': size})
+
+@api_view(['POST'])
+def ai_listing_narrative(request):
+    err = check_seller_permission(request)
+    if err: return err
+    return Response(generate_listing_narrative(request.data))
+
+@api_view(['POST'])
+def ai_offer_analysis(request):
+    err = check_seller_permission(request)
+    if err: return err
+    return Response(analyze_offer(request.data))
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def visual_search(request):
+    image = request.FILES.get('image')
+    if not image:
+        return Response({'error': 'An image is required'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        descriptor = describe_listing_image(image)
+    except RuntimeError as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except Exception:
+        logger.exception('Visual search failed')
+        return Response({'error': 'Visual search is temporarily unavailable'}, status=status.HTTP_502_BAD_GATEWAY)
+
+    queryset = Listing.objects.filter(status='published').select_related('asset', 'seller').prefetch_related('media')
+    category = str(descriptor.get('category') or '').lower()
+    category_map = {'apartment': 'house', 'vehicle': 'car'}
+    if category in category_map:
+        category = category_map[category]
+    if category in {'house', 'land', 'car', 'commercial', 'hotel'}:
+        queryset = queryset.filter(category=category)
+    keywords = str(descriptor.get('keywords') or '').strip()
+    if keywords:
+        queryset = queryset.filter(Q(title__icontains=keywords) | Q(description__icontains=keywords))
+    return Response({'listings': ListingSerializer(queryset[:20], many=True, context={'request': request}).data, 'analysis': descriptor})

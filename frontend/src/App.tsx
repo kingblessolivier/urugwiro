@@ -88,7 +88,7 @@ function AdminRoute({ view, children }: { view: AppView; children: React.ReactNo
   return (
     <ViewGuard view={view}>
       <AdminLayout currentView={view} onNavigate={setView}>
-        <ErrorBoundary onReset={() => goBack('admin')}>
+        <ErrorBoundary key={location.pathname} onReset={() => goBack('admin')}>
           <Suspense fallback={<PageLoader />}>
             {children}
           </Suspense>
@@ -109,7 +109,7 @@ function SellerRoute({ view, children }: { view: AppView; children: React.ReactN
   return (
     <ViewGuard view={view}>
       <SellerLayout currentView={view} onNavigate={setView}>
-        <ErrorBoundary onReset={() => goBack('seller-dashboard')}>
+        <ErrorBoundary key={location.pathname} onReset={() => goBack('seller-dashboard')}>
           <Suspense fallback={<PageLoader />}>
             {children}
           </Suspense>
@@ -215,7 +215,7 @@ function SellerDashboardRoute({ tab }: { tab: 'overview' | 'listings' | 'message
     : 'seller-dashboard';
   return (
     <SellerRoute view={view}>
-      <SellerDashboard onNavigate={setView} onListingClick={navigateToListing} initialTab={tab} hideShell={true} />
+      <SellerDashboard key={tab} onNavigate={setView} onListingClick={navigateToListing} initialTab={tab} hideShell={true} />
     </SellerRoute>
   );
 }
@@ -295,8 +295,8 @@ function RoutedApp() {
       <Route path="/admin/inbox" element={<Navigate to="/admin/conversations" replace />} />
       <Route path="/admin/enquiries" element={<AdminRoute view="admin-enquiries"><AdminEnquiries /></AdminRoute>} />
       <Route path="/admin/leads" element={<Navigate to="/admin/enquiries" replace />} />
-      <Route path="/admin/offers" element={<AdminRoute view="admin-offers"><AdminOffers initialTab="offers" /></AdminRoute>} />
-      <Route path="/admin/visits" element={<AdminRoute view="admin-offers"><AdminOffers initialTab="visits" /></AdminRoute>} />
+      <Route path="/admin/offers" element={<AdminRoute view="admin-offers"><AdminOffers key="offers" initialTab="offers" /></AdminRoute>} />
+      <Route path="/admin/visits" element={<AdminRoute view="admin-offers"><AdminOffers key="visits" initialTab="visits" /></AdminRoute>} />
       <Route path="/admin/verification" element={<AdminRoute view="admin-verification"><VerificationWorkspace /></AdminRoute>} />
       <Route path="/admin/reports" element={<AdminRoute view="admin-reports"><AdminReports /></AdminRoute>} />
       <Route path="/admin/transactions" element={<AdminRoute view="admin-reports"><AdminReports /></AdminRoute>} />

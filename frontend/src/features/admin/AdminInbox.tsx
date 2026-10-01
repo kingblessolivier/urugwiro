@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Send, User, Search, RefreshCw, CheckCheck } from 'lucide-react';
+import { MessageSquare, Send, User, Search, RefreshCw, CheckCheck, Plus, X } from 'lucide-react';
 import { api } from '../../api/endpoints';
 
 interface Contact {
@@ -29,6 +29,11 @@ const AdminInbox: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState<Array<{ id: number; username: string; name: string; role: string }>>([]);
+  const [composeRecipient, setComposeRecipient] = useState<number | ''>('');
+  const [composeContent, setComposeContent] = useState('');
+  const [composeStatus, setComposeStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const fetchContacts = async () => {
@@ -94,11 +99,39 @@ const AdminInbox: React.FC = () => {
     }
   };
 
+  const openCompose = async () => {
+    setComposeOpen(true);
+    setComposeStatus(null);
+    setComposeRecipient('');
+    setComposeContent('');
+    try {
+      const res = await api.chat.newUsers();
+      setAvailableUsers(res.data || []);
+    } catch {
+      setComposeStatus({ type: 'error', message: 'Could not load available users.' });
+    }
+  };
+
+  const handleComposeSend = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!composeRecipient || !composeContent.trim()) return;
+    try {
+      await api.chat.send({ recipient_id: composeRecipient, content: composeContent.trim() });
+      const recipient = availableUsers.find((user) => user.id === composeRecipient);
+      setComposeStatus({ type: 'success', message: `Message sent to ${recipient?.name || 'user'}.` });
+      setComposeContent('');
+      fetchContacts();
+    } catch {
+      setComposeStatus({ type: 'error', message: 'Message could not be sent. Please try again.' });
+    }
+  };
+
   const filteredContacts = contacts.filter((c) =>
     (c.name || c.username).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
+    <>
     <div className="h-[calc(100vh-8rem)] flex flex-col bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-sm">
       {/* Top Header */}
       <div className="px-6 py-4 border-b border-[var(--color-border)] flex items-center justify-between">
@@ -111,14 +144,14 @@ const AdminInbox: React.FC = () => {
             <p className="text-xs text-[var(--color-text-dim)]">Internal communication and buyer/seller direct chats</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={fetchContacts}
-          className="p-2 rounded-lg text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)] transition-colors"
-          title="Refresh"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={openCompose} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-700">
+            <Plus size={14} /> New message
+          </button>
+          <button type="button" onClick={fetchContacts} className="rounded-lg p-2 text-[var(--color-text-dim)] transition-colors hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-main)]" title="Refresh">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
@@ -263,6 +296,35 @@ const AdminInbox: React.FC = () => {
         </div>
       </div>
     </div>
+    {composeOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) setComposeOpen(false); }}>
+        <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-2xl">
+          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+            <div>
+              <h2 className="text-base font-bold text-[var(--color-text-main)]">New message</h2>
+              <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">Choose an active user to start a conversation.</p>
+            </div>
+            <button type="button" onClick={() => setComposeOpen(false)} className="rounded-lg p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)]" aria-label="Close compose dialog"><X size={17} /></button>
+          </div>
+          <form onSubmit={handleComposeSend} className="space-y-4 p-5">
+            {composeStatus && <div role="status" className={`rounded-xl border px-3 py-2 text-xs ${composeStatus.type === 'success' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500' : 'border-red-500/30 bg-red-500/10 text-red-400'}`}>{composeStatus.message}</div>}
+            <label className="block space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Recipient</span>
+              <select value={composeRecipient} onChange={(event) => setComposeRecipient(event.target.value ? Number(event.target.value) : '')} required className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2.5 text-sm text-[var(--color-text-main)] outline-none focus:border-emerald-500/50">
+                <option value="">Select an available user</option>
+                {availableUsers.map((user) => <option key={user.id} value={user.id}>{user.name || user.username} · {user.role}</option>)}
+              </select>
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Message</span>
+              <textarea value={composeContent} onChange={(event) => setComposeContent(event.target.value)} rows={5} required placeholder="Write your message..." className="w-full resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2.5 text-sm text-[var(--color-text-main)] outline-none focus:border-emerald-500/50" />
+            </label>
+            <button type="submit" disabled={!composeRecipient || !composeContent.trim()} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"><Send size={15} /> Send message</button>
+          </form>
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 

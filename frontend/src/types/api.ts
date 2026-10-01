@@ -38,15 +38,21 @@ export interface ListingsListParams {
 
 export interface Offer {
   id: number;
-  listing_id?: number;
-  property_title: string;
-  buyer_username: string;
-  amount: number;
-  counter_amount?: number;
-  message: string;
-  status: 'accepted' | 'pending' | 'rejected' | 'countered';
-  date: string;
+  listing: number;
+  listing_title?: string;
+  listing_price?: number;
+  customer?: number | null;
+  customer_name?: string;
+  seller?: number | null;
+  seller_name?: string;
+  conversation?: number | null;
   asking_price?: number;
+  offered_amount: number;
+  currency?: string;
+  message?: string;
+  status: 'new' | 'reviewing' | 'negotiating' | 'accepted' | 'declined' | 'withdrawn';
+  created_at: string;
+  updated_at?: string;
 }
 
 export interface AIAnalysisResult {

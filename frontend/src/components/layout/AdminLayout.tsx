@@ -14,6 +14,7 @@ import { type AppView } from '../../types/navigation';
 import { api } from '../../api/endpoints';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
+import { NotificationCenter } from '../common/NotificationCenter';
 
 interface AdminLayoutProps {
   currentView: AppView;
@@ -340,6 +341,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <NotificationCenter />
             <Button
               variant="ghost"
               onClick={() => onNavigate('home')}
