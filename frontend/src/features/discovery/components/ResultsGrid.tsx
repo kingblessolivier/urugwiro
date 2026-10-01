@@ -40,15 +40,19 @@ interface ResultsGridProps {
     onToggleCompare?: (id: string) => void;
     isSavedOnly?: boolean;
     onClearSavedFilter?: () => void;
+    hoveredListingId?: string | null;
+    onHoverListing?: (id: string | null) => void;
+    currentPage?: number;
+    totalPages?: number;
+    onPageChange?: (page: number) => void;
 }
 
-const ResultsGrid: React.FC<ResultsGridProps> = ({ listings, loading, onListingClick, columns = 3, viewMode = 'grid', savedIds, comparedIds, onToggleSave, onToggleCompare, isSavedOnly, onClearSavedFilter }) => {
-    const [page, setPage] = useState(1);
+const ResultsGrid: React.FC<ResultsGridProps> = ({
+    listings, loading, onListingClick, columns = 3, viewMode = 'grid',
+    savedIds, comparedIds, onToggleSave, onToggleCompare, isSavedOnly, onClearSavedFilter,
+    hoveredListingId, onHoverListing, currentPage = 1, totalPages = 1, onPageChange,
+}) => {
     const [pageSize, setPageSize] = useState(9);
-
-    useEffect(() => {
-        setPage(1);
-    }, [listings.length]);
 
     const gridClass = viewMode === 'list' ? 'grid grid-cols-1 gap-4' : columns === 3
         ? 'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'
@@ -110,51 +114,55 @@ const ResultsGrid: React.FC<ResultsGridProps> = ({ listings, loading, onListingC
         );
     }
 
-    const paginatedListings = listings.slice((page - 1) * pageSize, page * pageSize);
-
     return (
         <div className="space-y-8">
             <div className={gridClass}>
-                {paginatedListings.map((listing) => (
-                    <ListingCard
+                {listings.map((listing) => (
+                    <div
                         key={listing.id}
-                        listing={{
-                            id: listing.id,
-                            title: listing.title,
-                            price: Number(listing.price) || 0,
-                            currency: listing.currency || 'RWF',
-                            location: listing.location || [listing.asset?.district, listing.asset?.province].filter(Boolean).join(', ') || 'Rwanda',
-                            listing_type: listing.listing_type,
-                            verification_level: listing.verification_level,
-                            media: listing.media,
-                            specs: {
-                                ...(listing.bedrooms ? { beds: listing.bedrooms } : {}),
-                                ...(listing.bathrooms ? { baths: listing.bathrooms } : {}),
-                                ...(listing.area ? { 'm²': listing.area } : {}),
-                            },
-                            description: listing.description,
-                            views: listing.views_count ?? listing.views,
-                            status: listing.status,
-                            is_liked: listing.is_liked,
-                        }}
-                        onClick={onListingClick}
-                        viewMode={viewMode}
-                        saved={savedIds?.has(String(listing.id)) || Boolean(listing.is_liked)}
-                        compared={comparedIds?.has(String(listing.id))}
-                        onToggleSave={onToggleSave}
-                        onToggleCompare={onToggleCompare}
-                    />
+                        onMouseEnter={() => onHoverListing?.(String(listing.id))}
+                        onMouseLeave={() => onHoverListing?.(null)}
+                        className={hoveredListingId === String(listing.id) ? 'ring-2 ring-emerald-500 rounded-2xl' : ''}
+                    >
+                        <ListingCard
+                            listing={{
+                                id: listing.id,
+                                title: listing.title,
+                                price: Number(listing.price) || 0,
+                                currency: listing.currency || 'RWF',
+                                location: listing.location || [listing.asset?.district, listing.asset?.province].filter(Boolean).join(', ') || 'Rwanda',
+                                listing_type: listing.listing_type,
+                                verification_level: listing.verification_level,
+                                media: listing.media,
+                                specs: {
+                                    ...(listing.bedrooms ? { beds: listing.bedrooms } : {}),
+                                    ...(listing.bathrooms ? { baths: listing.bathrooms } : {}),
+                                    ...(listing.area ? { 'm²': listing.area } : {}),
+                                },
+                                description: listing.description,
+                                views: listing.views_count ?? listing.views,
+                                status: listing.status,
+                                is_liked: listing.is_liked,
+                            }}
+                            onClick={onListingClick}
+                            viewMode={viewMode}
+                            saved={savedIds?.has(String(listing.id)) || Boolean(listing.is_liked)}
+                            compared={comparedIds?.has(String(listing.id))}
+                            onToggleSave={onToggleSave}
+                            onToggleCompare={onToggleCompare}
+                        />
+                    </div>
                 ))}
             </div>
 
-            {listings.length > 0 && (
+            {totalPages > 1 && (
                 <div className="pt-2">
                     <Pagination
-                        currentPage={page}
-                        totalPages={Math.max(1, Math.ceil(listings.length / pageSize))}
-                        onPageChange={setPage}
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={onPageChange || (() => {})}
                         pageSize={pageSize}
-                        onPageSizeChange={(sz) => { setPageSize(sz); setPage(1); }}
+                        onPageSizeChange={(sz) => { setPageSize(sz); onPageChange?.(1); }}
                         totalItems={listings.length}
                     />
                 </div>

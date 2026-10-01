@@ -1,11 +1,12 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700;800&display=swap');
 
 /* Make Tailwind's `dark:` variant follow the in-app theme class (html.dark),
    not the OS preference. Without this, `dark:` utilities ignore the toggle. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ─────────────────────────────────────────────────────────────
-   SEMANTIC DESIGN TOKENS — "Institutional Clean"
+   SEMANTIC DESIGN TOKENS — "Black Edition" Luxury
    Source of truth = the runtime --color-* variables below, which
    flip between :root (light, default) and .dark. These @theme aliases
    expose them as Tailwind utilities (bg-surface, text-ink, border-line…).
@@ -22,12 +23,17 @@
   --color-line-strong: var(--color-border-hover);
   --color-accent: var(--color-brand-emerald);
   --color-accent-soft: var(--color-accent-soft-bg);
+  --color-gold: var(--color-accent-gold);
+  --color-gold-hover: var(--color-accent-gold-hover);
 
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Playfair Display', Georgia, serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 
   --radius-control: 0.5rem;
   --radius-card: 0.75rem;
+  --radius-luxury: 1.25rem;
+  --radius-luxury-lg: 1.5rem;
 
   --shadow-card: var(--shadow-depth-1);
   --shadow-pop: var(--shadow-depth-2);
@@ -60,10 +66,12 @@
   --color-section-alt: #eef1f6;
   --color-section-alt-border: #e2e8f0;
 
-  /* Brand — Rwanda emerald is the single accent */
+  /* Brand — Rwanda emerald for success/status, Gold for CTAs */
   --color-brand-emerald: #059669;     /* emerald-600, AA on white */
   --color-brand-emerald-glow: rgba(5, 150, 105, 0.18);
   --color-accent-soft-bg: #ecfdf5;    /* emerald-50 */
+  --color-accent-gold: #d4af37;      /* luxury gold for CTAs */
+  --color-accent-gold-hover: #e5c158;
   --color-brand-sun: #f98604;
   --color-brand-sun-glow: rgba(249, 134, 4, 0.22);
 
@@ -121,8 +129,8 @@
   --color-text-muted: #9fb0c3;
   --color-text-dim: #7d8ea3;
 
-  --color-border: rgba(255, 255, 255, 0.10);
-  --color-border-hover: rgba(255, 255, 255, 0.18);
+  --color-border: rgba(255, 255, 255, 0.15);
+  --color-border-hover: rgba(255, 255, 255, 0.25);
 
   --color-header-bg: rgba(11, 15, 20, 0.92);
   --color-header-border: rgba(255, 255, 255, 0.10);
@@ -137,6 +145,8 @@
   --color-brand-emerald: #10b981;
   --color-brand-emerald-glow: rgba(16, 185, 129, 0.25);
   --color-accent-soft-bg: rgba(16, 185, 129, 0.12);
+  --color-accent-gold: #d4af37;
+  --color-accent-gold-hover: #e5c158;
 
   --border-clean: rgba(255, 255, 255, 0.10);
   --border-clean-hover: rgba(255, 255, 255, 0.18);
@@ -172,7 +182,7 @@ html, body {
 }
 
 h1, h2, h3, .font-display {
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   letter-spacing: -0.02em;
 }
 
@@ -182,12 +192,34 @@ code, kbd, samp, pre, .font-mono {
 
 /* Accessible, consistent keyboard focus across the whole app */
 :focus-visible {
-  outline: 2px solid var(--color-brand-emerald);
+  outline: 2px solid var(--color-accent-gold, var(--color-brand-emerald));
   outline-offset: 2px;
   border-radius: 4px;
 }
 
+/* Remove default outline only when :focus-visible is supported */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
 @layer components {
+  /* Luxury glassmorphism card */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: var(--radius-luxury);
+  }
+
+  .glass-card-strong {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-luxury-lg);
+  }
+
   /* Institutional surface primitives — theme-aware via tokens */
   .surface-card {
     background-color: var(--color-bg-card);
@@ -251,4 +283,32 @@ code, kbd, samp, pre, .font-mono {
 @keyframes encouragingPulse {
   0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.2); }
   50% { transform: scale(1.02); box-shadow: 0 0 16px 4px rgba(16, 185, 129, 0.28); }
+}
+
+/* ─── Modal Animations ─── */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease both;
 }

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV ? '/api' : 'http://localhost:8000/api');
+    '/api';
 
 // CSRF token extraction from cookies (Django's csrf_token cookie)
 function getCsrfToken(): string | null {
@@ -15,6 +15,7 @@ const apiClient = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true,
     xsrfCookieName: 'csrftoken',
     xsrfHeaderName: 'X-CSRFToken',
 });
@@ -23,7 +24,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('access_token');
-        if (token) {
+        if (token && token !== 'undefined' && token !== 'null') {
             config.headers.Authorization = `Bearer ${token}`;
         }
         // Attach CSRF token for mutating requests
@@ -43,11 +44,16 @@ apiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
+        if (originalRequest?.url?.includes('/auth/login/') || originalRequest?.url?.includes('/auth/register/')) {
+            return Promise.reject(error);
+        }
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
             try {
                 const refreshToken = localStorage.getItem('refresh_token');
-                if (!refreshToken) throw new Error('No refresh token available');
+                if (!refreshToken || refreshToken === 'undefined' || refreshToken === 'null') {
+                    throw new Error('No refresh token available');
+                }
 
                 const response = await axios.post(`${API_BASE_URL}/token/refresh/`, {
                     refresh: refreshToken,
@@ -63,7 +69,6 @@ apiClient.interceptors.response.use(
                 localStorage.removeItem('refresh_token');
                 localStorage.removeItem('urugwiro_user');
                 localStorage.removeItem('user_role');
-                window.location.href = '/login';
                 return Promise.reject(refreshError);
             }
         }

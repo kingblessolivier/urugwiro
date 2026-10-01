@@ -490,8 +490,8 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
             <div className="p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-center">
               <p className="text-[10px] text-[var(--color-text-dim)] uppercase font-bold">Engagement Rate</p>
               <p className="text-lg font-mono font-bold text-[var(--color-brand-emerald)]">
-                {listing.inquiries_count && listing.visits_count
-                  ? ((listing.visits_count / listing.inquiries_count) * 100).toFixed(1) + '%'
+                {listing.visits_count && listing.inquiries_count
+                  ? ((listing.inquiries_count / listing.visits_count) * 100).toFixed(1) + '%'
                   : '0.0%'}
               </p>
             </div>

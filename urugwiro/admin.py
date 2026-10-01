@@ -1,244 +1,292 @@
 from django.contrib import admin
 from .models import (
-    Property, Unit, Tenant, Lease, User,
-    CustomerMessage, Owner, Updates, Email,
-    CustRequest, MaintenanceRequest, Payment, Message, Visit, LikedProperties,
-    Agent, Seller, SaleProperty, Offer, AgentAssignment, SiteVisit, PropertyInquiry, AgentReview,
-    Post, PostMedia, Hashtag, PostHashtag, PostComment, PostLike, Notification,
-    Announcement, PropertyImage,
+    User, Asset, ResidentialSpec, CommercialSpec, LandSpec, HotelSpec, VehicleSpec,
+    SellerProfile, Listing, ListingMedia,
+    Customer, Conversation, ConversationEvent, FollowUp, Visit, Offer,
+    CommissionRule, Transaction, SellerPayment, BusinessExpense,
+    DocumentTemplate, GeneratedDocument, DocumentSignature,
+    VerificationDocument, VerificationReview, ListingAuditLog, AuditLog,
+    ArticleCategory, Article, ListingReview, SavedProperty, ListingProposal,
+    Notification, Announcement, PropertyInquiry, Updates, Message,
+    SystemLog, SystemSetting
 )
+
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'email', 'is_staff', 'is_active', 'role')
-    list_filter = ('is_staff', 'is_active', 'role')
-    search_fields = ('username', 'email')
+    list_display = ('username', 'email', 'role', 'is_staff', 'is_active', 'date_joined')
+    list_filter = ('role', 'is_staff', 'is_active')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
 
 
-@admin.register(Owner)
-class OwnerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'phone_number', 'address', 'image')
-    search_fields = ('name',)
+@admin.register(Asset)
+class AssetAdmin(admin.ModelAdmin):
+    list_display = ('name', 'asset_type', 'district', 'sector', 'total_area', 'created_at')
+    list_filter = ('asset_type', 'district')
+    search_fields = ('name', 'district', 'sector')
 
 
-@admin.register(Property)
-class PropertyAdmin(admin.ModelAdmin):
-    list_display = ('name', 'address', 'types', 'description', 'image', 'number_of_units')
-    list_filter = ('types',)
-    search_fields = ('name',)
+@admin.register(ResidentialSpec)
+class ResidentialSpecAdmin(admin.ModelAdmin):
+    list_display = ('asset', 'sub_type', 'bedrooms', 'bathrooms', 'built_up_area_sqm', 'is_furnished')
+    list_filter = ('sub_type', 'is_furnished')
+    search_fields = ('asset__name',)
 
 
-@admin.register(Unit)
-class UnitAdmin(admin.ModelAdmin):
-    list_display = ('unit_number', 'rent', 'bathrooms', 'bedrooms', 'is_available')
-    list_filter = ('is_available',)
-    search_fields = ('unit_number',)
+@admin.register(CommercialSpec)
+class CommercialSpecAdmin(admin.ModelAdmin):
+    list_display = ('asset', 'zoning_type', 'parking_spaces', 'total_floors')
+    list_filter = ('zoning_type',)
 
 
-@admin.register(Tenant)
-class TenantAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'phone_number', 'address', 'image')
-    search_fields = ('name',)
+@admin.register(LandSpec)
+class LandSpecAdmin(admin.ModelAdmin):
+    list_display = ('asset', 'land_use_category', 'tenure_type', 'upi_number', 'terrain', 'road_access')
+    list_filter = ('land_use_category', 'tenure_type', 'road_access')
+    search_fields = ('upi_number', 'asset__name')
 
 
-@admin.register(Lease)
-class LeaseAdmin(admin.ModelAdmin):
-    list_display = ('tenant', 'listing', 'start_date', 'end_date')
-    list_filter = ('start_date',)
-    search_fields = ('tenant__name',)
+@admin.register(HotelSpec)
+class HotelSpecAdmin(admin.ModelAdmin):
+    list_display = ('asset', 'star_rating', 'total_rooms', 'conference_halls', 'management_type')
+    list_filter = ('star_rating', 'management_type')
 
 
-@admin.register(CustomerMessage)
-class CustomerMessageAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'message', 'created_at')
-    list_filter = ('created_at',)
-    search_fields = ('name', 'email')
+@admin.register(VehicleSpec)
+class VehicleSpecAdmin(admin.ModelAdmin):
+    list_display = ('make', 'model', 'year', 'vehicle_type', 'plate_number', 'condition')
+    list_filter = ('vehicle_type', 'fuel_type', 'transmission')
+    search_fields = ('make', 'model', 'plate_number')
 
 
-@admin.register(Updates)
-class UpdatesAdmin(admin.ModelAdmin):
-    list_display = ('title', 'description', 'created_at')
-    list_filter = ('created_at',)
-    search_fields = ('title',)
+@admin.register(SellerProfile)
+class SellerProfileAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'phone_number', 'status', 'is_verified', 'date_joined')
+    list_filter = ('status', 'is_verified')
+    search_fields = ('name', 'email', 'phone_number', 'id_number')
 
 
-@admin.register(Email)
-class EmailAdmin(admin.ModelAdmin):
-    list_display = ('sender_email', 'subject')
+class ListingMediaInline(admin.TabularInline):
+    model = ListingMedia
+    extra = 1
+    fields = ('file', 'media_type', 'category', 'caption', 'order')
 
 
-@admin.register(CustRequest)
-class CustRequestAdmin(admin.ModelAdmin):
-    list_display = ('listing', 'name', 'email', 'created_at', 'is_archived', 'is_read')
-    list_filter = ('created_at', 'is_archived', 'is_read')
-    search_fields = ('listing__title', 'name', 'email')
+@admin.register(Listing)
+class ListingAdmin(admin.ModelAdmin):
+    list_display = ('title', 'category', 'purpose', 'price', 'currency', 'status', 'verification_level', 'is_featured', 'seller', 'date_listed')
+    list_filter = ('status', 'category', 'purpose', 'verification_level', 'is_featured')
+    search_fields = ('title', 'address', 'seller__name')
+    list_editable = ('status', 'is_featured')
+    inlines = [ListingMediaInline]
 
 
-@admin.register(MaintenanceRequest)
-class MaintenanceRequestAdmin(admin.ModelAdmin):
-    list_display = ('listing', 'tenant', 'title', 'request_date', 'status')
-    list_filter = ('status', 'request_date')
-    search_fields = ('title', 'tenant__user__username')
+@admin.register(ListingMedia)
+class ListingMediaAdmin(admin.ModelAdmin):
+    list_display = ('listing', 'media_type', 'category', 'caption', 'order', 'uploaded_at')
+    list_filter = ('media_type', 'category')
+    search_fields = ('listing__title', 'caption')
 
 
-@admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('listing', 'tenant', 'amount', 'date_paid')
-    list_filter = ('date_paid',)
-    search_fields = ('tenant__user__username',)
+@admin.register(Customer)
+class CustomerAdmin(admin.ModelAdmin):
+    list_display = ('full_name', 'phone', 'email', 'location', 'source', 'last_activity_at')
+    list_filter = ('source', 'created_at')
+    search_fields = ('full_name', 'phone', 'email', 'location')
 
 
-@admin.register(Message)
-class MessageAdmin(admin.ModelAdmin):
-    list_display = ('sender', 'recipient', 'sent_date', 'is_read')
-    list_filter = ('sent_date', 'is_read')
-    search_fields = ('sender__username', 'recipient__username')
+class ConversationEventInline(admin.TabularInline):
+    model = ConversationEvent
+    extra = 0
+    readonly_fields = ('event_type', 'description', 'channel', 'performed_by', 'created_at')
+    can_delete = False
+
+
+@admin.register(Conversation)
+class ConversationAdmin(admin.ModelAdmin):
+    list_display = ('customer', 'listing', 'seller', 'status', 'source', 'assigned_staff', 'last_interaction_at')
+    list_filter = ('status', 'source')
+    search_fields = ('customer__full_name', 'customer__phone', 'listing__title', 'seller__name')
+    inlines = [ConversationEventInline]
+
+
+@admin.register(ConversationEvent)
+class ConversationEventAdmin(admin.ModelAdmin):
+    list_display = ('conversation', 'event_type', 'channel', 'performed_by', 'created_at')
+    list_filter = ('event_type', 'channel')
+    search_fields = ('conversation__customer__full_name', 'description')
+
+
+@admin.register(FollowUp)
+class FollowUpAdmin(admin.ModelAdmin):
+    list_display = ('customer', 'listing', 'assigned_to', 'due_date', 'status', 'created_at')
+    list_filter = ('status', 'due_date')
+    search_fields = ('customer__full_name', 'note')
 
 
 @admin.register(Visit)
 class VisitAdmin(admin.ModelAdmin):
-    list_display = ('listing', 'tenant', 'visit_date')
-    list_filter = ('visit_date',)
-    search_fields = ('tenant__user__username',)
-@admin.register(LikedProperties)
-class LikedPropertiesAdmin(admin.ModelAdmin):
-    list_display = ('user', 'listing')
-    search_fields = ('user__username', 'listing__title')
-
-
-# ═══════════════════════════════════════════════════════════
-#   REAL ESTATE MARKETPLACE ADMIN
-# ═══════════════════════════════════════════════════════════
-
-@admin.register(Agent)
-class AgentAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'phone_number', 'specialization', 'is_verified', 'rating', 'total_deals')
-    list_filter = ('is_verified', 'specialization')
-    search_fields = ('name', 'email', 'license_number')
-
-
-@admin.register(Seller)
-class SellerAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'phone_number', 'is_verified', 'date_joined')
-    list_filter = ('is_verified',)
-    search_fields = ('name', 'email', 'id_number')
-
-
-@admin.register(SaleProperty)
-class SalePropertyAdmin(admin.ModelAdmin):
-    list_display = ('title', 'property_type', 'price', 'city', 'status', 'seller', 'assigned_agent', 'is_featured', 'date_listed')
-    list_filter = ('property_type', 'status', 'city', 'is_featured', 'listing_type')
-    search_fields = ('title', 'address', 'city', 'district')
-    list_editable = ('is_featured', 'status')
+    list_display = ('customer', 'listing', 'seller', 'preferred_date', 'preferred_time', 'status', 'phone')
+    list_filter = ('status', 'preferred_date')
+    search_fields = ('customer__full_name', 'listing__title', 'phone')
 
 
 @admin.register(Offer)
 class OfferAdmin(admin.ModelAdmin):
-    list_display = ('listing', 'buyer', 'amount', 'status', 'created_at')
+    list_display = ('listing', 'customer', 'seller', 'offered_amount', 'currency', 'asking_price', 'status', 'created_at')
+    list_filter = ('status', 'currency', 'created_at')
+    search_fields = ('listing__title', 'customer__full_name', 'seller__name')
+
+
+@admin.register(CommissionRule)
+class CommissionRuleAdmin(admin.ModelAdmin):
+    list_display = ('name', 'rule_type', 'percentage', 'fixed_amount', 'category', 'is_default', 'is_active')
+    list_filter = ('rule_type', 'is_default', 'is_active')
+    search_fields = ('name', 'description')
+
+
+@admin.register(Transaction)
+class TransactionAdmin(admin.ModelAdmin):
+    list_display = ('listing', 'seller', 'customer', 'transaction_type', 'agreed_price', 'commission_amount', 'seller_amount', 'status', 'completed_at')
+    list_filter = ('transaction_type', 'status')
+    search_fields = ('listing__title', 'seller__name', 'customer__full_name')
+
+
+@admin.register(SellerPayment)
+class SellerPaymentAdmin(admin.ModelAdmin):
+    list_display = ('seller', 'listing', 'seller_entitlement', 'amount_paid', 'remaining_balance', 'status', 'payment_date', 'payment_method')
+    list_filter = ('status', 'payment_method')
+    search_fields = ('seller__name', 'listing__title', 'payment_reference')
+
+
+@admin.register(BusinessExpense)
+class BusinessExpenseAdmin(admin.ModelAdmin):
+    list_display = ('category', 'amount', 'currency', 'date', 'vendor', 'recorded_by')
+    list_filter = ('category', 'date')
+    search_fields = ('description', 'vendor', 'reference')
+
+
+@admin.register(DocumentTemplate)
+class DocumentTemplateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'template_type', 'is_active', 'created_at')
+    list_filter = ('template_type', 'is_active')
+    search_fields = ('name', 'content')
+
+
+@admin.register(GeneratedDocument)
+class GeneratedDocumentAdmin(admin.ModelAdmin):
+    list_display = ('title', 'template', 'listing', 'seller', 'customer', 'status', 'generated_by', 'created_at')
     list_filter = ('status', 'created_at')
-    search_fields = ('listing__title', 'buyer__username')
+    search_fields = ('title', 'seller__name', 'customer__full_name')
 
 
-@admin.register(AgentAssignment)
-class AgentAssignmentAdmin(admin.ModelAdmin):
-    list_display = ('agent', 'listing', 'assigned_date', 'is_active')
-    list_filter = ('is_active',)
+@admin.register(DocumentSignature)
+class DocumentSignatureAdmin(admin.ModelAdmin):
+    list_display = ('document', 'signer_name', 'signer_email', 'status', 'signed_at')
+    list_filter = ('status',)
+    search_fields = ('signer_name', 'signer_email')
 
 
-@admin.register(SiteVisit)
-class SiteVisitAdmin(admin.ModelAdmin):
-    list_display = ('listing', 'agent', 'visitor', 'scheduled_date', 'status')
-    list_filter = ('status', 'scheduled_date')
-    search_fields = ('listing__title', 'agent__name')
+@admin.register(VerificationDocument)
+class VerificationDocumentAdmin(admin.ModelAdmin):
+    list_display = ('listing', 'document_type', 'is_verified', 'uploaded_at')
+    list_filter = ('is_verified', 'document_type')
+    search_fields = ('listing__title', 'document_type')
 
 
-@admin.register(PropertyInquiry)
-class PropertyInquiryAdmin(admin.ModelAdmin):
-    list_display = ('listing', 'name', 'email', 'is_read', 'created_at')
-    list_filter = ('is_read', 'created_at')
-    search_fields = ('listing__title', 'name', 'email')
+@admin.register(VerificationReview)
+class VerificationReviewAdmin(admin.ModelAdmin):
+    list_display = ('document', 'reviewer', 'status', 'reviewed_at')
+    list_filter = ('status',)
 
 
-@admin.register(AgentReview)
-class AgentReviewAdmin(admin.ModelAdmin):
-    list_display = ('agent', 'reviewer', 'rating', 'created_at')
+@admin.register(ListingAuditLog)
+class ListingAuditLogAdmin(admin.ModelAdmin):
+    list_display = ('listing', 'field_changed', 'changed_by', 'timestamp')
+    list_filter = ('field_changed',)
+    search_fields = ('listing__title',)
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ('user', 'action', 'entity_type', 'entity_id', 'created_at')
+    list_filter = ('action', 'entity_type')
+    search_fields = ('description', 'entity_id')
+
+
+@admin.register(ArticleCategory)
+class ArticleCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'icon')
+
+
+@admin.register(Article)
+class ArticleAdmin(admin.ModelAdmin):
+    list_display = ('title', 'category', 'author', 'is_published', 'created_at')
+    list_filter = ('is_published', 'category')
+    search_fields = ('title', 'content')
+
+
+@admin.register(ListingReview)
+class ListingReviewAdmin(admin.ModelAdmin):
+    list_display = ('listing', 'reviewer_name', 'rating', 'created_at')
     list_filter = ('rating',)
-    search_fields = ('agent__name', 'reviewer__username')
+    search_fields = ('listing__title', 'reviewer_name')
 
 
-# ═══════════════════════════════════════════════════════════
-#   SOCIAL FEED ADMIN
-# ═══════════════════════════════════════════════════════════
-
-@admin.register(Post)
-class PostAdmin(admin.ModelAdmin):
-    list_display = ('author', 'content_preview', 'location', 'is_public', 'created_at')
-    list_filter = ('is_public', 'created_at')
-    search_fields = ('author__username', 'content')
-
-    def content_preview(self, obj):
-        import re
-        text = re.sub(r'<[^>]+>', '', obj.content)
-        return text[:80]
-    content_preview.short_description = 'Content'
+@admin.register(SavedProperty)
+class SavedPropertyAdmin(admin.ModelAdmin):
+    list_display = ('user', 'listing', 'saved_at')
+    search_fields = ('user__username', 'listing__title')
 
 
-@admin.register(PostMedia)
-class PostMediaAdmin(admin.ModelAdmin):
-    list_display = ('post', 'media_type', 'order')
-    list_filter = ('media_type',)
-
-
-@admin.register(Hashtag)
-class HashtagAdmin(admin.ModelAdmin):
-    list_display = ('name',)
-    search_fields = ('name',)
-
-
-@admin.register(PostHashtag)
-class PostHashtagAdmin(admin.ModelAdmin):
-    list_display = ('post', 'hashtag')
-
-
-@admin.register(PostComment)
-class PostCommentAdmin(admin.ModelAdmin):
-    list_display = ('post', 'user', 'guest_name', 'content_preview', 'created_at')
-    list_filter = ('created_at',)
-    search_fields = ('user__username', 'guest_name', 'content')
-
-    def content_preview(self, obj):
-        return obj.content[:80]
-    content_preview.short_description = 'Comment'
-
-
-@admin.register(PostLike)
-class PostLikeAdmin(admin.ModelAdmin):
-    list_display = ('post', 'user', 'created_at')
-    list_filter = ('created_at',)
-    search_fields = ('user__username',)
+@admin.register(ListingProposal)
+class ListingProposalAdmin(admin.ModelAdmin):
+    list_display = ('proposal_code', 'title', 'asset_type', 'purpose', 'proposed_price', 'status', 'full_name', 'created_at')
+    list_filter = ('status', 'asset_type', 'purpose')
+    search_fields = ('proposal_code', 'title', 'full_name', 'phone_number')
 
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ('recipient', 'actor', 'notification_type', 'message', 'is_read', 'created_at')
-    list_filter = ('notification_type', 'is_read', 'created_at')
-    search_fields = ('recipient__username', 'actor__username', 'message')
+    list_filter = ('notification_type', 'is_read')
+    search_fields = ('recipient__username', 'message')
+
 
 @admin.register(Announcement)
 class AnnouncementAdmin(admin.ModelAdmin):
-    list_display  = ('text', 'icon', 'is_active', 'order', 'created_at')
+    list_display = ('text', 'icon', 'is_active', 'order', 'created_at')
     list_editable = ('is_active', 'order')
-    list_filter   = ('is_active',)
-    search_fields = ('text',)
-    ordering      = ('order', 'created_at')
+    list_filter = ('is_active',)
 
-class PropertyImageInline(admin.TabularInline):
-    model = PropertyImage
-    extra = 1
-    fields = ('image', 'caption', 'order')
 
-@admin.register(PropertyImage)
-class PropertyImageAdmin(admin.ModelAdmin):
-    list_display  = ('property', 'caption', 'order', 'uploaded_at')
-    list_filter   = ('property',)
-    search_fields = ('property__name', 'caption')
+@admin.register(PropertyInquiry)
+class PropertyInquiryAdmin(admin.ModelAdmin):
+    list_display = ('listing', 'name', 'email', 'phone', 'is_read', 'created_at')
+    list_filter = ('is_read', 'created_at')
+    search_fields = ('name', 'email', 'phone')
+
+
+@admin.register(Updates)
+class UpdatesAdmin(admin.ModelAdmin):
+    list_display = ('title', 'end_date', 'created_at')
+
+
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ('sender', 'recipient', 'sent_date', 'is_read')
+    list_filter = ('is_read',)
+    search_fields = ('sender__username', 'recipient__username')
+
+
+@admin.register(SystemLog)
+class SystemLogAdmin(admin.ModelAdmin):
+    list_display = ('level', 'category', 'message', 'user', 'timestamp')
+    list_filter = ('level', 'category')
+    search_fields = ('message', 'path')
+
+
+@admin.register(SystemSetting)
+class SystemSettingAdmin(admin.ModelAdmin):
+    list_display = ('key', 'value', 'description', 'updated_at')
+    search_fields = ('key', 'description')

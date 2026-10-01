@@ -41,7 +41,7 @@ const AdminSellerManager: React.FC = () => {
     queryKey: ['admin-sellers'],
     queryFn: async () => {
       const response = await api.admin.sellers();
-      return Array.isArray(response.data) ? response.data : [];
+      return Array.isArray(response.data) ? response.data : (response.data?.results || []);
     },
   });
 
@@ -124,9 +124,8 @@ const AdminSellerManager: React.FC = () => {
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 text-[var(--color-text-main)]">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[var(--color-border)] pb-6">
         <div>
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-brand-emerald)]">Merchant Directory</span>
-          <h1 className="text-3xl lg:text-4xl font-bold text-[var(--color-text-main)] tracking-tight mt-1">Sellers & Merchants</h1>
-          <p className="text-xs text-[var(--color-text-muted)] mt-1">Oversee merchant accounts, verify national credentials, and manage listings.</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-[var(--color-text-main)] tracking-tight">Sellers</h1>
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">{filteredSellers.length} sellers</p>
         </div>
         <button
           onClick={() => setIsAddOpen(true)}

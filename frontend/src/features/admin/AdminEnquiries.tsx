@@ -19,7 +19,7 @@ import {
   Sparkles,
   MessageSquare
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn, logError } from '../../lib/utils';
 import { tableHead, tableTh, tableBody, tableTr } from '../../components/ui/Dashboard';
 
 import { api } from '../../api/endpoints';
@@ -61,9 +61,9 @@ export const AdminEnquiries: React.FC = () => {
         status: proposalFilter !== 'all' ? proposalFilter : undefined,
         search: searchQuery || undefined,
       });
-      setProposals(Array.isArray(res.data) ? res.data : []);
+      setProposals(Array.isArray(res.data) ? res.data : (res.data?.results || []));
     } catch (err) {
-      console.error('Failed to fetch proposals:', err);
+      logError('Failed to fetch proposals:', err);
     } finally {
       setLoadingProposals(false);
     }
@@ -89,7 +89,7 @@ export const AdminEnquiries: React.FC = () => {
       fetchProposals();
       setTimeout(() => setActionSuccess(''), 4000);
     } catch (err) {
-      console.error('Failed to confirm visit:', err);
+      logError('Failed to confirm visit:', err);
     } finally {
       setActionLoading(false);
     }

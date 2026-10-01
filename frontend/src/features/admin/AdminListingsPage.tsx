@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCoreRowModel, getSortedRowModel, useReactTable, type ColumnDef, type SortingState, type VisibilityState } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, ArrowUpDown, Building2, CheckSquare, Columns3, Eye, ExternalLink, LayoutGrid, ListFilter, MapPin, Search, ShieldCheck, Square, Table2, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Building2, CheckSquare, Columns3, Edit3, Eye, ExternalLink, LayoutGrid, ListFilter, MapPin, Plus, Search, ShieldCheck, Square, Table2, Trash2, X } from 'lucide-react';
 import { api } from '../../api/endpoints';
 import { Pagination } from '../../components/ui/Pagination';
 import { tableHead, tableTh, tableBody, tableTr } from '../../components/ui/Dashboard';
@@ -12,6 +13,7 @@ interface AdminListingsPageProps {
 }
 
 const AdminListingsPage: React.FC<AdminListingsPageProps> = ({ onListingClick }) => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [type, setType] = useState('all');
@@ -27,7 +29,7 @@ const AdminListingsPage: React.FC<AdminListingsPageProps> = ({ onListingClick })
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['admin-current-listings-page'],
-    queryFn: async () => (await api.listings.list()).data,
+    queryFn: async () => (await api.admin.properties()).data,
   });
 
   const deleteMutation = useMutation({
@@ -43,7 +45,7 @@ const AdminListingsPage: React.FC<AdminListingsPageProps> = ({ onListingClick })
     },
   });
 
-  const listings = Array.isArray(data) ? data : [];
+  const listings = Array.isArray(data) ? data : (data?.results || []);
   const filteredListings = useMemo(() => listings.filter((listing) => {
     const matchesSearch = !search || `${listing.title} ${listing.slug} ${listing.listing_type} ${listing.address}`.toLowerCase().includes(search.toLowerCase());
     const matchesType = type === 'all' || listing.listing_type === type;
@@ -121,12 +123,16 @@ const AdminListingsPage: React.FC<AdminListingsPageProps> = ({ onListingClick })
       <div className="mx-auto max-w-7xl space-y-8">
         <header className="flex flex-col justify-between gap-5 border-b border-[var(--color-border)] pb-8 md:flex-row md:items-end">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-brand-emerald)]">Marketplace Moderation</p>
-            <h1 className="mt-2 text-3xl lg:text-4xl font-bold text-[var(--color-text-main)] tracking-tight">Unified Listings</h1>
+            <h1 className="text-2xl lg:text-3xl font-bold text-[var(--color-text-main)] tracking-tight">Properties</h1>
+            <p className="mt-1 text-sm text-[var(--color-text-muted)]">{filteredListings.length} listings</p>
           </div>
-          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] backdrop-blur-xl px-4 py-2 text-xs font-mono font-bold text-[var(--color-brand-emerald)] shadow-sm">
-            {filteredListings.length} records
-          </div>
+          <button
+            onClick={() => navigate('/admin/properties/new')}
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-brand-emerald)] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+          >
+            <Plus size={16} />
+            Add Property
+          </button>
         </header>
 
         <div className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] backdrop-blur-xl p-4 md:flex-row shadow-[var(--shadow-depth-1)]">

@@ -13,7 +13,10 @@ const VerificationWorkspace: React.FC = () => {
         queryKey: ['admin-verification-list'],
         queryFn: async () => {
             const response = await api.admin.verification.list();
-            return response.data;
+            const d = response.data;
+            if (Array.isArray(d)) return d;
+            if (d && Array.isArray(d.results)) return d.results;
+            return [];
         },
     });
 

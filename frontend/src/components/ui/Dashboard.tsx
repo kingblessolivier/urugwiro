@@ -265,8 +265,8 @@ export const LoadingState = ({ className }: { className?: string }) => (
     role="status"
     aria-live="polite"
   >
-    <div className="w-10 h-10 border-2 border-[var(--color-brand-emerald)]/20 border-t-[var(--color-brand-emerald)] rounded-full animate-spin" />
-    <span className="mt-3 text-xs tracking-widest uppercase text-[var(--color-text-dim)]">Loading...</span>
+    <div className="w-10 h-10 border-2 border-[var(--color-brand-emerald)]/20 border-t-[var(--color-brand-emerald)] rounded-full animate-spin" aria-hidden="true" />
+    <span className="mt-3 text-xs tracking-widest uppercase text-[var(--color-text-dim)]" role="status" aria-live="polite">Loading...</span>
   </div>
 );
 

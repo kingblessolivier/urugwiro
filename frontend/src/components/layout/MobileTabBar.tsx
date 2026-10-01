@@ -15,23 +15,18 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({ view, onNavigate }) 
 
   const getAccountDestination = (): AppView => {
     if (!isAuthenticated || !user) return 'login';
-    switch (user.role?.toLowerCase()) {
+    const role = user.role?.toLowerCase();
+    switch (role) {
       case 'admin':
+      case 'staff':
+      case 'finance':
         return 'admin';
-      case 'tenant':
-        return 'tenant-dashboard';
-      case 'buyer':
-      case 'consumer':
-      case 'client':
-        return 'buyer-dashboard';
       case 'seller':
         return 'seller-dashboard';
-      case 'agent':
-        return 'agent-dashboard';
       case 'owner':
         return 'owner-dashboard';
       default:
-        return 'buyer-dashboard';
+        return 'discovery';
     }
   };
 

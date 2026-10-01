@@ -5,13 +5,13 @@ import { api } from '../../../api/endpoints';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface ListingMedia {
-  id: string;
-  file: string;
-  media_type: 'image' | 'video' | '360' | 'model_3d' | 'cadastral_sketch';
-  category: string;
-  caption: string;
-  room_name: string;
-  order: number;
+  id?: string | number;
+  file?: string;
+  media_type?: 'image' | 'video' | '360' | '3d' | 'model_3d' | 'cadastral_sketch';
+  category?: string;
+  caption?: string;
+  room_name?: string;
+  order?: number;
 }
 
 interface AdminMediaManagerProps {
@@ -61,7 +61,7 @@ export const AdminMediaManager: React.FC<AdminMediaManagerProps> = ({ listingId,
     }
   };
 
-  const getMediaTypeIcon = (type: ListingMedia['media_type']) => {
+  const getMediaTypeIcon = (type: ListingMedia['media_type'] = 'image') => {
     switch (type) {
       case 'image': return <ImageIcon size={14} />;
       case 'video': return <Film size={14} />;
@@ -99,7 +99,7 @@ export const AdminMediaManager: React.FC<AdminMediaManagerProps> = ({ listingId,
                 <Button
                   variant="ghost"
                   className="p-1.5 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-md cursor-pointer"
-                  onClick={() => deleteMutation.mutate(item.id)}
+                  onClick={() => { if (item.id !== undefined) deleteMutation.mutate(String(item.id)); }}
                 >
                   <Trash2 size={14} />
                 </Button>

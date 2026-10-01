@@ -7,7 +7,7 @@ import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { NotificationProvider } from './context/NotificationContext'
-import { PerformanceMonitor } from './components/performance/PerformanceMonitor'
+import { ModalProvider } from './components/modal'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,8 +46,9 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <NotificationProvider>
           <AuthProvider>
-            <PerformanceMonitor />
-            <App />
+            <ModalProvider>
+              <App />
+            </ModalProvider>
           </AuthProvider>
         </NotificationProvider>
       </QueryClientProvider>

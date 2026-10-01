@@ -3,6 +3,7 @@ import { Lock, User, Mail, Eye, EyeOff, ArrowRight, AlertCircle, Building2, KeyR
 import { useAuth } from '../../context/AuthContext';
 import { type AppView, getDefaultDashboardForUser } from '../../types/navigation';
 import { pathForView } from '../../lib/routes';
+import { logError } from '../../lib/utils';
 
 interface RegisterPageProps {
     onNavigate?: (view: AppView) => void;
@@ -73,7 +74,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                 window.location.href = '/';
             }
         } catch (err: any) {
-            console.error('Registration error:', err);
+            logError('Registration error:', err);
             setError(err.response?.data?.error || err.message || 'Registration failed');
         } finally {
             setLoading(false);

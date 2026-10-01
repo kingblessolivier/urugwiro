@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ArrowLeft, ArrowRight, Rocket, Sparkles, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Rocket, ShieldCheck, Sparkles, Check, Upload, FileText, Eye, AlertCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { api } from '../../api/endpoints';
 import apiClient from '../../api/client';
@@ -22,8 +22,8 @@ interface UnifiedListingWizardProps {
   onNavigate?: (view: AppView) => void;
 }
 
-const STAGE_LABELS = ['Category', 'Type', 'Location', 'Specs', 'Pricing', 'Media', 'Review'];
-const TOTAL_STAGES = 7;
+const STAGE_LABELS = ['Category', 'Specs', 'Media', 'Trust', 'Preview'];
+const TOTAL_STAGES = 5;
 
 // ─── Initial State ───
 const initialLocation: LocationData = {
@@ -73,7 +73,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
   const [location, setLocation] = useState<LocationData>(initialLocation);
   const [specs, setSpecs] = useState<SpecsData>(initialSpecs);
 
-  // Stage 5: Pricing
+  // Stage 2: Pricing (merged into Specs)
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -83,37 +83,94 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
   const [isNegotiable, setIsNegotiable] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
-  // Stage 6: Media
+  // Stage 3: Media
   const [heroImage, setHeroImage] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState<string | null>(null);
   const [gallery, setGallery] = useState<File[]>([]);
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState('');
 
-  // Stage 7
+  // Stage 4: Trust Submission
+  const [trustFiles, setTrustFiles] = useState<{ titleDeed: File | null; idDocument: File | null; proofOfOwnership: File | null }>({
+    titleDeed: null,
+    idDocument: null,
+    proofOfOwnership: null,
+  });
+  const [trustSkipped, setTrustSkipped] = useState(false);
+
+  // Stage 5: Preview
   const [confirmed, setConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
-  // ─── Stage Validation ───
+  // ─── Validation ───
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  const validateStage = useCallback((s: number): boolean => {
+    const errors: Record<string, string> = {};
+
+    switch (s) {
+      case 1:
+        if (!category) errors.category = 'Please select a category';
+        if (!subtype) errors.subtype = 'Please select a type';
+        break;
+      case 2: {
+        if (!title.trim()) errors.title = 'Title is required';
+        else if (title.trim().length < 10) errors.title = 'Title must be at least 10 characters';
+        else if (title.trim().length > 100) errors.title = 'Title must be under 100 characters';
+
+        if (!price || Number(price) <= 0) errors.price = 'Price must be greater than 0';
+
+        if (description && description.length < 50) errors.description = 'Description must be at least 50 characters';
+
+        if (!location.province || !location.district) errors.location = 'Province and district are required';
+
+        if (category === 'car' || category === 'motorbike') {
+          if (!specs.make) errors.make = 'Make is required';
+          if (!specs.model) errors.model = 'Model is required';
+        }
+        if (category === 'land') {
+          if (!specs.plotSizeSqm) errors.plotSize = 'Plot size is required';
+        }
+        if (category === 'house') {
+          if (!specs.bedrooms) errors.bedrooms = 'Bedrooms is required';
+        }
+        break;
+      }
+      case 3:
+        if (!heroImage) errors.heroImage = 'At least one photo is required';
+        if (gallery.length > 10) errors.gallery = 'Maximum 10 gallery images allowed';
+        break;
+      case 4:
+        // Trust submission is optional (can skip)
+        break;
+      case 5:
+        if (!confirmed) errors.confirmed = 'Please confirm all details are accurate';
+        break;
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [category, subtype, title, price, description, location, specs, heroImage, gallery, confirmed]);
+
   const isStageValid = useCallback((s: number): boolean => {
     switch (s) {
-      case 1: return category !== null;
-      case 2: return subtype !== null;
-      case 3: return !!location.province && !!location.district;
-      case 4: {
+      case 1: return category !== null && subtype !== null;
+      case 2: {
+        if (!title.trim() || !price || Number(price) <= 0) return false;
+        if (!location.province || !location.district) return false;
         if (category === 'car' || category === 'motorbike') return !!specs.make && !!specs.model;
         if (category === 'land') return !!specs.plotSizeSqm;
-        if (category === 'apartment') return specs.totalBuildingFloors > 0;
         if (category === 'house') return !!specs.bedrooms;
         return true;
       }
-      case 5: return !!title && Number(price) > 0;
-      case 6: return heroImage !== null;
-      case 7: return confirmed;
+      case 3: return heroImage !== null && gallery.length <= 10;
+      case 4: return true; // Trust is optional
+      case 5: return confirmed;
       default: return false;
     }
-  }, [category, subtype, location, specs, title, price, heroImage, confirmed]);
+  }, [category, subtype, title, price, location, specs, heroImage, gallery, confirmed]);
 
   const handleNext = () => {
     if (isStageValid(stage) && stage < TOTAL_STAGES) {
@@ -155,6 +212,13 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
     });
   };
 
+  // Trust file handlers
+  const handleTrustFileUpload = (field: keyof typeof trustFiles) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setTrustFiles((prev) => ({ ...prev, [field]: file }));
+  };
+
   // AI title/description generator
   const handleGenerateAi = async () => {
     if (!category) return;
@@ -181,6 +245,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
   const handleSubmit = async () => {
     if (!category || !subtype) return;
     setIsSubmitting(true);
+    setSubmitError('');
 
     try {
       const fd = new FormData();
@@ -189,7 +254,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
       fd.append('purpose', purpose);
       fd.append('listed_by_role', listedByRole);
       fd.append('price', price);
-      fd.append('is_negotiable', String(isNegotiable));
+      fd.append('negotiable', String(isNegotiable));
       if (purpose === 'rent') {
         fd.append('rental_frequency', rentalFrequency);
         if (securityDeposit) fd.append('security_deposit', securityDeposit);
@@ -228,9 +293,28 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
       gallery.forEach((file, i) => fd.append(`gallery_${i}`, file));
       if (videoUrl) fd.append('videoUrl', videoUrl);
 
-      await apiClient.post('/seller/listings/create/', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // Trust documents
+      if (trustFiles.titleDeed) fd.append('title_deed', trustFiles.titleDeed);
+      if (trustFiles.idDocument) fd.append('id_document', trustFiles.idDocument);
+      if (trustFiles.proofOfOwnership) fd.append('proof_of_ownership', trustFiles.proofOfOwnership);
+
+      const createRequest = listedByRole === 'admin'
+        ? api.admin.createProperty(fd)
+        : apiClient.post('/seller/listings/create/', fd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+      const createResponse = await createRequest;
+      const createdListingId = createResponse.data?.id;
+      if (createdListingId && (heroImage || gallery.length > 0)) {
+        const uploadMedia = listedByRole === 'admin' ? api.admin.uploadMedia : api.seller.uploadMedia;
+        const files = [heroImage, ...gallery].filter(Boolean) as File[];
+        for (const file of files) {
+          const mediaForm = new FormData();
+          mediaForm.append('file', file);
+          mediaForm.append('media_type', 'image');
+          await uploadMedia(createdListingId, mediaForm);
+        }
+      }
 
       setSubmitSuccess(true);
       setTimeout(() => {
@@ -238,7 +322,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
         else if (onNavigate) onNavigate('discovery');
       }, 2000);
     } catch (err: any) {
-      alert(`Failed: ${err.response?.data?.detail || err.message || 'Unknown error'}`);
+      setSubmitError(err.response?.data?.error || err.response?.data?.detail || err.message || 'We could not add this property. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -252,36 +336,51 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
     color: 'var(--color-text-main)',
   };
 
+  const errorClass = 'text-red-400 text-[10px] font-semibold mt-1';
+
   // ─── Render Stage ───
   const renderStage = () => {
     switch (stage) {
       case 1:
-        return <CategorySelector selected={category} onSelect={(c) => { setCategory(c); setSubtype(null); }} />;
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>What are you listing?</h2>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Select the asset type and category</p>
+            </div>
+
+            <div>
+              {validationErrors.category && <p className={errorClass}>{validationErrors.category}</p>}
+              <CategorySelector selected={category} onSelect={(c) => { setCategory(c); setSubtype(null); }} />
+            </div>
+
+            {category && (
+              <div>
+                {validationErrors.subtype && <p className={errorClass}>{validationErrors.subtype}</p>}
+                <SubtypeSelector category={category} selected={subtype} onSelect={setSubtype} />
+              </div>
+            )}
+          </div>
+        );
 
       case 2:
-        return category ? <SubtypeSelector category={category} selected={subtype} onSelect={setSubtype} /> : null;
-
-      case 3:
-        return category ? <LocationPicker category={category} location={location} onChange={updateLocation} /> : null;
-
-      case 4:
-        return category && subtype ? (
-          <div className="space-y-5">
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Specifications</h2>
-              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Fill in the details for your {subtype?.replace(/_/g, ' ')}</p>
-            </div>
-            <SpecsForm category={category} subtype={subtype} specs={specs} onChange={updateSpecs} />
-          </div>
-        ) : null;
-
-      case 5:
         return (
           <div className="space-y-5">
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Title, Price & Terms</h2>
-              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Set your listing details and pricing</p>
+              <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Specifications & Pricing</h2>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Technical details and listing terms</p>
             </div>
+
+            {/* Location */}
+            <div>
+              {validationErrors.location && <p className={errorClass}>{validationErrors.location}</p>}
+              <LocationPicker category={category || 'house'} location={location} onChange={updateLocation} />
+            </div>
+
+            {/* Specs */}
+            {category && subtype && (
+              <SpecsForm category={category} subtype={subtype} specs={specs} onChange={updateSpecs} />
+            )}
 
             {/* Title */}
             <div>
@@ -292,6 +391,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
                   <Sparkles size={11} /> {isGeneratingAi ? 'Generating...' : 'AI Generate'}
                 </button>
               </div>
+              {validationErrors.title && <p className={errorClass}>{validationErrors.title}</p>}
               <input type="text" className={inputClass} style={inputStyle} value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={
@@ -306,6 +406,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
             {/* Description */}
             <div>
               <label className="text-[11px] font-bold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Description</label>
+              {validationErrors.description && <p className={errorClass}>{validationErrors.description}</p>}
               <textarea rows={4} className={cn(inputClass, 'resize-none')} style={inputStyle} value={description}
                 onChange={(e) => setDescription(e.target.value)} placeholder="Describe the key features..." />
             </div>
@@ -320,7 +421,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
                       purpose === p ? 'border-emerald-500 text-emerald-400' : 'border-transparent hover:border-white/10'
                     )}
                     style={{ background: purpose === p ? 'rgba(16,185,129,0.08)' : 'var(--color-input-bg)' }}>
-                    {p === 'sale' ? '🏷️ For Sale' : '🔑 For Rent'}
+                    {p === 'sale' ? 'For Sale' : 'For Rent'}
                   </button>
                 ))}
               </div>
@@ -344,6 +445,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
             {/* Price */}
             <div>
               <label className="text-[11px] font-bold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Price (RWF)</label>
+              {validationErrors.price && <p className={errorClass}>{validationErrors.price}</p>}
               <input type="number" className={cn(inputClass, 'text-lg font-mono font-bold')} style={inputStyle} value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" />
               {Number(price) > 0 && (
                 <p className="text-[10px] mt-1 font-mono" style={{ color: 'var(--color-text-dim)' }}>
@@ -362,7 +464,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
           </div>
         );
 
-      case 6:
+      case 3:
         return (
           <div className="space-y-5">
             <div className="text-center space-y-2">
@@ -375,6 +477,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
               <label className="text-[11px] font-bold uppercase tracking-wider block mb-2" style={{ color: 'var(--color-text-muted)' }}>
                 Main Photo <span className="text-red-400">*</span>
               </label>
+              {validationErrors.heroImage && <p className={errorClass}>{validationErrors.heroImage}</p>}
               <label
                 className="block w-full aspect-video rounded-2xl border-2 border-dashed overflow-hidden cursor-pointer transition-colors hover:border-emerald-500/30"
                 style={{ borderColor: heroPreview ? 'var(--color-border)' : 'rgba(255,255,255,0.1)', background: 'var(--color-input-bg)' }}
@@ -394,6 +497,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
             {/* Gallery */}
             <div>
               <label className="text-[11px] font-bold uppercase tracking-wider block mb-2" style={{ color: 'var(--color-text-muted)' }}>Gallery (up to 10)</label>
+              {validationErrors.gallery && <p className={errorClass}>{validationErrors.gallery}</p>}
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                 {galleryPreviews.map((src, i) => (
                   <div key={i} className="relative aspect-square rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)' }}>
@@ -401,7 +505,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
                     <button type="button" onClick={() => {
                       setGallery((g) => g.filter((_, idx) => idx !== i));
                       setGalleryPreviews((p) => p.filter((_, idx) => idx !== i));
-                    }} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] cursor-pointer">✕</button>
+                    }} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] cursor-pointer">X</button>
                   </div>
                 ))}
                 {gallery.length < 10 && (
@@ -422,71 +526,193 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
           </div>
         );
 
-      case 7:
+      case 4:
+        return (
+          <div className="space-y-5">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Trust & Verification</h2>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Upload documents to get verified (optional — you can skip and publish as &quot;Seller-Claimed&quot;)</p>
+            </div>
+
+            <div className="rounded-2xl border p-5 space-y-4" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)' }}>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold" style={{ color: 'var(--color-text-main)' }}>Why verify?</h3>
+                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Verified listings get 3x more inquiries and appear first in search results.</p>
+                </div>
+              </div>
+
+              {/* Title Deed */}
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                  <FileText size={12} className="inline mr-1" /> Title Deed
+                </label>
+                <label className="flex items-center gap-3 rounded-xl border border-dashed p-3 cursor-pointer transition-colors hover:border-emerald-500/30"
+                  style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'var(--color-input-bg)' }}>
+                  <Upload size={16} style={{ color: 'var(--color-text-dim)' }} />
+                  <span className="text-xs" style={{ color: trustFiles.titleDeed ? 'var(--color-text-main)' : 'var(--color-text-dim)' }}>
+                    {trustFiles.titleDeed ? trustFiles.titleDeed.name : 'Click to upload title deed'}
+                  </span>
+                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleTrustFileUpload('titleDeed')} />
+                </label>
+              </div>
+
+              {/* ID Document */}
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                  <FileText size={12} className="inline mr-1" /> National ID / Passport
+                </label>
+                <label className="flex items-center gap-3 rounded-xl border border-dashed p-3 cursor-pointer transition-colors hover:border-emerald-500/30"
+                  style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'var(--color-input-bg)' }}>
+                  <Upload size={16} style={{ color: 'var(--color-text-dim)' }} />
+                  <span className="text-xs" style={{ color: trustFiles.idDocument ? 'var(--color-text-main)' : 'var(--color-text-dim)' }}>
+                    {trustFiles.idDocument ? trustFiles.idDocument.name : 'Click to upload ID document'}
+                  </span>
+                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleTrustFileUpload('idDocument')} />
+                </label>
+              </div>
+
+              {/* Proof of Ownership */}
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                  <FileText size={12} className="inline mr-1" /> Proof of Ownership
+                </label>
+                <label className="flex items-center gap-3 rounded-xl border border-dashed p-3 cursor-pointer transition-colors hover:border-emerald-500/30"
+                  style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'var(--color-input-bg)' }}>
+                  <Upload size={16} style={{ color: 'var(--color-text-dim)' }} />
+                  <span className="text-xs" style={{ color: trustFiles.proofOfOwnership ? 'var(--color-text-main)' : 'var(--color-text-dim)' }}>
+                    {trustFiles.proofOfOwnership ? trustFiles.proofOfOwnership.name : 'Click to upload proof of ownership'}
+                  </span>
+                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleTrustFileUpload('proofOfOwnership')} />
+                </label>
+              </div>
+            </div>
+
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={trustSkipped} onChange={(e) => setTrustSkipped(e.target.checked)}
+                className="w-4 h-4 rounded border accent-emerald-500" />
+              <span className="text-xs font-medium" style={{ color: 'var(--color-text-main)' }}>
+                Skip for now — I&apos;ll verify later (listing will be &quot;Seller-Claimed&quot;)
+              </span>
+            </label>
+          </div>
+        );
+
+      case 5:
         if (submitSuccess) {
           return (
             <div className="py-16 text-center space-y-4">
               <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center">
                 <Check size={32} className="text-emerald-500" />
               </div>
-              <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-main)' }}>Published!</h2>
-              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Your listing is now live on Urugwiro</p>
+              <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-main)' }}>
+                {listedByRole === 'admin' ? 'Property added successfully' : 'Listing published successfully'}
+              </h2>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                {listedByRole === 'admin' ? 'The property is now in your admin inventory.' : 'Your listing is now live on Urugwiro.'}
+              </p>
             </div>
           );
         }
         return (
           <div className="space-y-5">
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Review & Publish</h2>
-              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Verify everything before going live</p>
-            </div>
-
-            <div className="rounded-2xl border p-5 space-y-3" style={{ borderColor: 'var(--color-border)', background: 'var(--color-input-bg)' }}>
-              {[
-                ['Category', `${category} → ${subtype}`],
-                ['Purpose', purpose === 'sale' ? 'For Sale' : `For Rent (${rentalFrequency.replace('per_', '')})`],
-                ['Title', title],
-                ['Price', `${Number(price).toLocaleString()} RWF`],
-                ['Location', `${location.province}, ${location.district}, ${location.sector}`],
-                ...(location.upiNumber ? [['UPI', location.upiNumber]] : []),
-                ...(category === 'car' || category === 'motorbike' ? [
-                  ['Vehicle', `${specs.year} ${specs.make} ${specs.model}`],
-                  ['Plate', specs.plateNumber || 'N/A'],
-                  ['RRA Customs', specs.rraCustoms],
-                ] : []),
-                ...(category === 'house' ? [
-                  ['Bedrooms / Baths', `${specs.bedrooms} / ${specs.bathrooms}`],
-                  ['Built Area', `${specs.builtAreaSqm || '-'} m²`],
-                ] : []),
-                ...(category === 'apartment' ? [
-                  ['Selling Mode', specs.sellingMode.replace(/_/g, ' ')],
-                  ['Building Floors', String(specs.totalBuildingFloors)],
-                  ['Total Units', String(specs.floorPlan.reduce((s, f) => s + f.units.length, 0))],
-                ] : []),
-                ...(category === 'land' ? [
-                  ['Plot Size', `${specs.plotSizeSqm} m²`],
-                  ['Zoning', specs.zoningCode],
-                ] : []),
-                ['Listed by', listedByRole.charAt(0).toUpperCase() + listedByRole.slice(1)],
-                ['Media', `${heroImage ? '1 hero' : '0'} + ${gallery.length} gallery`],
-              ].map(([label, value], i) => (
-                <div key={i} className="flex justify-between py-1.5" style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>{label}</span>
-                  <span className="text-xs font-semibold text-right max-w-[60%] truncate" style={{ color: 'var(--color-text-main)' }}>{value}</span>
-                </div>
-              ))}
-            </div>
-
-            {description && (
-              <div className="rounded-2xl border p-4" style={{ borderColor: 'var(--color-border)', background: 'var(--color-input-bg)' }}>
-                <p className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--color-text-dim)' }}>Description</p>
-                <p className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>"{description.slice(0, 200)}{description.length > 200 ? '...' : ''}"</p>
+            {submitError && (
+              <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-300">
+                <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                <span>{submitError}</span>
               </div>
             )}
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Live Preview</h2>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>This is how buyers will see your listing</p>
+            </div>
+
+            {/* Visual Preview Card */}
+            <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)' }}>
+              {/* Preview Image */}
+              <div className="aspect-video relative">
+                {heroPreview ? (
+                  <img src={heroPreview} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--color-bg-elevated)' }}>
+                    <span className="text-sm" style={{ color: 'var(--color-text-dim)' }}>No image</span>
+                  </div>
+                )}
+                <div className="absolute top-3 left-3">
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
+                    {purpose === 'sale' ? 'For Sale' : 'For Rent'}
+                  </span>
+                </div>
+                {trustFiles.titleDeed && (
+                  <div className="absolute top-3 right-3">
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Verified
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Preview Content */}
+              <div className="p-5 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-bold" style={{ color: 'var(--color-text-main)' }}>{title || 'Untitled Listing'}</h3>
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                      {location.province}, {location.district}, {location.sector}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-emerald-500">{Number(price).toLocaleString()} RWF</p>
+                    {purpose === 'rent' && <p className="text-[10px]" style={{ color: 'var(--color-text-dim)' }}>{rentalFrequency.replace('per_', 'per ')}</p>}
+                  </div>
+                </div>
+
+                {/* Preview Specs */}
+                <div className="flex flex-wrap gap-2">
+                  {category === 'house' && specs.bedrooms && (
+                    <span className="px-2.5 py-1 rounded-lg text-xs" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-muted)' }}>
+                      {specs.bedrooms} beds
+                    </span>
+                  )}
+                  {category === 'house' && specs.bathrooms && (
+                    <span className="px-2.5 py-1 rounded-lg text-xs" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-muted)' }}>
+                      {specs.bathrooms} baths
+                    </span>
+                  )}
+                  {category === 'land' && specs.plotSizeSqm && (
+                    <span className="px-2.5 py-1 rounded-lg text-xs" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-muted)' }}>
+                      {specs.plotSizeSqm} m²
+                    </span>
+                  )}
+                  {category === 'car' && specs.make && (
+                    <span className="px-2.5 py-1 rounded-lg text-xs" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-muted)' }}>
+                      {specs.year} {specs.make} {specs.model}
+                    </span>
+                  )}
+                </div>
+
+                {/* Preview Description */}
+                {description && (
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
+                    {description.slice(0, 150)}{description.length > 150 ? '...' : ''}
+                  </p>
+                )}
+
+                {/* Preview Details */}
+                <div className="flex items-center gap-4 text-[10px]" style={{ color: 'var(--color-text-dim)' }}>
+                  <span className="flex items-center gap-1"><Eye size={11} /> 0 views</span>
+                  <span className="flex items-center gap-1"><Check size={11} /> {listedByRole}</span>
+                  {isNegotiable && <span className="text-emerald-400">Negotiable</span>}
+                </div>
+              </div>
+            </div>
 
             {/* Edit stage links */}
             <div className="flex flex-wrap gap-1.5">
-              {STAGE_LABELS.slice(0, 6).map((label, i) => (
+              {STAGE_LABELS.slice(0, 4).map((label, i) => (
                 <button key={i} type="button" onClick={() => setStage(i + 1)}
                   className="text-[10px] font-bold px-2.5 py-1 rounded-full border cursor-pointer transition-colors hover:border-emerald-500/30"
                   style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-dim)' }}>
@@ -496,6 +722,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
             </div>
 
             {/* Confirm */}
+            {validationErrors.confirmed && <p className={errorClass}>{validationErrors.confirmed}</p>}
             <label className="flex items-center gap-3 cursor-pointer pt-2">
               <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)}
                 className="w-4 h-4 rounded border accent-emerald-500" />

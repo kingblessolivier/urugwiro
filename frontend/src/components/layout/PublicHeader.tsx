@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Menu, Search, X, ChevronDown, LogOut, Building2, KeyRound, Shield, Briefcase,
-  Layers, Settings, Compass, FileText, Sun, Moon, LayoutDashboard, Mail,
+  Layers, Settings, Compass, FileText, Sun, Moon, LayoutDashboard, Mail, Heart,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
@@ -254,40 +254,28 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
                         <button type="button" onClick={() => { onNavigate('admin'); setProfileDropdownOpen(false); }} className={menuItem}><Shield size={16} className="text-purple-500" /><span>Admin Dashboard</span></button>
                         <button type="button" onClick={() => { onNavigate('admin-listings'); setProfileDropdownOpen(false); }} className={menuItem}><Layers size={16} className="text-emerald-500" /><span>Admin Listings</span></button>
                         <button type="button" onClick={() => { onNavigate('admin-enquiries'); setProfileDropdownOpen(false); }} className={menuItem}><Mail size={16} className="text-emerald-500" /><span>Customer Inquiries &amp; Leads</span></button>
-                        <button type="button" onClick={() => { onNavigate('admin-offers'); setProfileDropdownOpen(false); }} className={menuItem}><Briefcase size={16} className="text-blue-500" /><span>Deals &amp; Offers</span></button>
+                        <button type="button" onClick={() => { onNavigate('admin-offers'); setProfileDropdownOpen(false); }} className={menuItem}><Briefcase size={16} className="text-blue-500" /><span>Offers &amp; Inspections</span></button>
                         <button type="button" onClick={() => { onNavigate('admin-verification'); setProfileDropdownOpen(false); }} className={menuItem}><Building2 size={16} className="text-amber-500" /><span>Title Verification &amp; Cadastre</span></button>
                         <button type="button" onClick={() => { onNavigate('admin-settings'); setProfileDropdownOpen(false); }} className={menuItem}><Settings size={16} className="text-[var(--color-text-dim)]" /><span>System Settings &amp; AI</span></button>
                       </>
                     )}
 
-                    {role.toLowerCase() === 'tenant' && (
+                    {(role.toLowerCase() === 'seller') && (
                       <>
-                        <button type="button" onClick={() => { onNavigate('tenant-dashboard'); setProfileDropdownOpen(false); }} className={menuItem}><KeyRound size={16} className="text-sky-500" /><span>Tenant Launchpad &amp; Leases</span></button>
-                        <button type="button" onClick={() => { onNavigate('discovery'); setProfileDropdownOpen(false); }} className={menuItem}><Compass size={16} className="text-emerald-500" /><span>Explore Available Rentals</span></button>
-                      </>
-                    )}
-
-                    {role.toLowerCase() === 'buyer' && (
-                      <>
-                        <button type="button" onClick={() => { onNavigate('buyer-dashboard'); setProfileDropdownOpen(false); }} className={menuItem}><LayoutDashboard size={16} className="text-emerald-500" /><span>Buyer Studio &amp; Offers</span></button>
-                        <button type="button" onClick={() => { onNavigate('discovery'); setProfileDropdownOpen(false); }} className={menuItem}><Compass size={16} className="text-emerald-500" /><span>Explore Property Catalog</span></button>
-                        <button type="button" onClick={() => { onNavigate('submit-proposal'); setProfileDropdownOpen(false); }} className={menuItem}><FileText size={16} className="text-blue-500" /><span>Submit Acquisition Request</span></button>
-                      </>
-                    )}
-
-                    {role.toLowerCase() === 'seller' && (
-                      <>
-                        <button type="button" onClick={() => { onNavigate('seller-dashboard'); setProfileDropdownOpen(false); }} className={menuItem}><Building2 size={16} className="text-amber-500" /><span>Seller Studio &amp; Inventory</span></button>
+                        <button type="button" onClick={() => { onNavigate('seller-dashboard'); setProfileDropdownOpen(false); }} className={menuItem}><Building2 size={16} className="text-amber-500" /><span>Seller Dashboard</span></button>
                         <button type="button" onClick={() => { onNavigate('seller-wizard'); setProfileDropdownOpen(false); }} className={menuItem}><Layers size={16} className="text-emerald-500" /><span>List New Asset</span></button>
                       </>
                     )}
 
-                    {role.toLowerCase() === 'agent' && (
-                      <button type="button" onClick={() => { onNavigate('agent-dashboard'); setProfileDropdownOpen(false); }} className={menuItem}><Briefcase size={16} className="text-teal-500" /><span>Broker &amp; Showing Desk</span></button>
+                    {(role.toLowerCase() === 'owner') && (
+                      <button type="button" onClick={() => { onNavigate('owner-dashboard'); setProfileDropdownOpen(false); }} className={menuItem}><Building2 size={16} className="text-orange-500" /><span>Owner Portfolio Launchpad</span></button>
                     )}
 
-                    {role.toLowerCase() === 'owner' && (
-                      <button type="button" onClick={() => { onNavigate('owner-dashboard'); setProfileDropdownOpen(false); }} className={menuItem}><Building2 size={16} className="text-orange-500" /><span>Owner Portfolio Launchpad</span></button>
+                    {role.toLowerCase() !== 'admin' && role.toLowerCase() !== 'seller' && role.toLowerCase() !== 'owner' && (
+                      <>
+                        <button type="button" onClick={() => { onNavigate('discovery'); setProfileDropdownOpen(false); }} className={menuItem}><Compass size={16} className="text-emerald-500" /><span>Explore Properties</span></button>
+                        <button type="button" onClick={() => { onNavigate('saved'); setProfileDropdownOpen(false); }} className={menuItem}><Heart size={16} className="text-rose-500" /><span>Saved Properties</span></button>
+                      </>
                     )}
                   </div>
 
@@ -340,10 +328,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
 
               <div className="mt-3 pt-3 border-t border-[var(--color-border)] grid gap-1">
                 {role.toLowerCase() === 'admin' && <button type="button" onClick={() => { onNavigate('admin'); setOpen(false); }} className={menuItem}><Shield size={16} className="text-purple-500" />Admin Dashboard</button>}
-                {(role.toLowerCase() === 'buyer' || role.toLowerCase() === 'consumer' || role.toLowerCase() === 'client') && <button type="button" onClick={() => { onNavigate('buyer-dashboard'); setOpen(false); }} className={menuItem}><LayoutDashboard size={16} className="text-emerald-500" />Buyer Studio &amp; Offers</button>}
-                {role.toLowerCase() === 'tenant' && <button type="button" onClick={() => { onNavigate('tenant-dashboard'); setOpen(false); }} className={menuItem}><KeyRound size={16} className="text-sky-500" />Tenant Studio &amp; Leases</button>}
-                {role.toLowerCase() === 'seller' && <button type="button" onClick={() => { onNavigate('seller-dashboard'); setOpen(false); }} className={menuItem}><Building2 size={16} className="text-amber-500" />Seller Studio</button>}
-                {role.toLowerCase() === 'agent' && <button type="button" onClick={() => { onNavigate('agent-dashboard'); setOpen(false); }} className={menuItem}><Briefcase size={16} className="text-teal-500" />Broker Showing Desk</button>}
+                {role.toLowerCase() === 'seller' && <button type="button" onClick={() => { onNavigate('seller-dashboard'); setOpen(false); }} className={menuItem}><Building2 size={16} className="text-amber-500" />Seller Dashboard</button>}
                 {role.toLowerCase() === 'owner' && <button type="button" onClick={() => { onNavigate('owner-dashboard'); setOpen(false); }} className={menuItem}><Building2 size={16} className="text-orange-500" />Owner Portfolio</button>}
               </div>
             </div>

@@ -1,96 +1,54 @@
 from django.db.models import Avg, Min, Max
-from .models import Listing, SaleExtension, LandExtension
+from .models import Listing
+
 
 class ValuationService:
     """
     Provides data-driven Fair Market Value (FMV) estimates based on comparable listings.
+    Uses the unified Listing + Asset model instead of legacy extensions.
     """
 
     @staticmethod
-    def get_valuation_estimate(property_type, city, district, sector, size):
+    def get_valuation_estimate(category, district, sector, size=None):
         """
-        Calculate FMV range using a hierarchical fallback search (Sector -> District -> City).
+        Calculate FMV range using a hierarchical fallback search (Sector -> District -> Province).
         """
-        # 1. Determine which extension to use for size and comparable filtering
-        extension_model = None
-        size_field = None
-
-        if property_type == 'land':
-            extension_model = LandExtension
-            size_field = 'plot_size'
-        elif property_type == 'sale':
-            extension_model = SaleExtension
-            size_field = 'size_sqm'
-        else:
-            # Default to SaleExtension for most properties (House, Apartment, etc.)
-            extension_model = SaleExtension
-            size_field = 'size_sqm'
-
-        # 2. Hierarchical search for comparables
-        comparables = []
-        search_levels = [
-            {'asset__sector__iexact': sector} if sector else {},
-            {'asset__district__iexact': district} if district else {},
-            {'asset__province__iexact': city} if city else {},
-        ]
+        # Hierarchical search for comparables
+        search_levels = []
+        if sector:
+            search_levels.append({'asset__sector__iexact': sector})
+        if district:
+            search_levels.append({'asset__district__iexact': district})
 
         for level in search_levels:
-            if not level: continue
-
-            # Filter active listings of the same type in the current location level
             qs = Listing.objects.filter(
-                status='listed',
+                status='published',
+                category=category,
                 **level
             )
 
-            # Join with extension to get size
-            # This is a simplification; in a real app, we'd use Prefetch or select_related
-            listings_with_size = []
-            for l in qs:
-                try:
-                    ext = getattr(l, 'sale_data' if property_type != 'land' else 'land_data')
-                    if ext and getattr(ext, size_field):
-                        listings_with_size.append({
-                            'price': l.price,
-                            'size': getattr(ext, size_field)
-                        })
-                except AttributeError:
-                    continue
+            if qs.exists():
+                stats = qs.aggregate(
+                    avg_price=Avg('price'),
+                    min_price=Min('price'),
+                    max_price=Max('price'),
+                )
 
-            if listings_with_size:
-                comparables = listings_with_size
-                break # Found comparables at this level, stop falling back
-
-        if not comparables:
-            return {
-                "error": "Insufficient market data to provide an estimate for this location.",
-                "comparables_count": 0
-            }
-
-        # 3. Calculate Unit Prices (Price / Size)
-        unit_prices = [item['price'] / item['size'] for item in comparables if item['size'] > 0]
-
-        if not unit_prices:
-            return {
-                "error": "Comparable listings found, but size data is missing.",
-                "comparables_count": len(comparables)
-            }
-
-        avg_unit_price = sum(unit_prices) / len(unit_prices)
-        min_unit_price = min(unit_prices)
-        max_unit_price = max(unit_prices)
-
-        # 4. Compute Final FMV range for the target size
-        fmv_average = avg_unit_price * size
-        fmv_min = min_unit_price * size
-        fmv_max = max_unit_price * size
+                avg = float(stats['avg_price'] or 0)
+                return {
+                    'estimated_value': round(avg),
+                    'low_range': round(float(stats['min_price'] or avg * 0.85)),
+                    'high_range': round(float(stats['max_price'] or avg * 1.15)),
+                    'comparables_count': qs.count(),
+                    'search_level': list(level.keys())[0].split('__')[1] if level else 'global',
+                    'confidence': 'high' if qs.count() >= 5 else 'medium' if qs.count() >= 2 else 'low',
+                }
 
         return {
-            "fmv_average": float(fmv_average),
-            "fmv_min": float(fmv_min),
-            "fmv_max": float(fmv_max),
-            "comparables_count": len(unit_prices),
-            "price_per_sqm_avg": float(avg_unit_price),
-            "currency": "RWF",
-            "message": f"Based on {len(unit_prices)} comparable listings in the area."
+            'estimated_value': 0,
+            'low_range': 0,
+            'high_range': 0,
+            'comparables_count': 0,
+            'search_level': 'none',
+            'confidence': 'insufficient_data',
         }

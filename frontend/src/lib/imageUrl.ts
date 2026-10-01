@@ -1,4 +1,6 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+import type { Listing } from '../types/listing';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
 
 export function resolveImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -10,14 +12,14 @@ export function resolveImageUrl(url: string | null | undefined): string | null {
 
   // Relative path — prefix with backend URL
   if (url.startsWith('/')) {
-    return `${BACKEND_URL}${url}`;
+    return `${BACKEND_URL}${url}` || url;
   }
 
   // Relative path without leading slash
-  return `${BACKEND_URL}/${url}`;
+  return BACKEND_URL ? `${BACKEND_URL}/${url}` : `/${url}`;
 }
 
-export function getListingImage(listing: any): string | null {
+export function getListingImage(listing: Listing): string | null {
   const raw = listing.featured_image || listing.media?.[0]?.url || listing.media?.[0]?.file || listing.image || null;
   return resolveImageUrl(raw);
 }

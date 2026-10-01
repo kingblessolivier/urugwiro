@@ -7,38 +7,28 @@ import {
   Clock, MapPin, Building,
   ArrowRight, ExternalLink, Bot, Menu, X,
   UserCheck, DollarSign, Phone, Heart, Calendar, Users, Mail,
-  Layers, Activity, FileSpreadsheet, RefreshCw, Cpu, Compass
+  Layers, Activity, FileSpreadsheet, RefreshCw, Cpu, Compass, Star, Eye
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn, logError } from '../../lib/utils';
+import { Badge } from '../../components/ui/Badge';
 import { SellerOfferManager } from './SellerOfferManager';
-import { SellerAiCopilot } from './SellerAiCopilot';
-import { ChatWindow } from '../chat/ChatWindow';
 import ListingWizard from './ListingWizard';
 import { PropertyInspectionDrawer } from './components/PropertyInspectionDrawer';
 import SellerPropertyEditor from './components/SellerPropertyEditor';
-import { SellerEarningsAndDeals } from './components/SellerEarningsAndDeals';
-import { SellerAgentNetwork } from './components/SellerAgentNetwork';
+import SellerRatings from './components/SellerRatings';
 import { CustomerLeadsManager, type LeadChannel } from '../../components/crm/CustomerLeadsManager';
-import { SellerAnalytics } from '../../components/SellerAnalytics';
-import { OfferComparison } from '../../components/OfferComparison';
-import { ClosingChecklist } from '../../components/ClosingChecklist';
-import { PaymentCollection } from '../../components/PaymentCollection';
-import { TaskList } from '../../components/TaskList';
-import SellerPropertyDetail from './SellerPropertyDetail';
 import SellerListingsTable from './SellerListingsTable';
-import SellerDealPipeline from './SellerDealPipeline';
-import SellerAssetDistribution from './SellerAssetDistribution';
-import SellerAgentManager from './SellerAgentManager';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/endpoints';
 import { Pagination } from '../../components/ui/Pagination';
 
-export type SellerTab = 'overview' | 'listings' | 'leads' | 'visits' | 'inquiries' | 'likes' | 'offers' | 'deals' | 'agents' | 'messages' | 'copilot' | 'verification' | 'new-listing' | 'pipeline' | 'assets' | 'agent-network' | 'reports';
+export type SellerTab = 'overview' | 'listings' | 'leads' | 'visits' | 'inquiries' | 'offers' | 'messages' | 'new-listing' | 'ratings' | 'earnings';
 
 interface SellerDashboardProps {
   onNavigate?: (view: any) => void;
   onListingClick?: (id: string) => void;
   initialTab?: SellerTab;
+  hideShell?: boolean;
 }
 
 interface ListingItem {
@@ -58,7 +48,7 @@ interface ListingItem {
   updatedAt: string;
 }
 
-export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, onListingClick, initialTab = 'overview' }) => {
+export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, onListingClick, initialTab = 'overview', hideShell = false }) => {
   const { user, logout } = useAuth();
   const displayName = user?.full_name || (user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user?.username) || 'Seller';
   const displayRole = user?.role || 'Seller';
@@ -67,6 +57,13 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('urugwiro_seller_sidebar_collapsed') === '1');
   const [headerSearch, setHeaderSearch] = useState('');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
 
   const toggleSidebar = () => {
     setSidebarCollapsed(prev => {
@@ -86,9 +83,10 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
     queryFn: async () => {
       try {
         const res = await api.seller.listings();
-        return Array.isArray(res.data) ? res.data : (res.data?.results || []);
+        const d: any = res.data;
+        return Array.isArray(d) ? d : (d?.results || []);
       } catch (e) {
-        console.error('Failed to fetch seller listings:', e);
+        logError('Failed to fetch seller listings:', e);
         return [];
       }
     },
@@ -100,7 +98,8 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
     queryFn: async () => {
       try {
         const res = await api.offers.list();
-        return Array.isArray(res.data) ? res.data : (res.data?.results || []);
+        const d: any = res.data;
+        return Array.isArray(d) ? d : (d?.results || []);
       } catch {
         return [];
       }
@@ -165,7 +164,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
     queryFn: async () => {
       try {
         const res = await api.seller.visits();
-        return Array.isArray(res.data) ? res.data : [];
+        return Array.isArray(res.data) ? res.data : (res.data?.results || []);
       } catch {
         return [];
       }
@@ -178,7 +177,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
     queryFn: async () => {
       try {
         const res = await api.seller.likes();
-        return Array.isArray(res.data) ? res.data : [];
+        return Array.isArray(res.data) ? res.data : (res.data?.results || []);
       } catch {
         return [];
       }
@@ -191,12 +190,26 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
     queryFn: async () => {
       try {
         const res = await api.seller.inquiries();
-        return Array.isArray(res.data) ? res.data : [];
+        return Array.isArray(res.data) ? res.data : (res.data?.results || []);
       } catch {
         return [];
       }
     },
   });
+
+  // 7. Live database earnings & payouts for seller
+  const { data: earningsData } = useQuery({
+    queryKey: ['seller-database-earnings', user?.id],
+    queryFn: async () => {
+      try {
+        const res = await api.seller.earnings();
+        return res.data;
+      } catch {
+        return { summary: { total_earned: 0, total_paid: 0, total_pending: 0 }, payments: [] };
+      }
+    },
+  });
+
 
   const totalVisits = rawVisits.length;
   const totalLikes = rawLikes.length;
@@ -242,45 +255,33 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
       items: [
         { id: 'overview', label: 'Overview', icon: LayoutDashboard },
         { id: 'listings', label: 'My Listings', icon: Package, badge: listings.length > 0 ? listings.length.toString() : undefined },
-        { id: 'new-listing', label: 'List New Asset', icon: Plus },
+        { id: 'new-listing', label: 'Add Property', icon: Plus },
       ],
     },
     {
-      label: 'Engagement',
+      label: 'Customers',
       items: [
         { id: 'leads', label: 'Leads & Inquiries', icon: Users, badge: totalLeads > 0 ? `${totalLeads} Active` : undefined, highlight: true },
         { id: 'visits', label: 'Visits & Showings', icon: Calendar, badge: totalVisits > 0 ? `${totalVisits}` : undefined },
         { id: 'inquiries', label: 'Inquiries', icon: MessageSquare, badge: totalInquiries > 0 ? `${totalInquiries}` : undefined },
-        { id: 'likes', label: 'Saved & Favorites', icon: Heart, badge: totalLikes > 0 ? `${totalLikes}` : undefined },
         { id: 'messages', label: 'Messages', icon: Mail, badge: unreadMessagesCount > 0 ? `${unreadMessagesCount} New` : undefined },
       ],
     },
     {
-      label: 'Transactions',
+      label: 'Sales & Feedback',
       items: [
-        { id: 'offers', label: 'Offers & Negotiations', icon: HandCoins, badge: totalOffers > 0 ? `${totalOffers} Active` : undefined },
-        { id: 'deals', label: 'Deals & Earnings', icon: DollarSign },
-        { id: 'pipeline', label: 'Deal Pipeline', icon: Layers },
-        { id: 'agents', label: 'Assigned Agents', icon: UserCheck },
-      ],
-    },
-    {
-      label: 'Intelligence & Trust',
-      items: [
-        { id: 'copilot', label: 'AI Assistant', icon: Sparkles },
-        { id: 'verification', label: 'Verification & Title', icon: ShieldCheck },
-        { id: 'assets', label: 'Portfolio Distribution', icon: Compass },
-        { id: 'agent-network', label: 'Agent Network', icon: Users },
-        { id: 'reports', label: 'Reports', icon: FileSpreadsheet },
+        { id: 'offers', label: 'Offers & Prices', icon: HandCoins, badge: totalOffers > 0 ? `${totalOffers} Active` : undefined },
+        { id: 'ratings', label: 'Ratings & Reviews', icon: Star },
       ],
     },
   ];
   const navItems = navSections.flatMap(s => s.items);
 
   return (
-    <div className="flex h-screen bg-[var(--color-bg-deep)] text-[var(--color-text-main)] font-sans antialiased overflow-hidden select-none">
+    <div className={cn(hideShell ? "w-full" : "flex h-screen overflow-hidden select-none", "bg-[var(--color-bg-deep)] text-[var(--color-text-main)] font-sans antialiased")}>
       
       {/* DESKTOP SIDEBAR */}
+      {!hideShell && (
       <aside
         className={cn(
           "bg-[var(--color-bg-surface)] border-r border-[var(--color-border)] hidden lg:flex flex-col sticky top-0 h-full shrink-0 z-20 transition-all duration-300",
@@ -438,9 +439,10 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
           </div>
         </div>
       </aside>
+      )}
 
       {/* MOBILE NAVIGATION DRAWER */}
-      {mobileNavOpen && (
+      {!hideShell && mobileNavOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div 
             className="fixed inset-0 bg-black/80 backdrop-blur-sm"
@@ -517,9 +519,10 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
       )}
 
       {/* MAIN CONTENT WRAPPER */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className={cn("flex-1 flex flex-col min-w-0", !hideShell && "overflow-hidden")}>
 
         {/* TOP NAVBAR */}
+        {!hideShell && (
         <header className="h-16 lg:h-20 bg-[var(--color-header-bg)] backdrop-blur-xl border-b border-[var(--color-border)] px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 shrink-0 z-10">
 
           <div className="flex items-center gap-3 lg:gap-4 flex-1 min-w-0">
@@ -546,7 +549,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
               </span>
               <span className="text-[var(--color-text-dim)]">/</span>
               <span className="text-[var(--color-brand-emerald)] font-bold capitalize truncate">
-                {activeTab === 'copilot' ? 'AI Co-Pilot' : activeTab.replace(/-/g, ' ')}
+                {activeTab.replace(/-/g, ' ')}
               </span>
             </nav>
           </div>
@@ -571,20 +574,6 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
 
           {/* Right Header Controls */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Quick AI Trigger button */}
-            <button
-              onClick={() => setActiveTab('copilot')}
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all",
-                activeTab === 'copilot'
-                  ? "bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] border-emerald-500/40"
-                  : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] border-[var(--color-border)] hover:border-emerald-500/30 hover:text-[var(--color-brand-emerald)]"
-              )}
-            >
-              <Sparkles size={14} className="text-[var(--color-brand-emerald)] animate-pulse" />
-              <span className="hidden sm:inline">AI Co-Pilot</span>
-            </button>
-
             {/* Notification bell */}
             <button
               onClick={() => setActiveTab('offers')}
@@ -622,8 +611,10 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
             </div>
           </div>
         </header>
+        )}
 
         {/* MOBILE HORIZONTAL TAB BAR */}
+        {!hideShell && (
         <div className="lg:hidden bg-[var(--color-bg-surface)] border-b border-[var(--color-border)] px-4 py-2 overflow-x-auto scrollbar-none flex items-center gap-2 shrink-0">
           {navItems.map(item => (
             <button
@@ -645,9 +636,10 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
             </button>
           ))}
         </div>
+        )}
 
         {/* TAB CONTENT AREA */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[var(--color-bg-deep)]">
+        <main className={cn("flex-1", hideShell ? "p-0" : "overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[var(--color-bg-deep)]")}>
 
           {/* Full Property Editor (replaces tab content when active) */}
           {editingListingId ? (
@@ -684,11 +676,11 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                       List New Asset
                     </button>
                     <button
-                      onClick={() => setActiveTab('copilot')}
-                      className="flex items-center gap-2 px-5 py-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] font-semibold text-sm transition-all duration-300 cursor-pointer"
+                      onClick={() => setActiveTab('listings')}
+                      className="flex items-center gap-2 px-5 py-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-card-hover)] text-[var(--color-text-main)] font-semibold text-sm transition-all duration-300 cursor-pointer"
                     >
-                      <Bot size={16} />
-                      Consult AI Copilot
+                      <Package size={16} />
+                      View Listings
                     </button>
                   </div>
                 </div>
@@ -765,8 +757,9 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400 mt-2 font-medium">
                     <Sparkles size={12} />
-                    <span>In conveyance escrow</span>
+                    <span>In discussion &amp; review</span>
                   </div>
+
                 </div>
               </div>
 
@@ -964,11 +957,11 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                             </div>
 
                             <button
-                              onClick={() => setActiveTab('copilot')}
-                              title="Analyze with AI Co-Pilot"
+                              onClick={() => onListingClick?.(item.id)}
+                              title="View Listing Details"
                               className="p-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] hover:border-emerald-500/40 hover:text-[var(--color-brand-emerald)] text-[var(--color-text-muted)] transition-colors cursor-pointer"
                             >
-                              <Sparkles size={14} />
+                              <Eye size={14} />
                             </button>
                           </div>
                         </div>
@@ -977,83 +970,32 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                   </div>
                 </div>
 
-                {/* Right Column: AI Co-Pilot Recommendation & Quick Actions */}
+                {/* Right Column: Quick Status & Actions */}
                 <div className="space-y-6">
-                  
-                  {/* AI Market Advisory Card */}
-                  <div className="rounded-xl border border-emerald-500/25 bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] p-6 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-xl bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)]">
-                          <Bot size={18} />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-[var(--color-text-main)] text-sm">AI Valuation Analysis</h4>
-                          <span className="text-[10px] text-[var(--color-text-muted)] font-mono">Market Comps Active</span>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] border border-emerald-200 dark:border-emerald-500/30 font-bold">
-                        Live
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-1">
-                        <span className="text-[10px] font-mono uppercase text-[var(--color-text-dim)] block">Buyer Demand</span>
-                        <span className="font-bold text-[var(--color-brand-emerald)] text-xs">High Liquidity</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-1">
-                        <span className="text-[10px] font-mono uppercase text-[var(--color-text-dim)] block">Valuation Status</span>
-                        <span className="font-bold text-[var(--color-text-main)] text-xs">Optimal Comps</span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setActiveTab('copilot')}
-                      className="w-full py-2 px-3 rounded-xl bg-[var(--color-bg-elevated)] hover:bg-emerald-500/15 border border-emerald-500/20 text-xs font-semibold text-[var(--color-brand-emerald)] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <span>Open Valuation Engine</span>
-                      <ArrowRight size={12} />
-                    </button>
-                  </div>
-
-                  {/* Trust & Cadastre Verification Status */}
+                  {/* Trust & Verification Status */}
                   <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6 space-y-4">
                     <div className="flex items-center justify-between">
                       <h4 className="font-bold text-[var(--color-text-main)] text-sm flex items-center gap-2">
                         <ShieldCheck size={16} className="text-[var(--color-brand-emerald)]" />
-                        Seller Credibility
+                        Seller Verification
                       </h4>
-                      <span className="text-xs font-mono text-[var(--color-brand-emerald)] font-bold">98/100</span>
+                      <span className="text-xs font-mono text-[var(--color-brand-emerald)] font-bold">Verified</span>
                     </div>
 
                     <div className="space-y-2.5 text-xs">
                       <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
-                        <span className="text-[var(--color-text-muted)]">RLMUA Cadastre UPI Registry</span>
+                        <span className="text-[var(--color-text-muted)]">Profile Status</span>
                         <span className="text-[var(--color-brand-emerald)] font-semibold flex items-center gap-1">
-                          <CheckCircle2 size={12} /> Synced
+                          <CheckCircle2 size={12} /> Active
                         </span>
                       </div>
                       <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
-                        <span className="text-[var(--color-text-muted)]">National ID / Passport</span>
+                        <span className="text-[var(--color-text-muted)]">ID / Identity</span>
                         <span className="text-[var(--color-brand-emerald)] font-semibold flex items-center gap-1">
-                          <CheckCircle2 size={12} /> Verified
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
-                        <span className="text-[var(--color-text-muted)]">Milestone Escrow Account</span>
-                        <span className="text-[var(--color-brand-emerald)] font-semibold flex items-center gap-1">
-                          <CheckCircle2 size={12} /> Ready
+                          <CheckCircle2 size={12} /> Confirmed
                         </span>
                       </div>
                     </div>
-
-                    <button
-                      onClick={() => setActiveTab('verification')}
-                      className="w-full py-2 text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors"
-                    >
-                      View Title & Compliance Workspace →
-                    </button>
                   </div>
 
                 </div>
@@ -1090,7 +1032,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
           )}
 
           {/* TAB: CUSTOMER LEADS & VISITS CRM */}
-          {(activeTab === 'leads' || activeTab === 'visits' || activeTab === 'inquiries' || activeTab === 'likes') && (
+          {(activeTab === 'leads' || activeTab === 'visits' || activeTab === 'inquiries') && (
             <div className="max-w-7xl mx-auto animate-fadeIn">
               <CustomerLeadsManager
                 mode="seller"
@@ -1107,104 +1049,18 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
             </div>
           )}
 
-          {/* TAB 4: EARNINGS & CONVEYANCE DEALS */}
-          {activeTab === 'deals' && (
-            <div className="max-w-7xl mx-auto animate-fadeIn">
-              <SellerEarningsAndDeals />
-            </div>
-          )}
-
-          {/* TAB 5: VERIFIED AGENT NETWORK */}
-          {activeTab === 'agents' && (
-            <div className="max-w-7xl mx-auto animate-fadeIn">
-              <SellerAgentNetwork listings={listings} onRefresh={() => refetchListings()} />
-            </div>
-          )}
-
-          {/* TAB 6: REAL-TIME MESSAGING (INTEGRATED CHAT WINDOW) */}
+          {/* TAB 4: REAL-TIME MESSAGING & INQUIRIES */}
           {activeTab === 'messages' && (
-            <div className="max-w-7xl mx-auto h-[calc(100vh-10rem)] animate-fadeIn">
-              <ChatWindow currentRole="seller" />
-            </div>
-          )}
-
-          {/* TAB 7: SELLER AI CO-PILOT WORKSPACE */}
-          {activeTab === 'copilot' && (
             <div className="max-w-7xl mx-auto animate-fadeIn">
-              <SellerAiCopilot />
+              <CustomerLeadsManager
+                mode="seller"
+                initialChannel="inquiries"
+                onListingClick={onListingClick}
+              />
             </div>
           )}
 
-          {/* TAB 8: TRUST & TITLE VERIFICATION WORKSPACE */}
-          {activeTab === 'verification' && (
-            <div className="max-w-5xl mx-auto space-y-6 animate-fadeIn">
-              
-              <div className="border border-[var(--color-border)] rounded-xl bg-[var(--color-bg-surface)] p-6 lg:p-8 space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-[var(--color-border)]">
-                  <div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-[var(--color-brand-emerald)] text-xs font-semibold uppercase tracking-wider mb-2">
-                      <ShieldCheck size={14} />
-                      Urugwiro Trust & Verification
-                    </div>
-                    <h2 className="text-2xl font-bold text-[var(--color-text-main)] font-display">Seller Legal & Cadastre Credentials</h2>
-                  </div>
-                  <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[var(--color-accent-soft-bg)] border border-emerald-500/30">
-                    <CheckCircle2 size={20} className="text-[var(--color-brand-emerald)]" />
-                    <div>
-                      <span className="text-xs font-bold text-[var(--color-text-main)] block">Verified Seller Status</span>
-                      <span className="text-[10px] text-[var(--color-brand-emerald)] font-mono">RLMUA Cadastre + Irembo Sync</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-5 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Land Title (RLMUA UPI)</span>
-                      <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 dark:text-[var(--color-brand-emerald)] dark:bg-emerald-500/10 dark:border-emerald-500/20">Verified</span>
-                    </div>
-                    <div className="text-[11px] font-mono text-[var(--color-text-muted)]">
-                      Connected Registry: <span className="text-[var(--color-text-main)]">RLMUA / IremboGov</span>
-                    </div>
-                  </div>
-
-                  <div className="p-5 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Milestone Escrow Account</span>
-                      <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 dark:text-[var(--color-brand-emerald)] dark:bg-emerald-500/10 dark:border-emerald-500/20">Active</span>
-                    </div>
-                    <div className="text-[11px] font-mono text-[var(--color-text-muted)]">
-                      Deposit Guarantee: <span className="text-[var(--color-text-main)]">100% Insured</span>
-                    </div>
-                  </div>
-
-                  <div className="p-5 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">National ID / Passport (KYC)</span>
-                      <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 dark:text-[var(--color-brand-emerald)] dark:bg-emerald-500/10 dark:border-emerald-500/20">Authorized</span>
-                    </div>
-                    <div className="text-[11px] font-mono text-[var(--color-text-muted)]">
-                      Doc Expiry: <span className="text-[var(--color-text-main)]">October 2030</span>
-                    </div>
-                  </div>
-
-                  <div className="p-5 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Electronic Notary Conveyance</span>
-                      <span className="text-[10px] font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 dark:text-blue-400 dark:bg-blue-500/10 dark:border-blue-500/20">Ready</span>
-                    </div>
-                    <div className="text-[11px] font-mono text-[var(--color-text-muted)]">
-                      District Office: <span className="text-[var(--color-text-main)]">Gasabo / Kicukiro Sector</span>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-          )}
-
-          {/* TAB 9: NEW LISTING WIZARD */}
+          {/* TAB 5: NEW LISTING WIZARD */}
           {activeTab === 'new-listing' && (
             <div className="max-w-5xl mx-auto space-y-4 animate-fadeIn">
               <div className="flex items-center justify-between pb-2">
@@ -1214,10 +1070,6 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                 >
                   ← Return to Inventory
                 </button>
-                <div className="flex items-center gap-2 text-xs text-[var(--color-brand-emerald)]">
-                  <Sparkles size={14} />
-                  <span>AI Co-Pilot Assists Every Step</span>
-                </div>
               </div>
 
               <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4 sm:p-6">
@@ -1231,33 +1083,89 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
             </div>
           )}
 
-          {/* TAB 10: DEAL PIPELINE */}
-          {activeTab === 'pipeline' && (
-            <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
-              <SellerDealPipeline />
+          {/* TAB 6: EARNINGS & PAYOUTS */}
+          {activeTab === 'earnings' && (
+            <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
+              <div className="flex flex-col justify-between gap-5 border-b border-[var(--color-border)] pb-8 md:flex-row md:items-end">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-brand-emerald)]">Financial Operations</p>
+                  <h1 className="mt-2 text-3xl lg:text-4xl font-bold text-[var(--color-text-main)] tracking-tight">Earnings &amp; Payouts</h1>
+                </div>
+              </div>
+
+              {/* Summary KPIs */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
+                <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6">
+                  <span className="text-xs uppercase tracking-wider font-semibold text-[var(--color-text-dim)]">Total Realized</span>
+                  <div className="text-2xl sm:text-3xl font-bold font-mono text-[var(--color-brand-emerald)] mt-2">
+                    {(earningsData?.summary?.total_earned || 0).toLocaleString()} <span className="text-xs font-sans text-[var(--color-text-dim)]">RWF</span>
+                  </div>
+                  <p className="text-[11px] text-[var(--color-text-muted)] mt-1">From completed property sales</p>
+                </div>
+
+                <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6">
+                  <span className="text-xs uppercase tracking-wider font-semibold text-[var(--color-text-dim)]">Paid to You</span>
+                  <div className="text-2xl sm:text-3xl font-bold font-mono text-[var(--color-text-main)] mt-2">
+                    {(earningsData?.summary?.total_paid || 0).toLocaleString()} <span className="text-xs font-sans text-[var(--color-text-dim)]">RWF</span>
+                  </div>
+                  <p className="text-[11px] text-[var(--color-text-muted)] mt-1">Disbursed via Bank / Mobile Money</p>
+                </div>
+
+                <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6">
+                  <span className="text-xs uppercase tracking-wider font-semibold text-[var(--color-text-dim)]">Pending Balance</span>
+                  <div className="text-2xl sm:text-3xl font-bold font-mono text-amber-500 mt-2">
+                    {(earningsData?.summary?.total_pending || 0).toLocaleString()} <span className="text-xs font-sans text-[var(--color-text-dim)]">RWF</span>
+                  </div>
+                  <p className="text-[11px] text-[var(--color-text-muted)] mt-1">Scheduled for upcoming payout</p>
+                </div>
+              </div>
+
+              {/* Payouts list */}
+              <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6">
+                <h3 className="text-lg font-bold text-[var(--color-text-main)] mb-4">Payout Statements</h3>
+                {(!earningsData?.payments || earningsData.payments.length === 0) ? (
+                  <div className="py-12 text-center text-[var(--color-text-muted)]">
+                    <p className="text-sm">No payout statements yet.</p>
+                    <p className="text-xs text-[var(--color-text-dim)] mt-1">When deals are finalized and payments are recorded, your statements will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-[var(--color-border)] text-xs text-[var(--color-text-dim)] uppercase">
+                          <th className="pb-3 font-semibold">Reference</th>
+                          <th className="pb-3 font-semibold">Listing</th>
+                          <th className="pb-3 font-semibold">Method</th>
+                          <th className="pb-3 font-semibold">Entitlement</th>
+                          <th className="pb-3 font-semibold">Paid</th>
+                          <th className="pb-3 font-semibold">Status</th>
+                          <th className="pb-3 font-semibold">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--color-border)]">
+                        {earningsData.payments.map((p: any) => (
+                          <tr key={p.id} className="hover:bg-[var(--color-bg-elevated)] transition-colors">
+                            <td className="py-3 font-mono text-xs font-semibold">{p.payment_reference || p.id?.slice(0, 8)}</td>
+                            <td className="py-3 font-medium text-[var(--color-text-main)]">{p.listing?.title || 'Property'}</td>
+                            <td className="py-3 capitalize text-[var(--color-text-muted)]">{p.payment_method?.replace(/_/g, ' ') || 'Bank Transfer'}</td>
+                            <td className="py-3 font-mono font-medium">{Number(p.seller_entitlement || 0).toLocaleString()} RWF</td>
+                            <td className="py-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">{Number(p.amount_paid || 0).toLocaleString()} RWF</td>
+                            <td className="py-3">
+                              <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider', p.status === 'paid' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border border-amber-500/30')}>
+                                {p.status}
+                              </span>
+                            </td>
+                            <td className="py-3 text-xs text-[var(--color-text-dim)]">{p.payment_date || new Date(p.created_at).toLocaleDateString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
-          {/* TAB 11: PORTFOLIO DISTRIBUTION */}
-          {activeTab === 'assets' && (
-            <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
-              <SellerAssetDistribution />
-            </div>
-          )}
-
-          {/* TAB 12: AGENT NETWORK */}
-          {activeTab === 'agent-network' && (
-            <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
-              <SellerAgentManager />
-            </div>
-          )}
-
-          {/* TAB 13: REPORTS */}
-          {activeTab === 'reports' && (
-            <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
-              <SellerAnalytics />
-            </div>
-          )}
             </>
           )}
         </main>

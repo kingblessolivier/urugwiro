@@ -1,170 +1,251 @@
-import React from 'react';
-import { Camera, CarFront, Gavel, HardHat, SearchCheck, Wrench, ArrowRight, ShieldCheck, CheckCircle2, Sparkles } from 'lucide-react';
-import { PageHero } from '../../components/layout/PageHero';
-import { Button } from '../../components/ui/Button';
-import type { AppView } from '../../types/navigation';
+import React, { useState } from 'react';
+import { Search, MapPin, ShieldCheck, Phone, Mail, Star, Filter } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
-const services = [
+interface ServiceProvider {
+  id: string;
+  name: string;
+  type: 'surveyor' | 'valuer' | 'legal';
+  location: string;
+  rating: number;
+  reviewCount: number;
+  phone: string;
+  email: string;
+  verified: boolean;
+  description: string;
+  specialties: string[];
+}
+
+const PROVIDERS: ServiceProvider[] = [
   {
-    title: 'Certified Real Estate Brokers',
-    description: 'Vetted real estate professionals specializing in prime commercial, residential estates, and land transactions across Kigali and secondary cities.',
-    icon: HardHat,
-    tag: 'Advisory & Brokerage',
-    features: ['Price Negotiation', 'Buyer Representation', 'Portfolio Management']
+    id: '1',
+    name: 'Kigali Land Surveyors Ltd',
+    type: 'surveyor',
+    location: 'Kigali, Gasabo',
+    rating: 4.8,
+    reviewCount: 127,
+    phone: '+250 788 123 456',
+    email: 'info@klsurveyors.rw',
+    verified: true,
+    description: 'Professional land surveying and boundary demarcation services with 15+ years of experience.',
+    specialties: ['Boundary Survey', 'Topographic Survey', 'Subdivision'],
   },
   {
-    title: 'Chartered Land Surveyors',
-    description: 'Licensed professionals for boundary verification, beacon replacement, topographic surveys, and official RLMUA cadastral parcel validation.',
-    icon: SearchCheck,
-    tag: 'Cadastral & Land',
-    features: ['UPI Boundary Audit', 'Contour Mapping', 'Deed Certification']
+    id: '2',
+    name: 'Rwanda Valuation Experts',
+    type: 'valuer',
+    location: 'Kigali, Nyarugenge',
+    rating: 4.9,
+    reviewCount: 89,
+    phone: '+250 788 234 567',
+    email: 'contact@rwandavaluers.com',
+    verified: true,
+    description: 'Certified property valuers providing accurate market valuations for all asset types.',
+    specialties: ['Residential Valuation', 'Commercial Valuation', 'Land Appraisal'],
   },
   {
-    title: 'Certified Property Valuers',
-    description: 'Accredited valuation reports required for bank collateral, mortgage approvals, capital gains assessment, and pre-purchase equity analysis.',
-    icon: Gavel,
-    tag: 'Valuation & Finance',
-    features: ['Bank-Ready Reports', 'Market Comparables', 'Asset Appraisal']
+    id: '3',
+    name: 'Ubwiyunge Legal Consult',
+    type: 'legal',
+    location: 'Kigali, Kicukiro',
+    rating: 4.7,
+    reviewCount: 64,
+    phone: '+250 788 345 678',
+    email: 'legal@ubwiyunge.rw',
+    verified: true,
+    description: 'Specialized real estate legal services including title verification and contract review.',
+    specialties: ['Title Verification', 'Contract Drafting', 'Dispute Resolution'],
   },
   {
-    title: 'Automotive & Fleet Inspectors',
-    description: 'Comprehensive mechanical, chassis, electrical, and electronic diagnostic inspections before purchasing high-value motor vehicles.',
-    icon: CarFront,
-    tag: 'Vehicle Due Diligence',
-    features: ['Engine Diagnostics', 'Chassis Integrity', 'Title / Plate Audit']
+    id: '4',
+    name: 'East Africa Survey Group',
+    type: 'surveyor',
+    location: 'Musanze',
+    rating: 4.6,
+    reviewCount: 45,
+    phone: '+250 788 456 789',
+    email: 'info@eastafricasurvey.com',
+    verified: true,
+    description: 'Regional surveying services covering Northern Province and beyond.',
+    specialties: ['Cadastral Survey', 'Engineering Survey', 'GIS Mapping'],
   },
   {
-    title: 'Architectural Photographers & 3D Scanning',
-    description: 'High-definition HDR imagery, drone aerial cinematography, Matterport 3D digital twins, and virtual walkthrough production.',
-    icon: Camera,
-    tag: 'Media & Spatial Tech',
-    features: ['4K Aerial Drone', '3D Digital Twin', 'Staging Production']
+    id: '5',
+    name: 'Prime Property Valuers',
+    type: 'valuer',
+    location: 'Kigali, Gasabo',
+    rating: 4.5,
+    reviewCount: 38,
+    phone: '+250 788 567 890',
+    email: 'valuations@primeproperty.rw',
+    verified: false,
+    description: 'Fast and reliable property valuations for residential and commercial properties.',
+    specialties: ['Market Valuation', 'Insurance Valuation', 'Tax Assessment'],
   },
   {
-    title: 'Master Technicians & Maintenance',
-    description: 'Licensed electrical engineers, HVAC contractors, master plumbers, and certified master mechanics for premium upkeep.',
-    icon: Wrench,
-    tag: 'Maintenance & Works',
-    features: ['Emergency Repair', 'Preventative Care', 'Facility Audits']
+    id: '6',
+    name: 'Ihuriro Law Partners',
+    type: 'legal',
+    location: 'Kigali, Nyarugenge',
+    rating: 4.8,
+    reviewCount: 52,
+    phone: '+250 788 678 901',
+    email: 'info@ihurirolaw.rw',
+    verified: true,
+    description: 'Full-service law firm with dedicated real estate and land law practice.',
+    specialties: ['Real Estate Law', 'Land Registration', 'Due Diligence'],
   },
 ];
 
-interface ServicesPageProps {
-  onNavigate?: (view: AppView) => void;
-}
+const TYPE_LABELS: Record<string, string> = {
+  surveyor: 'Surveyor',
+  valuer: 'Valuer',
+  legal: 'Legal Expert',
+};
 
-const ServicesPage: React.FC<ServicesPageProps> = ({ onNavigate }) => (
-  <div style={{ background: 'var(--color-bg-deep)', color: 'var(--color-text-main)' }} className="min-h-screen transition-colors duration-300">
-    <PageHero
-      eyebrow="Specialist Network"
-      title="Elite Professional Services for High-Value Assets."
-      description="Connect with accredited surveyors, valuers, legal professionals, inspectors, and media producers. Every partner is verified for licensing, indemnity insurance, and track record."
-    />
+const ServicesPage: React.FC = () => {
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [selectedProvider, setSelectedProvider] = useState<ServiceProvider | null>(null);
 
-    <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-      {/* Trust Strip */}
-      <div className="mb-14 grid gap-4 rounded-2xl border p-6 sm:grid-cols-3"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)', boxShadow: 'var(--shadow-depth-1)' }}>
-        {[
-          { icon: ShieldCheck, title: 'License Verified', desc: 'All providers verified against Rwandan regulatory boards' },
-          { icon: CheckCircle2, title: 'Escrow-Backed Quality', desc: 'Service fees safeguarded until client milestone sign-off' },
-          { icon: Sparkles, title: 'Fast-Track Delivery', desc: 'Guaranteed turnaround SLAs on urgent property and title audits' },
-        ].map(({ icon: Icon, title, desc }) => (
-          <div key={title} className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
-              <Icon size={20} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--color-text-main)' }}>{title}</p>
-              <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+  const filteredProviders = PROVIDERS.filter((p) => {
+    const matchesType = typeFilter === 'all' || p.type === typeFilter;
+    const matchesSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.location.toLowerCase().includes(search.toLowerCase()) || p.specialties.some((s) => s.toLowerCase().includes(search.toLowerCase()));
+    return matchesType && matchesSearch;
+  });
 
-      {/* Services Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {services.map(({ title, description, icon: Icon, tag, features }) => (
-          <article
-            key={title}
-            className="group flex flex-col justify-between rounded-2xl border p-7 transition-all duration-300 hover:border-emerald-500/40 oneui-card"
-            style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)', boxShadow: 'var(--shadow-depth-1)' }}
+  if (selectedProvider) {
+    return (
+      <div className="min-h-screen bg-[var(--color-bg-deep)] text-[var(--color-text-main)]">
+        <div className="mx-auto max-w-3xl px-4 py-8">
+          <button
+            onClick={() => setSelectedProvider(null)}
+            className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition mb-6 cursor-pointer"
           >
-            <div>
-              <div className="flex items-center justify-between">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 transition-all group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-emerald-500/30">
-                  <Icon size={22} />
-                </div>
-                <span className="rounded-full border px-3 py-1 text-[11px] font-medium"
-                  style={{ borderColor: 'var(--color-border)', background: 'var(--color-input-bg)', color: 'var(--color-text-muted)' }}>
-                  {tag}
+            Back to directory
+          </button>
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h1 className="text-xl font-bold">{selectedProvider.name}</h1>
+                <p className="text-sm text-[var(--color-text-muted)] mt-1">{TYPE_LABELS[selectedProvider.type]}</p>
+              </div>
+              {selectedProvider.verified && (
+                <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  <ShieldCheck size={12} /> Verified
                 </span>
-              </div>
-
-              <h2 className="mt-6 text-xl font-bold group-hover:text-emerald-500 transition-colors" style={{ color: 'var(--color-text-main)' }}>
-                {title}
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-                {description}
+              )}
+            </div>
+            <p className="text-sm text-[var(--color-text-muted)] mb-4">{selectedProvider.description}</p>
+            <div className="flex items-center gap-2 mb-4">
+              <Star size={14} className="fill-amber-400 text-amber-400" />
+              <span className="text-sm font-semibold">{selectedProvider.rating}</span>
+              <span className="text-xs text-[var(--color-text-dim)]">({selectedProvider.reviewCount} reviews)</span>
+            </div>
+            <div className="space-y-2 mb-4">
+              <p className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+                <MapPin size={14} /> {selectedProvider.location}
               </p>
-
-              <div className="mt-6 space-y-2 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
-                {features.map((f) => (
-                  <div key={f} className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-main)' }}>
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    <span>{f}</span>
-                  </div>
-                ))}
-              </div>
+              <p className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+                <Phone size={14} /> {selectedProvider.phone}
+              </p>
+              <p className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+                <Mail size={14} /> {selectedProvider.email}
+              </p>
             </div>
-
-            <div className="mt-8 pt-4">
-              <button
-                type="button"
-                onClick={() => onNavigate?.('contact')}
-                className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-500 hover:text-emerald-400 transition-colors"
-              >
-                Inquire For Provider <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
-              </button>
+            <div className="flex flex-wrap gap-2">
+              {selectedProvider.specialties.map((s) => (
+                <span key={s} className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+                  {s}
+                </span>
+              ))}
             </div>
-          </article>
-        ))}
-      </div>
-
-      {/* Concierge Callout */}
-      <div className="mt-16 overflow-hidden rounded-3xl border p-8 md:p-12"
-        style={{
-          borderColor: 'var(--color-border)',
-          background: 'linear-gradient(135deg, rgba(8,126,57,0.08) 0%, var(--color-bg-card) 100%)',
-          boxShadow: 'var(--shadow-depth-2)',
-        }}>
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div className="max-w-xl">
-            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-500">Concierge Desk</span>
-            <h2 className="mt-2 text-2xl font-bold md:text-3xl" style={{ color: 'var(--color-text-main)' }}>Need custom due diligence or multi-asset inspection?</h2>
-            <p className="mt-3 text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-              Our institutional advisory team coordinates comprehensive technical, legal, and environmental audits for high-value acquisitions across the Great Lakes region.
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-3">
-            <Button
-              className="rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20"
-              onClick={() => onNavigate?.('contact')}
-            >
-              Contact Advisory Desk
-            </Button>
-            <button
-              onClick={() => onNavigate?.('discovery')}
-              className="rounded-xl border px-6 py-3 text-sm font-semibold transition-colors hover:border-emerald-500/40"
-              style={{ borderColor: 'var(--color-border)', background: 'var(--color-input-bg)', color: 'var(--color-text-main)' }}
-            >
-              Browse Listings
-            </button>
           </div>
         </div>
       </div>
-    </section>
-  </div>
-);
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[var(--color-bg-deep)] text-[var(--color-text-main)]">
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold tracking-tight">Professional Services</h1>
+          <p className="text-sm text-[var(--color-text-muted)] mt-2 max-w-xl mx-auto">
+            Verified surveyors, valuers, and legal experts to help with your property journey.
+          </p>
+        </div>
+
+        {/* Search & Filter */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-8">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)]" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, location, or specialty..."
+              className="w-full pl-11 pr-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] text-sm text-[var(--color-text-main)] outline-none focus:border-emerald-500/50"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter size={14} className="text-[var(--color-text-dim)]" />
+            {['all', 'surveyor', 'valuer', 'legal'].map((type) => (
+              <button
+                key={type}
+                onClick={() => setTypeFilter(type)}
+                className={cn(
+                  'px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer',
+                  typeFilter === type
+                    ? 'bg-emerald-500 text-white'
+                    : 'border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-emerald-500/30'
+                )}
+              >
+                {type === 'all' ? 'All' : TYPE_LABELS[type]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Providers Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredProviders.map((provider) => (
+            <button
+              key={provider.id}
+              onClick={() => setSelectedProvider(provider)}
+              className="text-left rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 transition-all hover:border-emerald-500/30 hover:shadow-lg cursor-pointer"
+            >
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div>
+                  <h3 className="text-sm font-bold">{provider.name}</h3>
+                  <p className="text-[10px] text-[var(--color-text-dim)] mt-0.5">{TYPE_LABELS[provider.type]}</p>
+                </div>
+                {provider.verified && (
+                  <ShieldCheck size={16} className="text-emerald-500 shrink-0" />
+                )}
+              </div>
+              <p className="text-xs text-[var(--color-text-muted)] line-clamp-2 mb-3">{provider.description}</p>
+              <div className="flex items-center gap-2 mb-3">
+                <Star size={12} className="fill-amber-400 text-amber-400" />
+                <span className="text-xs font-semibold">{provider.rating}</span>
+                <span className="text-[10px] text-[var(--color-text-dim)]">({provider.reviewCount})</span>
+              </div>
+              <p className="flex items-center gap-1.5 text-[10px] text-[var(--color-text-dim)]">
+                <MapPin size={10} /> {provider.location}
+              </p>
+            </button>
+          ))}
+        </div>
+
+        {filteredProviders.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-sm text-[var(--color-text-muted)]">No service providers found matching your search.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export default ServicesPage;

@@ -74,7 +74,16 @@ const SellerPropertyDetail: React.FC<SellerPropertyDetailProps> = ({ propertyId,
           <Button
             variant="ghost"
             className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-xs font-bold rounded-xl cursor-pointer"
-            onClick={() => { if(confirm('Are you sure you want to delete this property?')) { /* delete logic */ } }}
+            onClick={async () => {
+              if (!confirm('Are you sure you want to delete this property?')) return;
+              try {
+                await api.seller.deleteListing(listing.id);
+                alert('Property deleted successfully.');
+                onBack();
+              } catch (err) {
+                alert('Failed to delete property. Please try again.');
+              }
+            }}
           >
             <Trash2 size={14} className="mr-2" /> Delete Property
           </Button>
@@ -445,8 +454,8 @@ const SellerPropertyDetail: React.FC<SellerPropertyDetailProps> = ({ propertyId,
             <div className="p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-center">
               <p className="text-[10px] text-[var(--color-text-dim)] uppercase font-bold">Engagement Rate</p>
               <p className="text-lg font-mono font-bold text-[var(--color-brand-emerald)]">
-                {listing.inquiries_count && listing.visits_count
-                  ? ((listing.visits_count / listing.inquiries_count) * 100).toFixed(1) + '%'
+                {listing.visits_count && listing.inquiries_count
+                  ? ((listing.inquiries_count / listing.visits_count) * 100).toFixed(1) + '%'
                   : '0.0%'}
               </p>
             </div>

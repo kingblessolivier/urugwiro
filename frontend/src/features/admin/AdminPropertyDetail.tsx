@@ -23,7 +23,7 @@ const AdminPropertyDetail: React.FC<AdminPropertyDetailProps> = ({ propertyId, o
   const { data: property, isLoading } = useQuery({
     queryKey: ['admin-property-detail', propertyId],
     queryFn: async () => {
-      const res = await api.admin.updateProperty(propertyId, {}); // Using as a fetcher if no dedicated detail endpoint
+      const res = await api.admin.propertyDetail(propertyId);
       return res.data;
     },
   });
@@ -49,6 +49,15 @@ const AdminPropertyDetail: React.FC<AdminPropertyDetailProps> = ({ propertyId, o
     mutationFn: async (note: string) => api.admin.updateProperty(propertyId, { admin_notes: note }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-property-detail', propertyId] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.admin.deleteProperty(propertyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-current-listings-page'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-properties'] });
+      onBack();
     },
   });
 
@@ -80,7 +89,10 @@ const AdminPropertyDetail: React.FC<AdminPropertyDetailProps> = ({ propertyId, o
           <Button
             variant="ghost"
             className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-xs font-bold rounded-xl cursor-pointer"
-            onClick={() => { if(confirm('Are you sure you want to delete this property?')) { /* delete logic */ } }}
+            onClick={() => {
+              if (confirm('Delete this property? This cannot be undone.')) deleteMutation.mutate();
+            }}
+            disabled={deleteMutation.isPending}
           >
             <Trash2 size={14} className="mr-2" /> Delete Property
           </Button>
@@ -131,13 +143,17 @@ const AdminPropertyDetail: React.FC<AdminPropertyDetailProps> = ({ propertyId, o
                       <label className="text-[10px] uppercase font-bold text-[var(--color-text-dim)]">Status</label>
                       <select
                         value={data.status}
-                        onChange={e => setData({...data, status: e.target.value})}
+                        onChange={e => setData({...data, status: e.target.value as any})}
                         className="w-full p-2 rounded-lg bg-[var(--color-input-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] outline-none focus:border-emerald-500/50"
                       >
-                        <option value="listed">Listed</option>
-                        <option value="under_negotiation">Under Offer</option>
+                        <option value="draft">Draft</option>
+                        <option value="submitted">Submitted</option>
+                        <option value="under_review">Under Review</option>
+                        <option value="published">Published</option>
+                        <option value="under_offer">Under Offer</option>
                         <option value="sold">Sold</option>
-                        <option value="withdrawn">Withdrawn</option>
+                        <option value="rented">Rented</option>
+                        <option value="archived">Archived</option>
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
@@ -303,13 +319,13 @@ const AdminPropertyDetail: React.FC<AdminPropertyDetailProps> = ({ propertyId, o
                       <label className="text-[10px] uppercase font-bold text-[var(--color-text-dim)]">Verification Level</label>
                       <select
                         value={data.verification_level}
-                        onChange={e => setData({...data, verification_level: e.target.value})}
+                        onChange={e => setData({...data, verification_level: e.target.value as any})}
                         className="w-full p-2 rounded-lg bg-[var(--color-input-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text-main)] outline-none focus:border-emerald-500/50"
                       >
-                        <option value="None">None</option>
-                        <option value="Submitted">Submitted</option>
-                        <option value="Verified">Verified</option>
-                        <option value="Professional">Professional</option>
+                        <option value="none">None</option>
+                        <option value="submitted">Submitted</option>
+                        <option value="verified">Verified</option>
+                        <option value="professional">Professional</option>
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
@@ -399,11 +415,11 @@ const AdminPropertyDetail: React.FC<AdminPropertyDetailProps> = ({ propertyId, o
                 <ShieldCheck size={14} className="text-[var(--color-brand-emerald)]" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Verification Timeline</span>
               </div>
-              {listing.verification_history?.map((event: any, idx: number) => (
+              {(listing.verification_history || []).map((event: any, idx: number) => (
                 <div key={idx} className="flex gap-3 text-xs">
                   <div className="flex flex-col items-center">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 mt-1" />
-                    {idx !== listing.verification_history.length - 1 && <div className="w-px h-full bg-[var(--color-border)]" />}
+                    {idx !== (listing.verification_history || []).length - 1 && <div className="w-px h-full bg-[var(--color-border)]" />}
                   </div>
                   <div className="pb-3">
                     <p className="font-bold text-[var(--color-text-muted)]">{event.status}</p>

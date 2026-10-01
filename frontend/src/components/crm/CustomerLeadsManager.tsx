@@ -6,7 +6,7 @@ import {
   ChevronDown, MessageCircle, Eye,
   Sparkles, RefreshCw, X, Users
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn, logError } from '../../lib/utils';
 import { api } from '../../api/endpoints';
 import { Pagination } from '../ui/Pagination';
 import {
@@ -68,7 +68,7 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
         const res = mode === 'seller' ? await api.seller.visits() : await api.admin.visits();
         return Array.isArray(res.data) ? res.data : [];
       } catch (err) {
-        console.error('Failed to load showing visits:', err);
+        logError('Failed to load showing visits:', err);
         return [];
       }
     },
@@ -91,7 +91,7 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
           return Array.isArray(res.data?.enquiries) ? res.data.enquiries : (Array.isArray(res.data) ? res.data : []);
         }
       } catch (err) {
-        console.error('Failed to load inquiries:', err);
+        logError('Failed to load inquiries:', err);
         return [];
       }
     },
@@ -109,7 +109,7 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
         const res = mode === 'seller' ? await api.seller.likes() : await api.admin.likes();
         return Array.isArray(res.data) ? res.data : [];
       } catch (err) {
-        console.error('Failed to load likes leads:', err);
+        logError('Failed to load likes leads:', err);
         return [];
       }
     },

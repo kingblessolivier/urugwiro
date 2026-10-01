@@ -5,7 +5,7 @@ import random
 from urugwiro.models import (
     User, ListingOwner, Agent, Tenant, Asset, LandSpec, ResidentialSpec, VehicleSpec,
     Listing, SaleExtension, RentalExtension, LandExtension, AgentAssignment,
-    Offer, TransactionDeal, DealDocument, SiteVisit, PropertyInquiry,
+    Offer, SiteVisit, PropertyInquiry,
     Lease, Payment, MaintenanceRequest, VerificationDocument
 )
 
@@ -776,10 +776,8 @@ class Command(BaseCommand):
                 'agent': agent_mukamana,
                 'amount': 460000000.0,
                 'counter_amount': 470000000.0,
-                'escrow_proposed_percent': 10.0,
-                'financing_type': 'cash',
                 'status': 'countered',
-                'message': 'Offer submitted subject to clean RLMUA cadastral audit and 60-day Irembo conveyance timeline.',
+                'message': 'Offer submitted subject to clean RLMUA cadastral audit.',
                 'proposed_closing_date': (datetime.now() + timedelta(days=45)).date(),
             }
         )
@@ -790,10 +788,9 @@ class Command(BaseCommand):
             defaults={
                 'agent': agent_habimana,
                 'amount': 200000000.0,
-                'escrow_proposed_percent': 10.0,
-                'financing_type': 'cash',
+                'financing_type': 'installment',
                 'status': 'accepted',
-                'message': 'Commercial offer with immediate 10% escrow funding upon deed review.',
+                'message': 'Commercial offer submitted upon deed review.',
                 'proposed_closing_date': (datetime.now() + timedelta(days=30)).date(),
             }
         )
@@ -804,10 +801,9 @@ class Command(BaseCommand):
             defaults={
                 'agent': agent_habimana,
                 'amount': 640000000.0,
-                'escrow_proposed_percent': 10.0,
                 'financing_type': 'bank_mortgage',
                 'status': 'accepted',
-                'message': 'Full cash settlement guaranteed via BNR escrow account.',
+                'message': 'Settlement guaranteed via bank financing.',
                 'proposed_closing_date': (datetime.now() - timedelta(days=30)).date(),
             }
         )

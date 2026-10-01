@@ -3,6 +3,7 @@ import { Lock, User, Eye, EyeOff, ArrowRight, AlertCircle, ShieldCheck, Sparkles
 import { useAuth } from '../../context/AuthContext';
 import { type AppView, getDefaultDashboardForUser } from '../../types/navigation';
 import { pathForView } from '../../lib/routes';
+import { logError } from '../../lib/utils';
 
 interface LoginPageProps {
     onNavigate?: (view: AppView) => void;
@@ -35,7 +36,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                 window.location.href = '/';
             }
         } catch (err: any) {
-            console.error('Login error:', err);
+            logError('Login error:', err);
             setError(err.response?.data?.error || err.message || 'Invalid username/email or password');
         } finally {
             setLoading(false);

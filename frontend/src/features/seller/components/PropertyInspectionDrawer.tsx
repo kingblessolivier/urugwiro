@@ -34,7 +34,7 @@ export const PropertyInspectionDrawer: React.FC<PropertyInspectionDrawerProps> =
   const [activeTab, setActiveTab] = useState<'inquiries' | 'offers' | 'visits' | 'specs' | 'deeds'>('inquiries');
 
   // Fetch full details of the specific property
-  const { data: listing, isLoading } = useQuery({
+  const { data: listing, isLoading } = useQuery<any>({
     queryKey: ['seller-listing-detail', listingId],
     queryFn: async () => {
       if (!listingId) return null;

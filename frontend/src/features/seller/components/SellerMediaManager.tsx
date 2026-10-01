@@ -5,9 +5,9 @@ import { api } from '../../../api/endpoints';
 import { resolveImageUrl } from '../../../lib/imageUrl';
 
 interface ListingMedia {
-  id: string | number;
-  file: string;
-  media_type: 'image' | 'video' | '360' | 'model_3d' | 'cadastral_sketch';
+  id?: string | number;
+  file?: string;
+  media_type?: 'image' | 'video' | '360' | '3d' | 'model_3d' | 'cadastral_sketch';
   category?: string;
   caption?: string;
   room_name?: string;
@@ -99,7 +99,7 @@ export const SellerMediaManager: React.FC<SellerMediaManagerProps> = ({ listingI
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    onClick={() => { if (confirm('Delete this media asset?')) deleteMutation.mutate(item.id); }}
+                    onClick={() => { if (confirm('Delete this media asset?') && item.id !== undefined) deleteMutation.mutate(item.id); }}
                     className="p-1.5 rounded-md bg-red-500/20 text-red-300 hover:bg-red-600 hover:text-[#fff] transition-colors"
                     title="Delete media"
                   >

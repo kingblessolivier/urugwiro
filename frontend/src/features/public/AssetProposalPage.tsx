@@ -22,7 +22,7 @@ import {
 import { api } from '../../api/endpoints';
 import type { AppView } from '../../types/navigation';
 import { Button } from '../../components/ui/Button';
-import { cn } from '../../lib/utils';
+import { cn, logError } from '../../lib/utils';
 
 interface AssetProposalPageProps {
   onNavigate?: (view: AppView) => void;
@@ -156,7 +156,7 @@ export const AssetProposalPage: React.FC<AssetProposalPageProps> = ({ onNavigate
       setStep(3);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      console.error('Failed to submit proposal:', err);
+      logError('Failed to submit proposal:', err);
       const errMsg =
         err.response?.data?.error ||
         (typeof err.response?.data === 'object' ? Object.values(err.response.data)[0] : null) ||

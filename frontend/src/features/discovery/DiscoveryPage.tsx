@@ -7,12 +7,15 @@ import { Sparkles, Image as ImageIcon, SlidersHorizontal, Map, Grid, List, Heart
 import { Button } from '../../components/ui/Button';
 import { LoadingState, ErrorState } from '../../components/ui/Dashboard';
 import { useAuth } from '../../context/AuthContext';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { logError } from '../../lib/utils';
 
 interface DiscoveryPageProps {
     onListingClick?: (id: string) => void;
     initialQuery?: string;
+    initialSavedOnly?: boolean;
 }
+
 
 // ─── URL State Management ─────────────────────────────────────────────────────
 function getFiltersFromURL(): Record<string, string> {
@@ -40,7 +43,7 @@ function updateURLFilters(filters: Record<string, string | undefined>) {
     window.history.replaceState(null, '', newURL);
 }
 
-const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQuery = '' }) => {
+const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQuery = '', initialSavedOnly = false }) => {
     const { user } = useAuth();
     const queryClient = useQueryClient();
 
@@ -75,9 +78,65 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
         try { return new Set(JSON.parse(localStorage.getItem('urugwiro_saved_listings') || '[]')); } catch { return new Set(); }
     });
     const [comparedIds, setComparedIds] = useState<Set<string>>(new Set());
-    const [showSavedOnly, setShowSavedOnly] = useState(urlFilters.savedOnly === 'true');
-    const [listings, setListings] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [showSavedOnly, setShowSavedOnly] = useState(initialSavedOnly || urlFilters.savedOnly === 'true');
+
+    // Fetch listings using TanStack Query with stale-while-revalidate
+    const [listingsPage, setListingsPage] = useState(1);
+    const listingsPerPage = 20;
+
+    const cleanedParams = useMemo(() => {
+        const params: Record<string, any> = {};
+        if (filters.search?.trim()) params.search = filters.search.trim();
+        if (filters.category && filters.category !== 'All') params.category = filters.category;
+        if (filters.purpose && filters.purpose !== 'All') params.purpose = filters.purpose;
+        if (filters.type && filters.type !== 'All') params.type = filters.type;
+        if (filters.province && filters.province !== 'All') params.province = filters.province;
+        if (filters.district && filters.district !== 'All') params.district = filters.district;
+        if (filters.sector && filters.sector !== 'All') params.sector = filters.sector;
+        if (filters.minPrice) params.min_price = filters.minPrice;
+        if (filters.maxPrice) params.max_price = filters.maxPrice;
+        if (filters.bedrooms) params.bedrooms = filters.bedrooms;
+        if (filters.bathrooms) params.bathrooms = filters.bathrooms;
+        if (filters.verification) params.verification_level = filters.verification;
+        if (filters.furnished) params.furnished = filters.furnished;
+        if (filters.sort) params.sort = filters.sort;
+        params.page = listingsPage;
+        params.page_size = listingsPerPage;
+        return params;
+    }, [filters, listingsPage]);
+
+    const {
+        data: listingsData,
+        isLoading: isLoadingListings,
+        isError: isListingsError,
+        error: listingsError,
+        refetch: refetchListings,
+    } = useQuery({
+        queryKey: ['listings', cleanedParams],
+        queryFn: async () => {
+            const response = await api.listings.list(cleanedParams);
+            return response.data;
+        },
+        placeholderData: keepPreviousData,
+        staleTime: 30_000,
+    });
+
+    const listings: any[] = useMemo(() => {
+        if (!listingsData) return [];
+        return Array.isArray(listingsData) ? listingsData : listingsData?.results || [];
+    }, [listingsData]);
+
+    const totalListings = useMemo(() => {
+        if (Array.isArray(listingsData)) return listingsData.length;
+        return listingsData?.count || 0;
+    }, [listingsData]);
+
+    const totalPages = Math.max(1, Math.ceil(totalListings / listingsPerPage));
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setListingsPage(1);
+    }, [filters.search, filters.type, filters.purpose, filters.category, filters.minPrice, filters.maxPrice, filters.bedrooms, filters.bathrooms, filters.verification, filters.furnished, filters.city, filters.province, filters.district, filters.sector, filters.sort]);
 
     // Fetch user's saved properties from backend if authenticated
     const savedPropertiesQuery = useQuery({
@@ -124,6 +183,9 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
             }
         }
     }, [listings]);
+
+    // Bidirectional map-grid linking
+    const [hoveredListingId, setHoveredListingId] = useState<string | null>(null);
 
     // ─── Sync filters to URL ────────────────────────────────────────────────────
     useEffect(() => {
@@ -186,22 +248,16 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
             return next;
         });
 
-        // Optimistically update local listing state
-        setListings((current) =>
-            current.map((l) =>
-                String(l.id) === id ? { ...l, is_liked: !isCurrentlySaved } : l
-            )
-        );
-
         if (user) {
             try {
                 await api.listings.like(id);
+                queryClient.invalidateQueries({ queryKey: ['listings'] });
                 queryClient.invalidateQueries({ queryKey: ['consumer-saved-properties'] });
                 queryClient.invalidateQueries({ queryKey: ['consumer-dashboard'] });
                 queryClient.invalidateQueries({ queryKey: ['listing-detail', id] });
                 queryClient.invalidateQueries({ queryKey: ['homepage-listings'] });
             } catch (err) {
-                console.error('Failed to toggle save on backend:', err);
+                logError('Failed to toggle save on backend:', err);
                 setSavedIds((current) => {
                     const rollback = new Set(current);
                     if (isCurrentlySaved) rollback.add(id); else rollback.delete(id);
@@ -210,11 +266,6 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                     } catch {}
                     return rollback;
                 });
-                setListings((current) =>
-                    current.map((l) =>
-                        String(l.id) === id ? { ...l, is_liked: isCurrentlySaved } : l
-                    )
-                );
             }
         }
     };
@@ -243,44 +294,28 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
         }
     }, [initialQuery]);
 
-    const [error, setError] = useState<string | null>(null);
+    // Fix visual search to update filter state instead of bypassing
+    const handleVisualSearchFixed = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-    useEffect(() => {
-        const fetchListings = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                // Sanitize parameters so empty values or 'All' are not sent as literal search terms
-                const cleanedParams: Record<string, any> = {};
-                if (filters.search?.trim()) cleanedParams.search = filters.search.trim();
-                if (filters.category && filters.category !== 'All') cleanedParams.category = filters.category;
-                if (filters.purpose && filters.purpose !== 'All') cleanedParams.purpose = filters.purpose;
-                if (filters.type && filters.type !== 'All') cleanedParams.type = filters.type;
-                if (filters.province && filters.province !== 'All') cleanedParams.province = filters.province;
-                if (filters.district && filters.district !== 'All') cleanedParams.district = filters.district;
-                if (filters.sector && filters.sector !== 'All') cleanedParams.sector = filters.sector;
-                if (filters.minPrice) cleanedParams.min_price = filters.minPrice;
-                if (filters.maxPrice) cleanedParams.max_price = filters.maxPrice;
-                if (filters.bedrooms) cleanedParams.bedrooms = filters.bedrooms;
-                if (filters.bathrooms) cleanedParams.bathrooms = filters.bathrooms;
-                if (filters.verification) cleanedParams.verification_level = filters.verification;
-                if (filters.furnished) cleanedParams.furnished = filters.furnished;
-                if (filters.sort) cleanedParams.sort = filters.sort;
-
-                const response = await api.listings.list(cleanedParams);
-                const data = response.data;
-                setListings(Array.isArray(data) ? data : data?.results || []);
-            } catch (err) {
-                console.error('Error fetching listings:', err);
-                setError('Failed to load properties. Please try again.');
-                setListings([]);
-            } finally {
-                setLoading(false);
+        setIsVisualSearching(true);
+        try {
+            const response = await api.listings.visualSearch(file);
+            const results = response.data?.listings || [];
+            if (results.length > 0) {
+                const firstResult = results[0];
+                if (firstResult.category) {
+                    setFilters(prev => ({ ...prev, category: firstResult.category || prev.category, search: '' }));
+                }
             }
-        };
-
-        fetchListings();
-    }, [filters.search, filters.type, filters.purpose, filters.category, filters.minPrice, filters.maxPrice, filters.bedrooms, filters.bathrooms, filters.verification, filters.furnished, filters.city, filters.province, filters.district, filters.sector, filters.sort]);
+        } catch (error) {
+            logError('Visual search failed:', error);
+            alert('Visual search failed. Please try another image.');
+        } finally {
+            setIsVisualSearching(false);
+        }
+    };
 
     const handleIntentSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -292,8 +327,8 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
             const { filters: aiFilters } = response.data;
 
             setFilters(prev => {
-                const rawCat = (aiFilters.category || aiFilters.propertyType || '').toLowerCase();
-                const rawPurp = (aiFilters.purpose || aiFilters.listingType || '').toLowerCase();
+                const rawCat = String(aiFilters.category || aiFilters.propertyType || '').toLowerCase();
+                const rawPurp = String(aiFilters.purpose || aiFilters.listingType || '').toLowerCase();
 
                 let mappedCat = prev.category;
                 if (rawCat.includes('house') || rawCat.includes('villa') || rawCat.includes('home') || rawCat.includes('residen') || rawCat.includes('apartment')) {
@@ -320,36 +355,21 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                     purpose: mappedPurp,
                     minPrice: aiFilters.min_price !== undefined ? String(aiFilters.min_price) : prev.minPrice,
                     maxPrice: aiFilters.max_price !== undefined ? String(aiFilters.max_price) : prev.maxPrice,
-                    city: aiFilters.city || prev.city,
-                    district: aiFilters.district || prev.district,
-                    sector: aiFilters.sector || prev.sector,
+                    city: aiFilters.city !== undefined ? String(aiFilters.city) : prev.city,
+                    district: aiFilters.district !== undefined ? String(aiFilters.district) : prev.district,
+                    sector: aiFilters.sector !== undefined ? String(aiFilters.sector) : prev.sector,
                 };
             });
             setIntentQuery('');
         } catch (error) {
-            console.error('Intent analysis failed:', error);
+            logError('Intent analysis failed:', error);
             alert('Could not translate your intent into filters. Please try again.');
         } finally {
             setIsAnalyzingIntent(false);
         }
     };
 
-    const handleVisualSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsVisualSearching(true);
-        try {
-            const response = await api.listings.visualSearch(file);
-            setListings(response.data?.listings || []);
-            setLoading(false);
-        } catch (error) {
-            console.error('Visual search failed:', error);
-            alert('Visual search failed. Please try another image.');
-        } finally {
-            setIsVisualSearching(false);
-        }
-    };
+    const handleVisualSearch = handleVisualSearchFixed;
 
     return (
         <div
@@ -507,7 +527,7 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                     </div>
                 )}
 
-                {/* Content View: Split Catalog Grid & GIS Map */}
+                {/* Content View: Persistent Triple-Pane Layout */}
                 <div className="flex flex-1 overflow-hidden">
                     {/* Catalog Results Grid */}
                     <section className={`flex-1 overflow-y-auto p-5 lg:p-8 ${viewMode === 'map' ? 'hidden md:block md:w-1/2 xl:w-[58%]' : 'block w-full'}`}>
@@ -523,21 +543,17 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                                 style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)', color: 'var(--color-text-muted)' }}
                             >
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                <span>{visibleListings.length} properties found</span>
+                                <span>{totalListings} properties found</span>
                             </div>
                         </div>
 
-                        {loading || isVisualSearching ? (
+                        {isLoadingListings || isVisualSearching ? (
                             <LoadingState />
-                        ) : error ? (
+                        ) : isListingsError ? (
                             <ErrorState
                                 title="Failed to load properties"
-                                message={error}
-                                onRetry={() => {
-                                    setError(null);
-                                    // Trigger refetch by toggling a no-op filter
-                                    setFilters((prev) => ({ ...prev, _retry: Date.now() } as any));
-                                }}
+                                message={listingsError?.message || 'An error occurred'}
+                                onRetry={() => refetchListings()}
                             />
                         ) : visibleListings.length === 0 ? (
                             <div className="text-center py-16">
@@ -582,17 +598,27 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                                 onToggleCompare={toggleCompared}
                                 isSavedOnly={showSavedOnly}
                                 onClearSavedFilter={() => setShowSavedOnly(false)}
+                                hoveredListingId={hoveredListingId}
+                                onHoverListing={setHoveredListingId}
+                                currentPage={listingsPage}
+                                totalPages={totalPages}
+                                onPageChange={setListingsPage}
                             />
                         )}
                     </section>
 
-                    {/* Spatial GIS Map Container - Only shown when in map mode */}
+                    {/* Spatial GIS Map Container - Persistent in map mode */}
                     {viewMode === 'map' && (
                         <section
                             className="relative flex-1 md:w-1/2 xl:w-[42%] border-l"
                             style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)' }}
                         >
-                            <DiscoveryMap listings={visibleListings} onListingClick={onListingClick} />
+                            <DiscoveryMap
+                                listings={visibleListings}
+                                onListingClick={onListingClick}
+                                hoveredListingId={hoveredListingId}
+                                onHoverListing={setHoveredListingId}
+                            />
                         </section>
                     )}
                 </div>

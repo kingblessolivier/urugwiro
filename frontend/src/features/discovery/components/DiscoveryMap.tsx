@@ -21,6 +21,8 @@ interface Listing {
 interface DiscoveryMapProps {
   listings: Listing[];
   onListingClick?: (id: string) => void;
+  hoveredListingId?: string | null;
+  onHoverListing?: (id: string | null) => void;
 }
 
 // Custom Leaflet Emerald Marker Icon
@@ -61,7 +63,7 @@ const DISTRICT_COORDS: Record<string, [number, number]> = {
   huye: [-2.6000, 29.7333],
 };
 
-const DiscoveryMap: React.FC<DiscoveryMapProps> = ({ listings, onListingClick }) => {
+const DiscoveryMap: React.FC<DiscoveryMapProps> = ({ listings, onListingClick, hoveredListingId, onHoverListing }) => {
   // Extract all valid geocoded listings
   const mappedListings = useMemo(() => {
     return listings
@@ -117,43 +119,79 @@ const DiscoveryMap: React.FC<DiscoveryMapProps> = ({ listings, onListingClick })
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {mappedListings.map((listing) => (
-          <Marker
-            key={listing.id}
-            position={[listing.lat, listing.lng]}
-            icon={mapPinIcon}
-          >
-            <Popup>
-              <div className="p-1 space-y-1.5 min-w-[170px]" style={{ color: '#0f172a' }}>
-                <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-600 block">
-                  {listing.category || 'Asset'}
-                </span>
-                <h4 className="font-bold text-xs leading-tight line-clamp-2">
-                  {listing.title}
-                </h4>
-                {listing.asset?.district && (
-                  <p className="text-[11px] text-zinc-500 flex items-center gap-1">
-                    <MapPin size={10} /> {listing.asset.district}, {listing.asset.province || 'Rwanda'}
-                  </p>
-                )}
-                {listing.price && (
-                  <p className="text-xs font-mono font-bold text-emerald-600">
-                    {Number(listing.price).toLocaleString()} {listing.currency || 'RWF'}
-                  </p>
-                )}
-                {onListingClick && (
-                  <button
-                    type="button"
-                    onClick={() => onListingClick(String(listing.id))}
-                    className="w-full mt-1.5 py-1 text-[11px] font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors cursor-pointer"
-                  >
-                    View Details →
-                  </button>
-                )}
+        {mappedListings.map((listing) => {
+          const isHovered = hoveredListingId === String(listing.id);
+          const pinIcon = new L.DivIcon({
+            className: 'custom-map-pin',
+            html: `
+              <div style="
+                background: ${isHovered ? '#f59e0b' : '#10b981'};
+                width: ${isHovered ? '36px' : '28px'};
+                height: ${isHovered ? '36px' : '28px'};
+                border-radius: 50%;
+                border: 2.5px solid #ffffff;
+                box-shadow: 0 4px 14px ${isHovered ? 'rgba(245, 158, 11, 0.6)' : 'rgba(16, 185, 129, 0.5)'};
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #ffffff;
+                font-size: ${isHovered ? '14px' : '11px'};
+                font-weight: 700;
+                transition: all 0.2s ease;
+              ">
+                ★
               </div>
-            </Popup>
-          </Marker>
-        ))}
+            `,
+            iconSize: isHovered ? [36, 36] : [28, 28],
+            iconAnchor: isHovered ? [18, 18] : [14, 14],
+            popupAnchor: [0, isHovered ? -20 : -16],
+          });
+
+          return (
+            <Marker
+              key={listing.id}
+              position={[listing.lat, listing.lng]}
+              icon={pinIcon}
+              eventHandlers={{
+                mouseover: () => onHoverListing?.(String(listing.id)),
+                mouseout: () => onHoverListing?.(null),
+                click: () => onHoverListing?.(String(listing.id)),
+              }}
+            >
+              <Popup>
+                <div className="p-1 space-y-1.5 min-w-[170px]" style={{ color: '#0f172a' }} role="dialog" aria-label={`Listing: ${listing.title}`}>
+                  <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-600 block">
+                    {listing.category || 'Asset'}
+                  </span>
+                  <h4 className="font-bold text-xs leading-tight line-clamp-2">
+                    {listing.title}
+                  </h4>
+                  {listing.asset?.district && (
+                    <p className="text-[11px] text-zinc-500 flex items-center gap-1">
+                      <MapPin size={10} /> {listing.asset.district}, {listing.asset.province || 'Rwanda'}
+                    </p>
+                  )}
+                  {listing.price && (
+                    <p className="text-xs font-mono font-bold text-emerald-600">
+                      {Number(listing.price).toLocaleString()} {listing.currency || 'RWF'}
+                    </p>
+                  )}
+                  {onListingClick && (
+                    <button
+                      type="button"
+                      onClick={() => onListingClick(String(listing.id))}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onListingClick(String(listing.id)); } }}
+                      className="w-full mt-1.5 py-1 text-[11px] font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                      aria-label={`View details for ${listing.title}`}
+                    >
+                      View Details
+                    </button>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
     </div>
   );

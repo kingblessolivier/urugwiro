@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Check, X } from 'lucide-react';
-import { cn } from '../../../lib/utils';
+import { cn, logError } from '../../../lib/utils';
 import { Button } from '../../../components/ui/Button';
 
 interface AdminEditableSectionProps<T> {
@@ -36,7 +36,7 @@ export function AdminEditableSection<T>({
       await onSave(localData);
       setIsEditing(false);
     } catch (error) {
-      console.error('Failed to save section:', error);
+      logError('Failed to save section:', error);
     }
   };
 

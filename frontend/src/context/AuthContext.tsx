@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../api/endpoints';
+import { logWarn } from '../lib/utils';
 
 export interface AuthUser {
     id: number | string;
@@ -39,20 +40,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const verifySession = async () => {
             const savedToken = localStorage.getItem('access_token');
-            if (!savedToken) {
+            const hasValidToken = savedToken && savedToken !== 'undefined' && savedToken !== 'null';
+            const cachedUser = localStorage.getItem('urugwiro_user');
+
+            if (!hasValidToken && !cachedUser) {
                 setIsLoading(false);
                 return;
             }
 
             try {
                 const response = await api.auth.me();
-                if (response.data?.user) {
-                    setUser(response.data.user);
-                    localStorage.setItem('urugwiro_user', JSON.stringify(response.data.user));
-                    localStorage.setItem('user_role', response.data.user.role);
+                const userData = response.data?.user || response.data;
+                if (userData && (userData.username || userData.id)) {
+                    setUser(userData);
+                    localStorage.setItem('urugwiro_user', JSON.stringify(userData));
+                    if (userData.role) {
+                        localStorage.setItem('user_role', userData.role);
+                    }
                 }
             } catch (err: any) {
-                console.warn('Session verification failed, clearing session:', err);
+                logWarn('Session verification failed, clearing session:', err);
                 if (err.response?.status === 401) {
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('refresh_token');
@@ -71,29 +78,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = async (credentials: { username?: string; email?: string; password: string }): Promise<AuthUser> => {
         const response = await api.auth.login(credentials);
-        const { access, refresh, user: loggedUser } = response.data;
+        const loggedUser = response.data?.user || response.data;
+        const access = response.data?.access || '';
+        const refresh = response.data?.refresh || '';
 
-        localStorage.setItem('access_token', access);
-        localStorage.setItem('refresh_token', refresh);
-        localStorage.setItem('urugwiro_user', JSON.stringify(loggedUser));
-        localStorage.setItem('user_role', loggedUser.role);
-
-        setToken(access);
-        setUser(loggedUser);
+        if (access) {
+            localStorage.setItem('access_token', access);
+            setToken(access);
+        }
+        if (refresh) {
+            localStorage.setItem('refresh_token', refresh);
+        }
+        if (loggedUser) {
+            localStorage.setItem('urugwiro_user', JSON.stringify(loggedUser));
+            if (loggedUser.role) {
+                localStorage.setItem('user_role', loggedUser.role);
+            }
+            setUser(loggedUser);
+        }
         return loggedUser;
     };
 
-    const register = async (data: { username?: string; email: string; password: string; role: 'Buyer' | 'Tenant'; full_name?: string }): Promise<AuthUser> => {
+    const register = async (data: { username?: string; email: string; password: string; role: string; full_name?: string }): Promise<AuthUser> => {
         const response = await api.auth.register(data);
-        const { access, refresh, user: registeredUser } = response.data;
+        const registeredUser = response.data?.user || response.data;
+        const access = response.data?.access || '';
+        const refresh = response.data?.refresh || '';
 
-        localStorage.setItem('access_token', access);
-        localStorage.setItem('refresh_token', refresh);
-        localStorage.setItem('urugwiro_user', JSON.stringify(registeredUser));
-        localStorage.setItem('user_role', registeredUser.role);
-
-        setToken(access);
-        setUser(registeredUser);
+        if (access) {
+            localStorage.setItem('access_token', access);
+            setToken(access);
+        }
+        if (refresh) {
+            localStorage.setItem('refresh_token', refresh);
+        }
+        if (registeredUser) {
+            localStorage.setItem('urugwiro_user', JSON.stringify(registeredUser));
+            if (registeredUser.role) {
+                localStorage.setItem('user_role', registeredUser.role);
+            }
+            setUser(registeredUser);
+        }
         return registeredUser;
     };
 
@@ -104,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 await api.auth.logout(refresh);
             }
         } catch (e) {
-            console.warn('Logout error ignored:', e);
+            logWarn('Logout error ignored:', e);
         } finally {
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');

@@ -19,7 +19,7 @@ export interface UserItem {
   email: string;
   first_name: string;
   last_name: string;
-  role: 'Admin' | 'Owner' | 'Agent' | 'Seller' | 'Tenant' | 'Buyer' | 'RentalManager';
+  role: 'admin' | 'owner' | 'staff' | 'seller' | 'customer' | 'finance' | string;
   is_active: boolean;
   is_staff: boolean;
   is_superuser: boolean;
@@ -42,12 +42,12 @@ interface UserStats {
 }
 
 const ROLES_LIST = [
-  { role: 'Admin', label: 'Administrator', desc: 'Full platform access and account management', color: 'border-amber-200 text-amber-700 bg-amber-50 dark:border-amber-500/40 dark:text-amber-400 dark:bg-amber-500/10' },
-  { role: 'Agent', label: 'Certified Agent', desc: 'Manages physical site visits, viewings, and negotiations', color: 'border-blue-200 text-blue-700 bg-blue-50 dark:border-blue-500/40 dark:text-blue-400 dark:bg-blue-500/10' },
-  { role: 'Seller', label: 'Asset Seller', desc: 'Lists real estate parcels, villas, and vehicle fleets', color: 'border-purple-200 text-purple-700 bg-purple-50 dark:border-purple-500/40 dark:text-purple-400 dark:bg-purple-500/10' },
-  { role: 'Owner', label: 'Property Owner', desc: 'Manages long-term estate portfolio and title deeds', color: 'border-emerald-200 text-emerald-700 bg-emerald-50 dark:border-emerald-500/40 dark:text-[var(--color-brand-emerald)] dark:bg-emerald-500/10' },
-  { role: 'Buyer', label: 'Verified Buyer', desc: 'Explores catalog, submits escrow offers, and purchases', color: 'border-teal-200 text-teal-700 bg-teal-50 dark:border-teal-500/40 dark:text-teal-400 dark:bg-teal-500/10' },
-  { role: 'Tenant', label: 'Tenant / Resident', desc: 'Rents residential or commercial spaces with lease tracking', color: 'border-[var(--color-border)] text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)]' },
+  { role: 'admin', label: 'Admin', desc: 'Full platform access', color: 'border-amber-200 text-amber-700 bg-amber-50 dark:border-amber-500/40 dark:text-amber-400 dark:bg-amber-500/10' },
+  { role: 'staff', label: 'Staff', desc: 'Manages operations', color: 'border-blue-200 text-blue-700 bg-blue-50 dark:border-blue-500/40 dark:text-blue-400 dark:bg-blue-500/10' },
+  { role: 'seller', label: 'Seller', desc: 'Lists properties', color: 'border-purple-200 text-purple-700 bg-purple-50 dark:border-purple-500/40 dark:text-purple-400 dark:bg-purple-500/10' },
+  { role: 'owner', label: 'Owner', desc: 'Business owner', color: 'border-emerald-200 text-emerald-700 bg-emerald-50 dark:border-emerald-500/40 dark:text-[var(--color-brand-emerald)] dark:bg-emerald-500/10' },
+  { role: 'customer', label: 'Customer', desc: 'Browses and buys', color: 'border-teal-200 text-teal-700 bg-teal-50 dark:border-teal-500/40 dark:text-teal-400 dark:bg-teal-500/10' },
+  { role: 'finance', label: 'Finance', desc: 'Reviews payments', color: 'border-[var(--color-border)] text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)]' },
 ];
 
 export const AdminUserManagement: React.FC = () => {
@@ -70,7 +70,7 @@ export const AdminUserManagement: React.FC = () => {
     password: '',
     first_name: '',
     last_name: '',
-    role: 'Buyer',
+    role: 'customer',
     is_active: true,
     is_staff: false,
   });
@@ -80,7 +80,7 @@ export const AdminUserManagement: React.FC = () => {
     email: '',
     first_name: '',
     last_name: '',
-    role: 'Buyer',
+    role: 'customer',
     is_active: true,
     is_staff: false,
   });
@@ -106,7 +106,7 @@ export const AdminUserManagement: React.FC = () => {
     retry: 2,
   });
 
-  const users: UserItem[] = Array.isArray(data) ? data : (data?.users || []);
+  const users: UserItem[] = Array.isArray(data) ? data : (data?.results || data?.users || []);
   const totalCount: number = data?.count ?? users.length;
   const totalPages: number = data?.total_pages ?? Math.max(1, Math.ceil(totalCount / pageSize));
 
@@ -114,12 +114,12 @@ export const AdminUserManagement: React.FC = () => {
     total: totalCount,
     active: users.filter(u => u.is_active).length,
     inactive: users.filter(u => !u.is_active).length,
-    admins: users.filter(u => u.role === 'Admin').length,
-    agents: users.filter(u => u.role === 'Agent').length,
-    sellers: users.filter(u => u.role === 'Seller').length,
-    owners: users.filter(u => u.role === 'Owner').length,
-    tenants: users.filter(u => u.role === 'Tenant').length,
-    buyers: users.filter(u => u.role === 'Buyer').length,
+    admins: users.filter(u => u.role === 'admin').length,
+    agents: users.filter(u => u.role === 'staff').length,
+    sellers: users.filter(u => u.role === 'seller').length,
+    owners: users.filter(u => u.role === 'owner').length,
+    tenants: users.filter(u => u.role === 'customer').length,
+    buyers: users.filter(u => u.role === 'customer').length,
   };
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
@@ -135,7 +135,7 @@ export const AdminUserManagement: React.FC = () => {
       setActiveModal(null);
       setCreateForm({
         username: '', email: '', password: '', first_name: '',
-        last_name: '', role: 'Buyer', is_active: true, is_staff: false,
+        last_name: '', role: 'customer', is_active: true, is_staff: false,
       });
       showToast(res.data?.message || 'User created successfully!');
     },
@@ -237,8 +237,11 @@ export const AdminUserManagement: React.FC = () => {
 
         {/* TOAST FEEDBACK NOTIFICATION */}
         {feedbackMessage && (
-          <div className={cn(
-            "fixed top-6 right-6 z-50 px-4 py-3 rounded-2xl border shadow-[var(--shadow-depth-1)] flex items-center gap-2.5 text-xs font-semibold animate-fadeIn",
+          <div
+            role="status"
+            aria-live="polite"
+            className={cn(
+            "fixed top-6 right-6 z-50 max-w-sm px-4 py-3 rounded-2xl border shadow-[var(--shadow-depth-1)] flex items-start gap-2.5 text-xs font-semibold animate-fadeIn",
             feedbackMessage.type === 'success'
               ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40"
               : "bg-red-50 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/40"
@@ -250,14 +253,9 @@ export const AdminUserManagement: React.FC = () => {
 
         {/* PAGE HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[var(--color-border)] pb-6">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[var(--color-brand-emerald)] text-[10px] font-mono font-bold uppercase tracking-[0.2em] mb-3">
-              <ShieldCheck size={12} />
-              User Management
-            </div>
-            <h1 className="text-2xl lg:text-3xl font-sans font-bold text-[var(--color-text-main)] tracking-tight">
-              Users
-            </h1>
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-[var(--color-text-main)] tracking-tight">Users</h1>
+            <p className="text-sm text-[var(--color-text-muted)] mt-1">{totalCount} users</p>
           </div>
 
 
@@ -331,12 +329,12 @@ export const AdminUserManagement: React.FC = () => {
               className="bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl py-2 px-3 text-xs text-[var(--color-text-muted)] outline-none focus:border-emerald-500/50"
             >
               <option value="">All Roles</option>
-              <option value="Admin">Admin</option>
-              <option value="Agent">Agent</option>
-              <option value="Seller">Seller</option>
-              <option value="Owner">Owner</option>
-              <option value="Buyer">Buyer</option>
-              <option value="Tenant">Tenant</option>
+              <option value="admin">Admin</option>
+              <option value="staff">Staff</option>
+              <option value="seller">Seller</option>
+              <option value="owner">Owner</option>
+              <option value="customer">Customer</option>
+              <option value="finance">Finance</option>
             </select>
 
             <select
@@ -658,16 +656,23 @@ export const AdminUserManagement: React.FC = () => {
 
       {/* ── MODAL 1: CREATE NEW USER ── */}
       {activeModal === 'create' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-md w-full max-w-lg overflow-hidden shadow-[var(--shadow-depth-1)] animate-fadeIn">
-            <div className="p-6 border-b border-[var(--color-border)] flex items-center justify-between">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
+          role="presentation"
+          onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveModal(null); }}
+        >
+          <div className="w-full max-w-lg max-h-[min(760px,calc(100vh-2rem))] overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-2xl animate-fadeIn">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg-surface)]/95 p-5 backdrop-blur">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-md bg-emerald-500/10 text-[var(--color-brand-emerald)]">
                   <UserPlus size={20} />
                 </div>
-                <h3 className="font-bold text-[var(--color-text-main)] text-lg">Add New User Account</h3>
+                <div>
+                  <h3 className="font-bold text-[var(--color-text-main)] text-lg">Add user</h3>
+                  <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">Create an account and assign access.</p>
+                </div>
               </div>
-              <button onClick={() => setActiveModal(null)} className="text-[var(--color-text-dim)] hover:text-[var(--color-text-main)]">
+              <button type="button" aria-label="Close add user modal" onClick={() => setActiveModal(null)} className="rounded-lg p-2 text-[var(--color-text-dim)] transition hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-main)]">
                 <X size={20} />
               </button>
             </div>
@@ -678,7 +683,7 @@ export const AdminUserManagement: React.FC = () => {
                 e.preventDefault();
                 createMutation.mutate(createForm);
               }}
-              className="p-6 space-y-4 text-xs"
+              className="space-y-5 p-5 text-xs sm:p-6"
             >
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -750,12 +755,12 @@ export const AdminUserManagement: React.FC = () => {
                   className="w-full rounded-md bg-[var(--color-input-bg)] border border-[var(--color-border)] px-3 py-2.5 text-[var(--color-text-main)] outline-none"
                 >
 
-                  <option value="Buyer" className="bg-[var(--color-bg-surface)]">Verified Buyer</option>
-                  <option value="Seller" className="bg-[var(--color-bg-surface)]">Asset Seller</option>
-                  <option value="Agent" className="bg-[var(--color-bg-surface)]">Certified Agent</option>
-                  <option value="Owner" className="bg-[var(--color-bg-surface)]">Property Owner</option>
-                  <option value="Admin" className="bg-[var(--color-bg-surface)]">Platform Administrator</option>
-                  <option value="Tenant" className="bg-[var(--color-bg-surface)]">Tenant</option>
+                  <option value="customer" className="bg-[var(--color-bg-surface)]">Customer</option>
+                  <option value="seller" className="bg-[var(--color-bg-surface)]">Seller</option>
+                  <option value="staff" className="bg-[var(--color-bg-surface)]">Staff</option>
+                  <option value="owner" className="bg-[var(--color-bg-surface)]">Owner</option>
+                  <option value="admin" className="bg-[var(--color-bg-surface)]">Admin</option>
+                  <option value="finance" className="bg-[var(--color-bg-surface)]">Finance</option>
                 </select>
               </div>
 
@@ -881,12 +886,12 @@ export const AdminUserManagement: React.FC = () => {
                   className="w-full rounded-md bg-[var(--color-input-bg)] border border-[var(--color-border)] px-3 py-2.5 text-[var(--color-text-main)] outline-none"
                 >
 
-                  <option value="Admin" className="bg-[var(--color-bg-surface)]">Admin</option>
-                  <option value="Agent" className="bg-[var(--color-bg-surface)]">Agent</option>
-                  <option value="Seller" className="bg-[var(--color-bg-surface)]">Seller</option>
-                  <option value="Owner" className="bg-[var(--color-bg-surface)]">Owner</option>
-                  <option value="Buyer" className="bg-[var(--color-bg-surface)]">Buyer</option>
-                  <option value="Tenant" className="bg-[var(--color-bg-surface)]">Tenant</option>
+                  <option value="admin" className="bg-[var(--color-bg-surface)]">Admin</option>
+                  <option value="staff" className="bg-[var(--color-bg-surface)]">Staff</option>
+                  <option value="seller" className="bg-[var(--color-bg-surface)]">Seller</option>
+                  <option value="owner" className="bg-[var(--color-bg-surface)]">Owner</option>
+                  <option value="customer" className="bg-[var(--color-bg-surface)]">Customer</option>
+                  <option value="finance" className="bg-[var(--color-bg-surface)]">Finance</option>
                 </select>
               </div>
 

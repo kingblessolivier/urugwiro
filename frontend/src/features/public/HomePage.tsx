@@ -24,7 +24,7 @@ import { Button } from '../../components/ui/Button';
 import { SkeletonGrid, ErrorState } from '../../components/ui/Dashboard';
 import { api } from '../../api/endpoints';
 import type { AppView } from '../../types/navigation';
-import { cn } from '../../lib/utils';
+import { cn, logError } from '../../lib/utils';
 import { useTheme } from '../../context/ThemeContext';
 
 interface HomePageProps {
@@ -98,22 +98,23 @@ const HERO_SLIDES: HeroSlide[] = [
 
 
 const categories = [
-  { label: 'Homes & Villas', icon: Home, query: 'sale', desc: 'Luxury residences & family homes' },
+  { label: 'Homes & Villas', icon: Home, query: 'house', desc: 'Luxury residences & family homes' },
   { label: 'Land & Plots', icon: MapIcon, query: 'land', desc: 'Verified land with UPI cadastre' },
   { label: 'Apartments', icon: Building2, query: 'apartment', desc: 'Modern urban living spaces' },
-  { label: 'Vehicles', icon: Car, query: 'vehicle', desc: 'Cars, SUVs & motorcycles' },
+  { label: 'Vehicles', icon: Car, query: 'car', desc: 'Cars, SUVs & motorcycles' },
   { label: 'Commercial', icon: Building2, query: 'commercial', desc: 'Office & retail spaces' },
-  { label: 'Rentals', icon: Key, query: 'rental', desc: 'Short & long-term rentals' },
+  { label: 'Rentals', icon: Key, query: 'rent', desc: 'Short & long-term rentals' },
 ];
 
 const steps = [
   { step: '01', title: 'Discover', desc: 'Search verified listings by location, category, or price. Browse homes, land, apartments, and vehicles across Rwanda.' },
   { step: '02', title: 'Verify', desc: 'Review title documents, cadastral records, and inspection reports. Every listing includes its verification status upfront.' },
-  { step: '03', title: 'Transact', desc: 'Make offers, schedule visits, and close deals. Deposits are held in regulated escrow until the transaction is complete.' },
+  { step: '03', title: 'Connect & Close', desc: 'Make offers, schedule visits, and connect directly with verified sellers to agree on terms and close deals with confidence.' },
 ];
 
 
-const mapApiListing = (item: Record<string, unknown>): ListingCardData => {
+
+const mapApiListing = (item: any): ListingCardData => {
   const media = Array.isArray(item.media) ? item.media : [];
   const asset = (item.asset as Record<string, unknown> | undefined) || {};
   const locationParts = [asset.district, asset.province, item.location].filter(Boolean);
@@ -190,7 +191,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
         queryClient.invalidateQueries({ queryKey: ['listing-detail', id] });
         queryClient.invalidateQueries({ queryKey: ['homepage-listings'] });
       } catch (err) {
-        console.error('Failed to toggle save on homepage:', err);
+        logError('Failed to toggle save on homepage:', err);
         setSavedIds((current) => {
           const rollback = new Set(current);
           if (isCurrentlySaved) rollback.add(id); else rollback.delete(id);

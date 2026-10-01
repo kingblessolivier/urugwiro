@@ -1,21 +1,12 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-    Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale,
-    LinearScale, BarElement, PointElement, LineElement, Filler
-} from 'chart.js';
-import { Bar, Line } from 'react-chartjs-2';
 import { api } from '../../api/endpoints';
 import { useAuth } from '../../context/AuthContext';
 import {
-    Building2, PlusCircle, CheckCircle2, ShieldCheck, TrendingUp,
-    Layers, Clock, FileText, ArrowUpRight, MapPin, AlertCircle,
-    Eye, X, ExternalLink
+    TrendingUp, Wallet, ArrowDownRight, ArrowUpRight,
+    Landmark, BadgeCheck, Receipt, PieChart, Users
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
-import { Pagination } from '../../components/ui/Pagination';
-
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Filler);
 
 interface OwnerLaunchpadProps {
     onListingClick?: (id: string) => void;
@@ -23,334 +14,356 @@ interface OwnerLaunchpadProps {
 
 const OwnerLaunchpad: React.FC<OwnerLaunchpadProps> = ({ onListingClick }) => {
     const { user } = useAuth();
-    const displayName = user?.full_name || (user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user?.username) || 'Property Owner';
-    const [selectedAsset, setSelectedAsset] = useState<any | null>(null);
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(6);
+    const displayName = user?.full_name || user?.first_name || 'Owner';
 
-    const { data: ownerDashboard, isLoading } = useQuery({
-        queryKey: ['owner-dashboard-live', user?.id],
+    // Fetch all necessary data
+    const { data: transactionsData, isLoading: isLoadingTx } = useQuery({
+        queryKey: ['admin-transactions'],
         queryFn: async () => {
-            const response = await api.owner.dashboard();
-            return response.data;
-        },
+            const res = await api.admin.transactions();
+            return Array.isArray(res.data) ? res.data : res.data?.results || [];
+        }
     });
 
-    // Show loading state while fetching dashboard data
+    const { data: paymentsData, isLoading: isLoadingPay } = useQuery({
+        queryKey: ['admin-seller-payments'],
+        queryFn: async () => {
+            const res = await api.admin.sellerPayments();
+            return Array.isArray(res.data) ? res.data : res.data?.results || [];
+        }
+    });
+
+    const { data: expensesData, isLoading: isLoadingExp } = useQuery({
+        queryKey: ['admin-expenses'],
+        queryFn: async () => {
+            const res = await api.admin.expenses();
+            return Array.isArray(res.data) ? res.data : res.data?.results || [];
+        }
+    });
+
+    const { data: listingsData, isLoading: isLoadingList } = useQuery({
+        queryKey: ['admin-listings'],
+        queryFn: async () => {
+            const res = await api.listings.list();
+            return Array.isArray(res.data) ? res.data : res.data?.results || [];
+        }
+    });
+
+    const { data: sellersData, isLoading: isLoadingSellers } = useQuery({
+        queryKey: ['admin-sellers'],
+        queryFn: async () => {
+            const res = await api.admin.sellers();
+            return Array.isArray(res.data) ? res.data : res.data?.results || [];
+        }
+    });
+    
+    const { data: offersData, isLoading: isLoadingOffers } = useQuery({
+        queryKey: ['admin-offers'],
+        queryFn: async () => {
+            const res = await api.admin.offers();
+            return Array.isArray(res.data) ? res.data : res.data?.results || [];
+        }
+    });
+
+    const isLoading = isLoadingTx || isLoadingPay || isLoadingExp || isLoadingList || isLoadingSellers || isLoadingOffers;
+
+    const data = useMemo(() => {
+        const transactions = transactionsData || [];
+        const payments = paymentsData || [];
+        const expenses = expensesData || [];
+        const listings = listingsData || [];
+        const sellers = sellersData || [];
+        const offers = offersData || [];
+
+        // 1. Business KPI Calculations
+        const totalRevenue = transactions.reduce((acc: number, t: any) => acc + Number(t.agreed_price || 0), 0);
+        const urugwiroEarnings = transactions.reduce((acc: number, t: any) => acc + Number(t.commission_amount || 0), 0);
+        const sellerObligations = transactions.reduce((acc: number, t: any) => acc + Number(t.seller_amount || 0), 0);
+        
+        const paidToSellers = payments
+            .filter((p: any) => p.status === 'Paid' || p.status === 'completed')
+            .reduce((acc: number, p: any) => acc + Number(p.amount || 0), 0);
+            
+        const outstandingBalance = sellerObligations - paidToSellers;
+        const totalExpenses = expenses.reduce((acc: number, e: any) => acc + Number(e.amount || 0), 0);
+        const netProfit = urugwiroEarnings - totalExpenses;
+        
+        const activeListingsCount = listings.filter((l: any) => l.status === 'active' || l.status === 'published').length;
+
+        // Expense Breakdown
+        const expensesByCategory = expenses.reduce((acc: any, e: any) => {
+            const cat = e.category || 'Other';
+            acc[cat] = (acc[cat] || 0) + Number(e.amount || 0);
+            return acc;
+        }, {});
+        const expenseCategories = Object.keys(expensesByCategory).map(cat => ({
+            category: cat,
+            amount: expensesByCategory[cat],
+            percentage: totalExpenses > 0 ? (expensesByCategory[cat] / totalExpenses) * 100 : 0
+        })).sort((a, b) => b.amount - a.amount);
+
+        // Seller Obligations
+        const sellerMap = new Map();
+        sellers.forEach((s: any) => {
+            sellerMap.set(s.id, {
+                id: s.id,
+                name: s.company_name || s.full_name || `Seller #${s.id}`,
+                propertiesSold: 0,
+                totalObligation: 0,
+                totalPaid: 0,
+                outstanding: 0,
+                status: 'Pending'
+            });
+        });
+
+        transactions.forEach((t: any) => {
+            const sId = t.seller_id || t.seller?.id;
+            if (sId) {
+                if (!sellerMap.has(sId)) {
+                    sellerMap.set(sId, { id: sId, name: `Seller #${sId}`, propertiesSold: 0, totalObligation: 0, totalPaid: 0, outstanding: 0, status: 'Pending' });
+                }
+                const s = sellerMap.get(sId);
+                s.propertiesSold += 1;
+                s.totalObligation += Number(t.seller_amount || 0);
+            }
+        });
+
+        payments.filter((p: any) => p.status === 'Paid' || p.status === 'completed').forEach((p: any) => {
+            const sId = p.seller_id || p.seller?.id;
+            if (sId && sellerMap.has(sId)) {
+                sellerMap.get(sId).totalPaid += Number(p.amount || 0);
+            }
+        });
+
+        const sellerObligationsList = Array.from(sellerMap.values())
+            .filter(s => s.totalObligation > 0)
+            .map(s => {
+                s.outstanding = s.totalObligation - s.totalPaid;
+                if (s.outstanding <= 0) s.status = 'Paid';
+                else if (s.totalPaid > 0) s.status = 'Partially Paid';
+                else s.status = 'Pending';
+                return s;
+            })
+            .sort((a, b) => b.outstanding - a.outstanding);
+
+        // Performance
+        const avgDealValue = transactions.length > 0 ? totalRevenue / transactions.length : 0;
+        const avgCommission = transactions.length > 0 ? urugwiroEarnings / transactions.length : 0;
+        const totalPropertiesHandled = listings.length;
+        const conversionRate = offers.length > 0 ? (transactions.length / offers.length) * 100 : 0;
+
+        return {
+            totalRevenue,
+            urugwiroEarnings,
+            sellerObligations,
+            paidToSellers,
+            outstandingBalance,
+            totalExpenses,
+            netProfit,
+            activeListingsCount,
+            expensesByCategory: expenseCategories,
+            sellerObligationsList,
+            avgDealValue,
+            avgCommission,
+            totalPropertiesHandled,
+            conversionRate
+        };
+    }, [transactionsData, paymentsData, expensesData, listingsData, sellersData, offersData]);
+
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen text-zinc-400">
-                Loading dashboard…
+            <div className="flex items-center justify-center min-h-[50vh] text-[var(--color-text-muted)] animate-pulse">
+                Aggregating financial data...
             </div>
         );
     }
 
-    const metrics = ownerDashboard?.metrics || {
-        total_properties: 0,
-        in_flight_deals: 0,
-        closed_deals: 0,
-        total_revenue: 0,
-        active_leases: 0,
-        currency: 'RWF',
-    };
-
-    const timeline = ownerDashboard?.timeline || {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        properties_curve: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        revenue_curve: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    };
-
-    const listings = ownerDashboard?.listings || [];
-    const recentDeals = ownerDashboard?.recent_deals || [];
-
-    const chartOpts = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: true,
-                labels: { color: '#a1a1aa', font: { family: 'Inter' } },
-            },
-            tooltip: {
-                backgroundColor: '#0a0f18',
-                titleColor: '#34d399',
-                bodyColor: '#fff',
-                cornerRadius: 12,
-                padding: 12,
-            },
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                grid: { color: 'rgba(255,255,255,0.05)' },
-                ticks: { color: '#71717a', font: { family: 'Inter' } },
-            },
-            x: {
-                grid: { display: false },
-                ticks: { color: '#71717a', font: { family: 'Inter' } },
-            },
-        },
-    };
-
-    const propertyChartData = {
-        labels: timeline.labels,
-        datasets: [
-            {
-                label: 'Portfolio Asset Trajectory',
-                data: timeline.properties_curve,
-                backgroundColor: 'rgba(16, 185, 129, 0.15)',
-                borderColor: '#10b981',
-                borderWidth: 2,
-                borderRadius: 8,
-            },
-        ],
-    };
-
-    const revenueChartData = {
-        labels: timeline.labels,
-        datasets: [
-            {
-                label: 'Settled Conveyance Volume (RWF)',
-                data: timeline.revenue_curve,
-                borderColor: '#34d399',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                fill: true,
-                tension: 0.4,
-                borderWidth: 2,
-            },
-        ],
-    };
+    const fmt = (num: number) => Math.round(num).toLocaleString() + ' RWF';
 
     return (
-        <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 bg-[#05070b] min-h-screen text-zinc-100 animate-in fade-in duration-300">
-            {/* Hero Section */}
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-emerald-950/30 via-white/[0.02] to-transparent p-8 shadow-2xl backdrop-blur-xl">
-                <div className="relative z-10 flex justify-between items-start flex-wrap gap-6">
-                    <div>
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
-                            <ShieldCheck size={14} /> Property Portfolio Dashboard
-                        </div>
-                        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-                            Welcome, <span className="text-emerald-400">{displayName}</span> 👋
-                        </h1>
-                        <p className="text-zinc-400 text-sm sm:text-base">
-                            Real-time database overview of your listed assets, escrow deposits, and verified contracts.
-                        </p>
-                    </div>
-                </div>
-                <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
+        <div className="p-6 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300">
+            {/* Header */}
+            <div className="flex flex-col gap-2">
+                <h1 className="text-3xl font-bold text-[var(--color-text-main)]">Owner Dashboard</h1>
+                <p className="text-[var(--color-text-muted)]">Financial overview and business intelligence center.</p>
             </div>
 
-            {/* Metrics Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                    { label: 'Listed Assets', value: metrics.total_properties, icon: Building2, color: 'text-emerald-400' },
-                    { label: 'In-Flight Deals', value: metrics.in_flight_deals, icon: Layers, color: 'text-sky-400' },
-                    { label: 'Active Leases', value: metrics.active_leases, icon: FileText, color: 'text-emerald-300' },
-                    { label: 'Realized Conveyance', value: `${(metrics.total_revenue || 0).toLocaleString()} ${metrics.currency}`, icon: TrendingUp, color: 'text-amber-400' },
-                ].map((stat, i) => {
-                    const Icon = stat.icon;
-                    return (
-                        <div key={i} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex flex-col items-center text-center hover:border-emerald-500/40 transition-all backdrop-blur-xl">
-                            <div className="p-3 rounded-xl bg-white/[0.04] text-emerald-400 mb-2">
-                                <Icon size={20} />
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <KPICard title="Total Revenue" value={fmt(data.totalRevenue)} icon={Landmark} color="text-green-500" />
+                <KPICard title="Urugwiro Earnings" value={fmt(data.urugwiroEarnings)} icon={TrendingUp} color="text-green-400" />
+                <KPICard title="Seller Obligations" value={fmt(data.sellerObligations)} icon={Wallet} color="text-amber-500" />
+                <KPICard title="Amount Paid to Sellers" value={fmt(data.paidToSellers)} icon={BadgeCheck} color="text-emerald-500" />
+                <KPICard title="Outstanding Balance" value={fmt(data.outstandingBalance)} icon={ArrowDownRight} color="text-rose-400" />
+                <KPICard title="Total Expenses" value={fmt(data.totalExpenses)} icon={Receipt} color="text-rose-500" />
+                <KPICard title="Net Profit" value={fmt(data.netProfit)} icon={ArrowUpRight} color={data.netProfit >= 0 ? "text-green-400" : "text-rose-500"} />
+                <KPICard title="Active Listings" value={data.activeListingsCount.toString()} icon={PieChart} color="text-sky-400" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Financial Overview Table */}
+                <div className="lg:col-span-2 space-y-4">
+                    <h3 className="text-xl font-bold text-[var(--color-text-main)] flex items-center gap-2">
+                        <Landmark size={20} className="text-[var(--color-brand-emerald)]" /> Financial Summary
+                    </h3>
+                    <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden backdrop-blur-xl">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]">
+                                <tr>
+                                    <th className="px-6 py-4 font-semibold">Metric</th>
+                                    <th className="px-6 py-4 font-semibold text-right">Amount (RWF)</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--color-border)] text-[var(--color-text-main)]">
+                                <tr>
+                                    <td className="px-6 py-4">Total Transaction Revenue</td>
+                                    <td className="px-6 py-4 text-right font-mono text-green-400">{fmt(data.totalRevenue)}</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-6 py-4">Urugwiro Commission Earned</td>
+                                    <td className="px-6 py-4 text-right font-mono text-green-400">{fmt(data.urugwiroEarnings)}</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-6 py-4">Seller Obligations</td>
+                                    <td className="px-6 py-4 text-right font-mono text-amber-400">{fmt(data.sellerObligations)}</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-6 py-4">Amount Paid to Sellers</td>
+                                    <td className="px-6 py-4 text-right font-mono text-emerald-400">{fmt(data.paidToSellers)}</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-6 py-4">Outstanding Seller Payments</td>
+                                    <td className="px-6 py-4 text-right font-mono text-rose-400">{fmt(data.outstandingBalance)}</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-6 py-4">Total Expenses</td>
+                                    <td className="px-6 py-4 text-right font-mono text-rose-400">{fmt(data.totalExpenses)}</td>
+                                </tr>
+                                <tr className="bg-[var(--color-bg-elevated)] font-bold">
+                                    <td className="px-6 py-4 text-lg">Net Profit</td>
+                                    <td className={`px-6 py-4 text-right text-lg font-mono ${data.netProfit >= 0 ? 'text-green-400' : 'text-rose-500'}`}>
+                                        {fmt(data.netProfit)}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Business Performance & Expenses */}
+                <div className="space-y-8">
+                    <div className="space-y-4">
+                        <h3 className="text-xl font-bold text-[var(--color-text-main)] flex items-center gap-2">
+                            <TrendingUp size={20} className="text-[var(--color-brand-emerald)]" /> Business Performance
+                        </h3>
+                        <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-xl p-6 backdrop-blur-xl space-y-4">
+                            <div className="flex justify-between items-center">
+                                <span className="text-[var(--color-text-muted)] text-sm">Avg Deal Value</span>
+                                <span className="font-mono font-semibold text-[var(--color-text-main)]">{fmt(data.avgDealValue)}</span>
                             </div>
-                            <div className={`text-xl sm:text-2xl font-bold ${stat.color} font-mono`}>{stat.value}</div>
-                            <div className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider mt-1">{stat.label}</div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-[var(--color-text-muted)] text-sm">Avg Commission / Deal</span>
+                                <span className="font-mono font-semibold text-[var(--color-text-main)]">{fmt(data.avgCommission)}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-[var(--color-text-muted)] text-sm">Offer Conversion Rate</span>
+                                <span className="font-mono font-semibold text-[var(--color-text-main)]">{data.conversionRate.toFixed(1)}%</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-[var(--color-text-muted)] text-sm">Total Properties Handled</span>
+                                <span className="font-mono font-semibold text-[var(--color-text-main)]">{data.totalPropertiesHandled}</span>
+                            </div>
                         </div>
-                    );
-                })}
-            </div>
+                    </div>
 
-            {/* Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 h-[380px] flex flex-col backdrop-blur-xl">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-base font-bold text-white flex items-center gap-2">
-                            <Building2 size={16} className="text-emerald-400" /> Portfolio Growth
+                    <div className="space-y-4">
+                        <h3 className="text-xl font-bold text-[var(--color-text-main)] flex items-center gap-2">
+                            <Receipt size={20} className="text-[var(--color-brand-emerald)]" /> Expense Breakdown
                         </h3>
-                        <span className="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-full border border-emerald-500/20">Active Database Records</span>
-                    </div>
-                    <div className="flex-1 relative">
-                        <Bar data={propertyChartData} options={chartOpts} />
-                    </div>
-                </div>
-
-                <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 h-[380px] flex flex-col backdrop-blur-xl">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-base font-bold text-white flex items-center gap-2">
-                            <TrendingUp size={16} className="text-emerald-400" /> Revenue Trajectory
-                        </h3>
-                        <span className="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-full border border-emerald-500/20">Closed Conveyances</span>
-                    </div>
-                    <div className="flex-1 relative">
-                        <Line data={revenueChartData} options={chartOpts} />
-                    </div>
-                </div>
-            </div>
-
-            {/* Portfolio Assets Table & Zero-State */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 sm:p-8 backdrop-blur-xl space-y-6">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                            <Building2 size={18} className="text-emerald-400" /> Portfolio Assets Overview
-                        </h3>
-                        <p className="text-xs text-zinc-400 mt-1">Real-time cadastral registry of your listed and managed assets.</p>
-                    </div>
-                    <span className="px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-xs font-mono text-zinc-300">
-                        {listings.length} registered
-                    </span>
-                </div>
-
-                {listings.length === 0 ? (
-                    <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
-                        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-zinc-500">
-                            <Building2 size={32} />
-                        </div>
-                        <h4 className="text-base font-bold text-white">No Assets Registered in Portfolio</h4>
-                        <p className="text-xs text-zinc-400 max-w-md">
-                            You currently have zero properties in your portfolio. Onboard an asset or register a verified title deed to view real-time conveyance metrics.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {listings.slice((page - 1) * pageSize, page * pageSize).map((l: any) => (
-                                <div
-                                    key={l.id}
-                                    onClick={() => setSelectedAsset(l)}
-                                    className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex gap-4 items-center hover:border-emerald-500/30 transition-all cursor-pointer group"
-                                >
-                                    <img
-                                        src={l.image || '/images/hero/house.jpg'}
-                                        alt={l.title}
-                                        className="w-16 h-16 rounded-xl object-cover border border-white/10 shrink-0 group-hover:scale-105 transition-transform"
-                                    />
-                                    <div className="min-w-0 flex-1">
-                                        <h5 className="text-sm font-bold text-white truncate group-hover:text-emerald-400 transition-colors">{l.title}</h5>
-                                        <p className="text-xs font-mono text-emerald-400 font-semibold mt-0.5">
-                                            {Number(l.price).toLocaleString()} {l.currency}
-                                        </p>
-                                        <div className="flex items-center justify-between gap-2 mt-2 text-[10px] text-zinc-400">
-                                            <span className="px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/10 uppercase">
-                                                {l.purpose === 'rent' ? 'For Rent' : 'For Sale'}
-                                            </span>
-                                            <span className="text-emerald-400 font-medium capitalize flex items-center gap-1">
-                                                <Eye size={11} /> Inspect
-                                            </span>
+                        <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-xl p-6 backdrop-blur-xl space-y-4">
+                            {data.expensesByCategory.length === 0 ? (
+                                <p className="text-sm text-[var(--color-text-muted)] text-center py-4">No expenses recorded.</p>
+                            ) : (
+                                data.expensesByCategory.map((exp: any, i: number) => (
+                                    <div key={i} className="space-y-1">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-[var(--color-text-main)] capitalize">{exp.category}</span>
+                                            <span className="font-mono text-[var(--color-text-muted)]">{fmt(exp.amount)}</span>
+                                        </div>
+                                        <div className="w-full bg-[var(--color-bg-elevated)] h-1.5 rounded-full overflow-hidden">
+                                            <div 
+                                                className="bg-rose-500 h-full rounded-full" 
+                                                style={{ width: `${exp.percentage}%` }} 
+                                            />
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {listings.length > 0 && (
-                            <div className="pt-2">
-                                <Pagination
-                                    currentPage={page}
-                                    totalPages={Math.max(1, Math.ceil(listings.length / pageSize))}
-                                    onPageChange={setPage}
-                                    pageSize={pageSize}
-                                    onPageSizeChange={(sz) => { setPageSize(sz); setPage(1); }}
-                                    totalItems={listings.length}
-                                />
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* Property Details Modal */}
-            {selectedAsset && (
-                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
-                    <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#080c14] p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-start justify-between border-b border-white/10 pb-4">
-                            <div>
-                                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase tracking-wider mb-2">
-                                    <Building2 size={12} /> Property Details
-                                </div>
-                                <h3 className="text-xl font-bold text-white">
-                                    {selectedAsset.title}
-                                </h3>
-                                <p className="text-xs text-zinc-400 mt-0.5">Asset ID: #{selectedAsset.id}</p>
-                            </div>
-                            <button
-                                onClick={() => setSelectedAsset(null)}
-                                className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer"
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
-
-                        {selectedAsset.image && (
-                            <div className="rounded-2xl overflow-hidden h-48 w-full border border-white/10">
-                                <img
-                                    src={selectedAsset.image}
-                                    alt={selectedAsset.title}
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
-                        )}
-
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
-                                    <span className="text-zinc-500 text-[10px] block font-bold uppercase tracking-wider">Asset Valuation</span>
-                                    <span className="text-lg font-mono font-bold text-emerald-400 mt-1 block">
-                                        {Number(selectedAsset.price).toLocaleString()} {selectedAsset.currency || 'RWF'}
-                                    </span>
-                                </div>
-                                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
-                                    <span className="text-zinc-500 text-[10px] block font-bold uppercase tracking-wider">Purpose & Model</span>
-                                    <span className="text-sm font-semibold text-white mt-1 block capitalize">
-                                        {selectedAsset.purpose === 'rent' ? 'Rental Lease' : 'Outright Sale'}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
-                                    <span className="text-zinc-500 text-[10px] block font-bold uppercase tracking-wider">Registry Status</span>
-                                    <span className="text-sm font-semibold text-emerald-400 mt-1 block capitalize">
-                                        {selectedAsset.status || 'Active'}
-                                    </span>
-                                </div>
-                                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
-                                    <span className="text-zinc-500 text-[10px] block font-bold uppercase tracking-wider">Cadastre UPI</span>
-                                    <span className="text-sm font-mono font-semibold text-zinc-300 mt-1 block">
-                                        {selectedAsset.upi_number || 'Registered on File'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-white/10 flex items-center justify-between gap-3">
-                            {onListingClick && (
-                                <Button
-                                    size="sm"
-                                    onClick={() => {
-                                        onListingClick(String(selectedAsset.id));
-                                        setSelectedAsset(null);
-                                    }}
-                                    className="rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 cursor-pointer"
-                                >
-                                    <ExternalLink size={13} /> View on Marketplace
-                                </Button>
+                                ))
                             )}
-                            <button
-                                type="button"
-                                onClick={() => setSelectedAsset(null)}
-                                className="px-4 py-2 rounded-xl border border-white/10 text-xs font-semibold text-zinc-400 hover:text-white cursor-pointer ml-auto"
-                            >
-                                Close
-                            </button>
                         </div>
                     </div>
                 </div>
-            )}
+            </div>
+
+            {/* Seller Obligations Table */}
+            <div className="space-y-4">
+                <h3 className="text-xl font-bold text-[var(--color-text-main)] flex items-center gap-2">
+                    <Users size={20} className="text-[var(--color-brand-emerald)]" /> Seller Obligations
+                </h3>
+                <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden backdrop-blur-xl overflow-x-auto">
+                    {data.sellerObligationsList.length === 0 ? (
+                        <div className="p-8 text-center text-[var(--color-text-muted)]">
+                            No seller obligations found.
+                        </div>
+                    ) : (
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]">
+                                <tr>
+                                    <th className="px-6 py-4 font-semibold">Seller</th>
+                                    <th className="px-6 py-4 font-semibold text-center">Properties Sold</th>
+                                    <th className="px-6 py-4 font-semibold text-right">Total Obligation</th>
+                                    <th className="px-6 py-4 font-semibold text-right">Total Paid</th>
+                                    <th className="px-6 py-4 font-semibold text-right">Outstanding</th>
+                                    <th className="px-6 py-4 font-semibold text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--color-border)] text-[var(--color-text-main)]">
+                                {data.sellerObligationsList.map((s: any, idx: number) => (
+                                    <tr key={idx} className="hover:bg-[var(--color-bg-card-hover)] transition-colors">
+                                        <td className="px-6 py-4 font-medium">{s.name}</td>
+                                        <td className="px-6 py-4 text-center">{s.propertiesSold}</td>
+                                        <td className="px-6 py-4 text-right font-mono">{fmt(s.totalObligation)}</td>
+                                        <td className="px-6 py-4 text-right font-mono text-emerald-400">{fmt(s.totalPaid)}</td>
+                                        <td className="px-6 py-4 text-right font-mono text-amber-400">{fmt(s.outstanding)}</td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                                s.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                                s.status === 'Partially Paid' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                                'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                            }`}>
+                                                {s.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
+
+const KPICard = ({ title, value, icon: Icon, color }: { title: string, value: string, icon: any, color: string }) => (
+    <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-2xl p-5 flex flex-col gap-3 backdrop-blur-xl hover:border-[var(--color-border-hover)] transition-all">
+        <div className="flex justify-between items-start">
+            <span className="text-sm font-medium text-[var(--color-text-muted)]">{title}</span>
+            <div className={`p-2 rounded-xl bg-[var(--color-bg-elevated)] ${color}`}>
+                <Icon size={18} />
+            </div>
+        </div>
+        <div className={`text-2xl font-bold font-mono ${color}`}>{value}</div>
+    </div>
+);
 
 export default OwnerLaunchpad;

@@ -2,14 +2,11 @@ import React from 'react';
 import { PublicHeader } from './PublicHeader';
 import { PublicFooter } from './PublicFooter';
 import { MobileTabBar } from './MobileTabBar';
-import { AiChatWidget } from '../ai/AiChatWidget';
-import { PwaInstallPrompt } from '../PwaInstallPrompt';
 import { WhatsAppButton } from '../whatsapp/WhatsAppButton';
-import { LiveChatSupport } from '../livechat/LiveChatSupport';
 import { BannerNotifications } from '../notifications/BannerNotifications';
 import { OnboardingTour } from '../onboarding/OnboardingTour';
 import { isAuthView, type AppView } from '../../types/navigation';
-import { cn } from '../../lib/utils';
+import { cn, logWarn } from '../../lib/utils';
 
 /* ────────────────────────────────────────────────────────────────
    CRASH BARRIER — on any child error, silently renders null.
@@ -27,10 +24,7 @@ class OnboardingTourErrorBoundary extends React.Component<{ children: React.Reac
     return { hasError: true };
   }
   componentDidCatch(error: unknown, info: unknown): void {
-    try {
-      // eslint-disable-next-line no-console
-      console.warn('[OnboardingTourErrorBoundary] suppressed non-fatal error to prevent white-screen —', error, info);
-    } catch { /* noop */ }
+    logWarn('[OnboardingTourErrorBoundary] suppressed non-fatal error to prevent white-screen —', error, info);
   }
   render(): React.ReactNode {
     if (this.state.hasError) return null;
@@ -74,10 +68,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
       <main id="main-content" className={cn("flex-1 w-full max-w-full overflow-x-clip", !isAuth && "pb-20 md:pb-0")} tabIndex={-1}>{children}</main>
       {showFooter && !isAuth ? <PublicFooter onNavigate={onNavigate} /> : null}
       {!isAuth && <MobileTabBar view={view} onNavigate={onNavigate} />}
-      {!isAuth && <AiChatWidget />}
-      {!isAuth && <PwaInstallPrompt />}
       {!isAuth && <WhatsAppButton />}
-      {!isAuth && <LiveChatSupport />}
       {!isAuth && (
         <OnboardingTourErrorBoundary>
           <OnboardingTour onNavigate={onNavigate} />

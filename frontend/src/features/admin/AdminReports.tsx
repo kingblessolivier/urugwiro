@@ -37,12 +37,17 @@ ChartJS.register(
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const AdminReports: React.FC = () => {
-  // 1. Live Deals
+  // 1. Live Deals (Transactions)
   const { data: dealsData } = useQuery({
     queryKey: ['reports-deals'],
     queryFn: async () => {
-      const res = await api.deals.list();
-      return Array.isArray(res.data) ? res.data : [];
+      try {
+        const res = await api.admin.transactions();
+        const data = res.data?.results || res.data || [];
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
     },
   });
 
@@ -50,8 +55,13 @@ const AdminReports: React.FC = () => {
   const { data: listingsData } = useQuery({
     queryKey: ['reports-listings'],
     queryFn: async () => {
-      const res = await api.listings.list();
-      return Array.isArray(res.data) ? res.data : [];
+      try {
+        const res = await api.listings.list();
+        const data = res.data?.results || res.data || [];
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
     },
   });
 
@@ -59,8 +69,13 @@ const AdminReports: React.FC = () => {
   const { data: offersData } = useQuery({
     queryKey: ['reports-offers'],
     queryFn: async () => {
-      const res = await api.offers.list();
-      return Array.isArray(res.data) ? res.data : [];
+      try {
+        const res = await api.admin.offers();
+        const data = res.data?.results || res.data || [];
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
     },
   });
 
@@ -68,31 +83,10 @@ const AdminReports: React.FC = () => {
   const { data: usersData } = useQuery({
     queryKey: ['reports-users'],
     queryFn: async () => {
-      const res = await api.admin.users.list({ page_size: 100 });
-      return Array.isArray(res.data) ? res.data : (res.data?.results || []);
-    },
-  });
-
-  // 5. Live Leases
-  const { data: leasesData } = useQuery({
-    queryKey: ['reports-leases'],
-    queryFn: async () => {
       try {
-        const res = await api.admin.leases();
-        return Array.isArray(res.data) ? res.data : [];
-      } catch {
-        return [];
-      }
-    },
-  });
-
-  // 6. Live Maintenance
-  const { data: maintDataRaw } = useQuery({
-    queryKey: ['reports-maintenance'],
-    queryFn: async () => {
-      try {
-        const res = await api.admin.maintenance();
-        return Array.isArray(res.data) ? res.data : [];
+        const res = await api.admin.users.list({ page_size: 100 });
+        const data = res.data?.results || res.data || [];
+        return Array.isArray(data) ? data : [];
       } catch {
         return [];
       }
@@ -103,8 +97,6 @@ const AdminReports: React.FC = () => {
   const listings = listingsData || [];
   const offers = offersData || [];
   const users = usersData || [];
-  const leases = leasesData || [];
-  const maintenance = maintDataRaw || [];
 
   const totalDealsVolume = useMemo(() => {
     return deals.reduce((acc: number, d: any) => acc + Number(d.agreed_price || 0), 0);
@@ -201,57 +193,51 @@ const AdminReports: React.FC = () => {
     };
   }, [listings]);
 
-  // Dynamic Maintenance Breakdown
-  const maintData = useMemo(() => {
-    let open = 0;
-    let inProgress = 0;
+  // Dynamic Transaction Status Distribution
+  const dealStatusData = useMemo(() => {
     let completed = 0;
+    let pending = 0;
+    let cancelled = 0;
 
-    maintenance.forEach((m: any) => {
-      const st = (m.status || '').toLowerCase();
+    deals.forEach((d: any) => {
+      const st = (d.status || '').toLowerCase();
       if (st === 'completed') completed += 1;
-      else if (st === 'in_progress') inProgress += 1;
-      else open += 1;
+      else if (st === 'cancelled') cancelled += 1;
+      else pending += 1;
     });
 
-    const hasMaint = open + inProgress + completed > 0;
+    const hasData = completed + pending + cancelled > 0;
 
     return {
-      labels: ['Open', 'In Progress', 'Completed'],
+      labels: ['Completed', 'Pending / In Progress', 'Cancelled'],
       datasets: [
         {
-          data: hasMaint ? [open, inProgress, completed] : [0, 0, 0],
-          backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
+          data: hasData ? [completed, pending, cancelled] : [0, 0, 0],
+          backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
           borderWidth: 0,
         },
       ],
     };
-  }, [maintenance]);
+  }, [deals]);
 
-  // Leases Computations
-  const leasesStats = useMemo(() => {
-    const total = leases.length;
-    const active = leases.filter((l: any) => l.contract_signed && !l.contract_archived).length;
-    const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  // Dynamic Offers Status Breakdown
+  const offerStats = useMemo(() => {
+    const total = offers.length;
+    const accepted = offers.filter((o: any) => (o.status || '').toLowerCase() === 'accepted').length;
+    const pending = offers.filter((o: any) => (o.status || '').toLowerCase() === 'pending').length;
+    const rejected = offers.filter((o: any) => ['rejected', 'declined'].includes((o.status || '').toLowerCase())).length;
 
-    const expiring = leases.filter((l: any) => {
-      if (!l.end_date) return false;
-      const end = new Date(l.end_date);
-      return end > now && end <= thirtyDaysFromNow;
-    }).length;
+    const acceptedPct = total > 0 ? Math.round((accepted / total) * 100) : 0;
+    const pendingPct = total > 0 ? Math.round((pending / total) * 100) : 0;
 
-    const activePct = total > 0 ? Math.round((active / total) * 100) : 0;
-    const expiringPct = total > 0 ? Math.round((expiring / total) * 100) : 0;
-
-    return { total, active, expiring, activePct, expiringPct };
-  }, [leases]);
+    return { total, accepted, pending, rejected, acceptedPct, pendingPct };
+  }, [offers]);
 
   const kpis = [
     {
-      label: 'Deals Pipeline',
+      label: 'Transaction Volume',
       value: totalDealsVolume > 0 ? `${(totalDealsVolume / 1000000).toFixed(1)}M RWF` : '0 RWF',
-      sub: `${deals.length} Active Deals`,
+      sub: `${deals.length} Total Transactions`,
       icon: TrendingUp,
       color: 'text-emerald-700 dark:text-emerald-400',
       bg: 'bg-emerald-50 dark:bg-emerald-500/10'
@@ -272,24 +258,16 @@ const AdminReports: React.FC = () => {
       color: 'text-purple-700 dark:text-purple-400',
       bg: 'bg-purple-50 dark:bg-purple-500/10'
     },
-    {
-      label: 'Escrow Reserves',
-      value: deals.filter((d: any) => d.escrow_status === 'held_in_escrow').length.toString(),
-      sub: 'Bank-guaranteed milestones',
-      icon: Clock,
-      color: 'text-amber-700 dark:text-amber-400',
-      bg: 'bg-amber-50 dark:bg-amber-500/10'
-    },
   ];
 
   const reportTypes = [
-    { id: 'deals', label: 'Deals' },
-    { id: 'offers', label: 'Offers & Bids' },
-    { id: 'payments', label: 'Payments' },
-    { id: 'properties', label: 'Properties' },
-    { id: 'tenants', label: 'Tenants' },
-    { id: 'leases', label: 'Leases' },
-    { id: 'maintenance', label: 'Maintenance' },
+    { id: 'listings', label: 'Listings' },
+    { id: 'customers', label: 'Customers' },
+    { id: 'conversations', label: 'Conversations' },
+    { id: 'visits', label: 'Visits' },
+    { id: 'offers', label: 'Offers' },
+    { id: 'transactions', label: 'Transactions' },
+    { id: 'expenses', label: 'Expenses' },
   ];
 
   return (
@@ -403,16 +381,16 @@ const AdminReports: React.FC = () => {
             </div>
           </div>
 
-          {/* Maintenance Breakdown */}
+          {/* Transaction Stages */}
           <div className="p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] lg:col-span-1">
             <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
-                <AlertCircle size={20} />
+              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <ShieldCheck size={20} />
               </div>
-              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Maintenance Status</h3>
+              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Transaction Stages</h3>
             </div>
             <div className="h-[250px] relative">
-              <Doughnut data={maintData} options={{
+              <Doughnut data={dealStatusData} options={{
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { size: 11 } } } }
@@ -420,45 +398,45 @@ const AdminReports: React.FC = () => {
             </div>
           </div>
 
-          {/* Leases Overview */}
+          {/* Offers & Negotiations */}
           <div className="p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] lg:col-span-1">
             <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
-                <Calendar size={20} />
+              <div className="p-2 rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                <TrendingUp size={20} />
               </div>
-              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Tenancy Leases</h3>
+              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Offers & Negotiations</h3>
             </div>
             <div className="space-y-6">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[var(--color-text-muted)]">Active Leases</span>
-                  <span className="text-[var(--color-text-main)] font-bold">{leasesStats.active} / {leasesStats.total}</span>
+                  <span className="text-[var(--color-text-muted)]">Accepted Offers</span>
+                  <span className="text-[var(--color-text-main)] font-bold">{offerStats.accepted} / {offerStats.total}</span>
                 </div>
                 <div className="h-2 w-full bg-[var(--color-bg-elevated)] rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-600 dark:bg-emerald-500" style={{ width: `${leasesStats.activePct}%` }} />
+                  <div className="h-full bg-emerald-600 dark:bg-emerald-500" style={{ width: `${offerStats.acceptedPct}%` }} />
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[var(--color-text-muted)]">Expiring (30d)</span>
-                  <span className="text-[var(--color-text-main)] font-bold">{leasesStats.expiring} / {leasesStats.total}</span>
+                  <span className="text-[var(--color-text-muted)]">Under Review (Pending)</span>
+                  <span className="text-[var(--color-text-main)] font-bold">{offerStats.pending} / {offerStats.total}</span>
                 </div>
                 <div className="h-2 w-full bg-[var(--color-bg-elevated)] rounded-full overflow-hidden">
-                  <div className="h-full bg-amber-500" style={{ width: `${leasesStats.expiringPct}%` }} />
+                  <div className="h-full bg-amber-500" style={{ width: `${offerStats.pendingPct}%` }} />
                 </div>
               </div>
               <div className="pt-6 grid grid-cols-3 gap-4 text-center">
                 <div className="p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
-                  <div className="text-lg font-bold text-[var(--color-text-main)] font-mono">{leasesStats.total}</div>
+                  <div className="text-lg font-bold text-[var(--color-text-main)] font-mono">{offerStats.total}</div>
                   <div className="text-[10px] uppercase text-[var(--color-text-dim)]">Total</div>
                 </div>
                 <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20">
-                  <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400 font-mono">{leasesStats.active}</div>
-                  <div className="text-[10px] uppercase text-emerald-700/70 dark:text-emerald-500/70">Active</div>
+                  <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400 font-mono">{offerStats.accepted}</div>
+                  <div className="text-[10px] uppercase text-emerald-700/70 dark:text-emerald-500/70">Accepted</div>
                 </div>
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20">
-                  <div className="text-lg font-bold text-amber-700 dark:text-amber-400 font-mono">{leasesStats.expiring}</div>
-                  <div className="text-[10px] uppercase text-amber-700/70 dark:text-amber-500/70">Expiring</div>
+                  <div className="text-lg font-bold text-amber-700 dark:text-amber-400 font-mono">{offerStats.pending}</div>
+                  <div className="text-[10px] uppercase text-amber-700/70 dark:text-amber-500/70">Pending</div>
                 </div>
               </div>
             </div>
