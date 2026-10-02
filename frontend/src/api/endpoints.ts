@@ -256,21 +256,13 @@ export const api = {
     ai: {
         analyzeOffer: (data: { offer_amount: number; asking_price: number; property_title: string }) =>
             apiClient.post<AIAnalysisResult>('/ai/offer-analysis/', data),
-        testConnection: async (apiKey?: string, model?: string) => ({
-            data: {
-                success: true,
-                status: 'connected',
-                message: 'AI Service Active & Operational',
-                model: model || 'llama-3.3-70b-instruct',
-                error: '',
-            },
-        }),
     },
 
     // Settings
     settings: {
         get: () => apiClient.get('/admin/settings/'),
         update: (data: Record<string, unknown>) => apiClient.post('/admin/settings/', data),
+        testAI: (model?: string) => apiClient.post<{ success: boolean; status: string; message: string; model: string }>('/admin/settings/test-ai/', { model }),
     },
 
     // Chat

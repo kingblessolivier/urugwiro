@@ -180,6 +180,32 @@ def _ai_setting(key, default=''):
     return setting.value if setting else default
 
 
+def test_ai_connection(model=None):
+    """Make a minimal authenticated inference request using the stored key."""
+    api_key = _ai_setting('NVIDIA_AI_API_KEY') or _ai_setting('NVIDIA_API_KEY')
+    if not api_key:
+        raise RuntimeError('NVIDIA AI is not configured.')
+    selected_model = model or _ai_setting('NVIDIA_AI_MODEL', 'meta/llama-3.2-11b-instruct')
+    response = requests.post(
+        'https://integrate.api.nvidia.com/v1/chat/completions',
+        headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
+        json={
+            'model': selected_model,
+            'temperature': 0,
+            'max_tokens': 4,
+            'messages': [{'role': 'user', 'content': 'Reply with OK.'}],
+        },
+        timeout=20,
+    )
+    response.raise_for_status()
+    return {
+        'success': True,
+        'status': 'connected',
+        'message': 'NVIDIA NIM accepted an authenticated inference request.',
+        'model': selected_model,
+    }
+
+
 def _fallback_narrative(data):
     category = str(data.get('category') or 'property').replace('_', ' ').title()
     location = ', '.join(filter(None, [data.get('district'), data.get('city')])) or 'Rwanda'

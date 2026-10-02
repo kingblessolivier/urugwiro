@@ -2,6 +2,7 @@ import json
 import logging
 import re
 from decimal import Decimal, InvalidOperation
+import requests
 from django.core.cache import cache
 from django.db import connection, transaction
 from django.db.models import Q, Sum, Count, Avg, F, Exists, OuterRef
@@ -40,7 +41,10 @@ from .serializers import (
 )
 
 # Services
-from .services import ValuationService, generate_listing_narrative, analyze_offer, describe_listing_image
+from .services import (
+    ValuationService, analyze_offer, describe_listing_image, generate_listing_narrative,
+    test_ai_connection,
+)
 from .catalog import ListingFilters, PublicListingSerializer, parse_listing_intent, public_listings
 
 logger = logging.getLogger(__name__)
@@ -2435,6 +2439,32 @@ def manage_system_settings(request):
                 status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def test_system_ai_connection(request):
+    err = check_admin_permission(request, 'settings')
+    if err:
+        return err
+    model = str(request.data.get('model') or '').strip() or None
+    if model and (len(model) > 200 or not re.fullmatch(r'[A-Za-z0-9._/-]+', model)):
+        return Response({'error': 'Invalid model identifier'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        return Response(test_ai_connection(model=model))
+    except RuntimeError as exc:
+        return Response({'error': str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except requests.Timeout:
+        return Response(
+            {'error': 'NVIDIA NIM did not respond before the connection test timed out.'},
+            status=status.HTTP_504_GATEWAY_TIMEOUT,
+        )
+    except requests.RequestException as exc:
+        response_status = getattr(exc.response, 'status_code', None)
+        message = 'NVIDIA NIM rejected the connection test.' if response_status else 'NVIDIA NIM is unreachable.'
+        return Response(
+            {'error': message, 'provider_status': response_status},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
 
 
 @api_view(['GET', 'DELETE'])

@@ -7,6 +7,7 @@ interface SystemSetting {
     key: string;
     value: string;
     description: string;
+    is_secret: boolean;
     updated_at: string;
 }
 
@@ -20,6 +21,7 @@ const SystemSettings: React.FC = () => {
     const [nvidiaKey, setNvidiaKey] = useState('');
     const [selectedModel, setSelectedModel] = useState('meta/llama-3.2-11b-vision-instruct');
     const [showKey, setShowKey] = useState(false);
+    const [nvidiaConfigured, setNvidiaConfigured] = useState(false);
     const [isTestingNvidia, setIsTestingNvidia] = useState(false);
     const [nvidiaStatus, setNvidiaStatus] = useState<{ success: boolean; message: string; model?: string } | null>(null);
 
@@ -31,11 +33,9 @@ const SystemSettings: React.FC = () => {
 
             // Look for existing NVIDIA API Key and Model
             const existingNvidia = data.find(s => s.key.toUpperCase() === 'NVIDIA_AI_API_KEY' || s.key.toUpperCase() === 'NVIDIA_API_KEY');
-            if (existingNvidia && existingNvidia.value) {
-                setNvidiaKey(existingNvidia.value);
-            }
+            setNvidiaConfigured(Boolean(existingNvidia));
             const existingModel = data.find(s => s.key.toUpperCase() === 'NVIDIA_AI_MODEL' || s.key.toUpperCase() === 'NVIDIA_MODEL');
-            if (existingModel && existingModel.value && !existingModel.value.includes('3.1-70b') && !existingModel.value.includes('3.3-70b')) {
+            if (existingModel?.value) {
                 setSelectedModel(existingModel.value);
             }
         } catch (error: any) {
@@ -72,6 +72,8 @@ const SystemSettings: React.FC = () => {
             });
 
             setMessage({ type: 'success', text: 'NVIDIA NIM API Key and Model saved successfully!' });
+            setNvidiaConfigured(true);
+            setNvidiaKey('');
             fetchSettings();
         } catch (err: any) {
             const errText = err.response?.data?.error || err.response?.data?.detail || err.response?.data?.message || err.message || 'Failed to save NVIDIA API Key';
@@ -83,19 +85,8 @@ const SystemSettings: React.FC = () => {
         setIsTestingNvidia(true);
         setNvidiaStatus(null);
         try {
-            await api.settings.get();
-            if (nvidiaKey.trim()) {
-                setNvidiaStatus({
-                    success: true,
-                    message: 'Configuration verified and active on the platform.',
-                    model: selectedModel
-                });
-            } else {
-                setNvidiaStatus({
-                    success: false,
-                    message: 'Please provide an API key before testing connection.'
-                });
-            }
+            const response = await api.settings.testAI(selectedModel);
+            setNvidiaStatus(response.data);
         } catch (err: any) {
             const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
             setNvidiaStatus({
@@ -141,7 +132,7 @@ const SystemSettings: React.FC = () => {
             </div>
 
             {message && (
-                <div className={`p-4 rounded-xl border ${
+                <div className={`p-4 rounded-lg border ${
                     message.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-[var(--color-brand-emerald)]' : 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-400'
                 } flex items-center gap-2.5 text-sm font-medium`}>
                     {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
@@ -150,28 +141,23 @@ const SystemSettings: React.FC = () => {
             )}
 
             {/* 1. DEDICATED NVIDIA NIM AI CONSOLE */}
-            <div className="rounded-2xl border border-emerald-500/30 bg-[var(--color-bg-surface)] p-8 space-y-6 shadow-[var(--shadow-depth-1)] relative overflow-hidden">
-                <div className="absolute -right-8 -top-8 h-36 w-36 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
-
+            <div className="rounded-lg border border-emerald-500/30 bg-[var(--color-bg-surface)] p-8 space-y-6 shadow-[var(--shadow-depth-1)] relative overflow-hidden">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[var(--color-border)] pb-6">
                     <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-xl bg-emerald-600 dark:bg-emerald-500 flex items-center justify-center text-[#fff] font-bold shadow-[var(--shadow-emerald-soft)]">
+                        <div className="h-12 w-12 rounded-lg bg-emerald-600 dark:bg-emerald-500 flex items-center justify-center text-[#fff] font-bold shadow-[var(--shadow-emerald-soft)]">
                             <Zap size={24} strokeWidth={2} />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
                                 <h2 className="text-xl font-bold text-[var(--color-text-main)]">NVIDIA NIM AI Accelerator</h2>
-                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] border border-emerald-500/30 uppercase">
-                                    Autonomous Engine
-                                </span>
                             </div>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {nvidiaKey ? (
+                        {nvidiaConfigured ? (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-accent-soft-bg)] text-[var(--color-brand-emerald)] border border-emerald-500/40 text-xs font-bold">
-                                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" /> Key Configured
+                                    <span className="h-2 w-2 rounded-full bg-emerald-400" /> Key Configured
                             </span>
                         ) : (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 text-xs font-bold">
@@ -195,12 +181,15 @@ const SystemSettings: React.FC = () => {
                                     value={nvidiaKey}
                                     onChange={(e) => setNvidiaKey(e.target.value)}
                                     placeholder="nvapi-..."
-                                    className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl py-2.5 pl-10 pr-12 text-sm text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 font-mono transition-all"
+                                    autoComplete="new-password"
+                                    className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-lg py-2.5 pl-10 pr-12 text-sm text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 font-mono transition-all"
                                     required
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowKey(!showKey)}
+                                    aria-label={showKey ? 'Hide API key' : 'Show API key'}
+                                    title={showKey ? 'Hide API key' : 'Show API key'}
                                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors"
                                 >
                                     {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -216,19 +205,19 @@ const SystemSettings: React.FC = () => {
                             <select
                                 value={selectedModel}
                                 onChange={(e) => setSelectedModel(e.target.value)}
-                                className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl py-2.5 px-3 text-sm text-[var(--color-text-main)] outline-none focus:border-emerald-500/50 transition-all"
+                                className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-lg py-2.5 px-3 text-sm text-[var(--color-text-main)] outline-none focus:border-emerald-500/50 transition-all"
                             >
-                                <option value="meta/llama-3.2-11b-vision-instruct">Meta Llama 3.2 11B Vision Instruct (Recommended - Verified Active)</option>
-                                <option value="nvidia/nemotron-3.5-lightning-30b-a3b">NVIDIA Nemotron 3.5 Lightning 30B (Agentic MoE - Verified Active)</option>
-                                <option value="nvidia/nemotron-3-ultra-550b-a55b">NVIDIA Nemotron 3 Ultra 550B (Deep Reasoning - Verified Active)</option>
-                                <option value="google/diffusiongemma-26b-a4b-it">Google DiffusionGemma 26B (Verified Active)</option>
+                                <option value="meta/llama-3.2-11b-vision-instruct">Meta Llama 3.2 11B Vision Instruct</option>
+                                <option value="nvidia/nemotron-3.5-lightning-30b-a3b">NVIDIA Nemotron 3.5 Lightning 30B</option>
+                                <option value="nvidia/nemotron-3-ultra-550b-a55b">NVIDIA Nemotron 3 Ultra 550B</option>
+                                <option value="google/diffusiongemma-26b-a4b-it">Google DiffusionGemma 26B</option>
                             </select>
                         </div>
                     </div>
 
                     {/* Test Results Banner */}
                     {nvidiaStatus && (
-                        <div className={`p-4 rounded-xl border ${
+                        <div className={`p-4 rounded-lg border ${
                             nvidiaStatus.success ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/15 dark:border-emerald-500/40 dark:text-[var(--color-brand-emerald)]' : 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-500/15 dark:border-rose-500/40 dark:text-rose-300'
                         } flex items-center justify-between text-xs font-medium`}>
                             <span className="flex items-center gap-2">
@@ -246,8 +235,8 @@ const SystemSettings: React.FC = () => {
                         <button
                             type="button"
                             onClick={handleTestNvidia}
-                            disabled={isTestingNvidia || !nvidiaKey}
-                            className="px-5 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-card-hover)] text-xs font-bold flex items-center gap-2 transition-all disabled:opacity-50"
+                            disabled={isTestingNvidia || !nvidiaConfigured}
+                            className="px-5 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-card-hover)] text-xs font-bold flex items-center gap-2 transition-all disabled:opacity-50"
                         >
                             {isTestingNvidia ? (
                                 <>
@@ -264,7 +253,7 @@ const SystemSettings: React.FC = () => {
 
                         <button
                             type="submit"
-                            className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-extrabold text-xs shadow-[var(--shadow-emerald-soft)] transition-all active:scale-95"
+                            className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-extrabold text-xs shadow-[var(--shadow-emerald-soft)] transition-all active:scale-95"
                         >
                             Save NVIDIA API Key
                         </button>
@@ -273,7 +262,7 @@ const SystemSettings: React.FC = () => {
             </div>
 
             {/* 2. GENERAL CONFIGURATION MANAGER */}
-            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-8 space-y-6 shadow-[var(--shadow-depth-1)]">
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-8 space-y-6 shadow-[var(--shadow-depth-1)]">
                 <div>
                     <h2 className="text-xl font-bold text-[var(--color-text-main)]">Add General Environment Variable</h2>
                 </div>
@@ -283,7 +272,7 @@ const SystemSettings: React.FC = () => {
                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Key Name</label>
                         <input
                             type="text"
-                            className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl p-2.5 text-sm text-[var(--color-text-main)] font-mono outline-none focus:border-emerald-500/50 transition-all"
+                            className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-lg p-2.5 text-sm text-[var(--color-text-main)] font-mono outline-none focus:border-emerald-500/50 transition-all"
                             placeholder="e.g. IREMBO_API_KEY"
                             value={newSetting.key}
                             onChange={(e) => setNewSetting({...newSetting, key: e.target.value})}
@@ -294,7 +283,7 @@ const SystemSettings: React.FC = () => {
                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Value</label>
                         <input
                             type="text"
-                            className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl p-2.5 text-sm text-[var(--color-text-main)] font-mono outline-none focus:border-emerald-500/50 transition-all"
+                            className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-lg p-2.5 text-sm text-[var(--color-text-main)] font-mono outline-none focus:border-emerald-500/50 transition-all"
                             placeholder="Value..."
                             value={newSetting.value}
                             onChange={(e) => setNewSetting({...newSetting, value: e.target.value})}
@@ -305,7 +294,7 @@ const SystemSettings: React.FC = () => {
                         <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Description</label>
                         <input
                             type="text"
-                            className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl p-2.5 text-sm text-[var(--color-text-main)] outline-none focus:border-emerald-500/50 transition-all"
+                            className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-lg p-2.5 text-sm text-[var(--color-text-main)] outline-none focus:border-emerald-500/50 transition-all"
                             placeholder="Purpose of configuration"
                             value={newSetting.description}
                             onChange={(e) => setNewSetting({...newSetting, description: e.target.value})}
@@ -314,7 +303,7 @@ const SystemSettings: React.FC = () => {
                     <div className="md:col-span-3 flex justify-end pt-2">
                         <button
                             type="submit"
-                            className="px-6 py-2.5 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-card-hover)] font-bold text-xs rounded-xl transition-all"
+                            className="px-6 py-2.5 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-card-hover)] font-bold text-xs rounded-lg transition-all"
                         >
                             Add Configuration
                         </button>
@@ -327,19 +316,19 @@ const SystemSettings: React.FC = () => {
                 <h2 className="text-xl font-bold text-[var(--color-text-main)]">Active System Parameters</h2>
                 <div className="grid grid-cols-1 gap-3">
                     {settings.length === 0 ? (
-                        <div className="text-center p-12 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] text-sm">
+                        <div className="text-center p-12 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] text-sm">
                             No custom configurations stored.
                         </div>
                     ) : (
                         settings.map(setting => (
-                            <div key={setting.id} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4 flex justify-between items-center group hover:border-emerald-500/40 transition-all shadow-[var(--shadow-depth-1)]">
+                            <div key={setting.id} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4 flex justify-between items-center group hover:border-emerald-500/40 transition-all shadow-[var(--shadow-depth-1)]">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
                                         <span className="font-mono font-bold text-sm text-[var(--color-brand-emerald)]">{setting.key}</span>
-                                        {setting.description && <span className="text-xs text-[var(--color-text-muted)] italic">Ã¢â‚¬â€ {setting.description}</span>}
+                                        {setting.description && <span className="text-xs text-[var(--color-text-muted)] italic">- {setting.description}</span>}
                                     </div>
                                     <div className="text-xs font-mono text-[var(--color-text-muted)] bg-[var(--color-bg-elevated)] px-2.5 py-1 rounded-md border border-[var(--color-border)] inline-block">
-                                        {setting.value.slice(0, 4)}Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢{setting.value.slice(-4)}
+                                        {setting.is_secret ? 'Stored securely' : setting.value}
                                         <span className="text-[var(--color-text-muted)] ml-3 text-[10px]">Updated: {new Date(setting.updated_at).toLocaleDateString()}</span>
                                     </div>
                                 </div>

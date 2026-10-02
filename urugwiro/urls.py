@@ -132,6 +132,7 @@ urlpatterns = [
 
     # ─── Admin: System ───
     path('api/admin/settings/', api_views.manage_system_settings, name='api_admin_settings'),
+    path('api/admin/settings/test-ai/', api_views.test_system_ai_connection, name='api_admin_test_ai'),
     path('api/admin/system-logs/', api_views.manage_system_logs, name='api_admin_system_logs'),
 
     # ─── Chat ───

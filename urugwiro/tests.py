@@ -1,4 +1,6 @@
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
+
+import requests
 
 from asgiref.sync import async_to_sync
 from django.conf import settings
@@ -88,6 +90,47 @@ class ApiSecurityTests(TestCase):
         cleared = self.client.delete('/api/admin/system-logs/')
         self.assertEqual(cleared.status_code, 200)
         self.assertFalse(SystemLog.objects.exists())
+
+    @patch('urugwiro.services.requests.post')
+    def test_ai_connection_probe_uses_stored_secret(self, mock_post):
+        SystemSetting.objects.create(key='NVIDIA_AI_API_KEY', value='stored-secret')
+        mock_post.return_value.raise_for_status.return_value = None
+        self.authenticate(self.owner)
+
+        response = self.client.post('/api/admin/settings/test-ai/', {
+            'model': 'meta/test-model',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(response.data['model'], 'meta/test-model')
+        headers = mock_post.call_args.kwargs['headers']
+        self.assertEqual(headers['Authorization'], 'Bearer stored-secret')
+        self.assertNotContains(response, 'stored-secret')
+
+    def test_ai_connection_probe_requires_configuration_and_permission(self):
+        self.authenticate(self.owner)
+        missing = self.client.post('/api/admin/settings/test-ai/', {}, format='json')
+        self.client.force_authenticate(user=None)
+        anonymous = self.client.post('/api/admin/settings/test-ai/', {}, format='json')
+
+        self.assertEqual(missing.status_code, 503)
+        self.assertIn(anonymous.status_code, (401, 403))
+
+    @patch('urugwiro.services.requests.post')
+    def test_ai_connection_probe_reports_provider_rejection_safely(self, mock_post):
+        SystemSetting.objects.create(key='NVIDIA_AI_API_KEY', value='never-return-this')
+        provider_response = Mock(status_code=401)
+        mock_post.return_value.raise_for_status.side_effect = requests.HTTPError(
+            response=provider_response,
+        )
+        self.authenticate(self.owner)
+
+        response = self.client.post('/api/admin/settings/test-ai/', {}, format='json')
+
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.data['provider_status'], 401)
+        self.assertNotContains(response, 'never-return-this', status_code=502)
 
     def test_public_registration_creates_customer_and_validates_password(self):
         weak = self.client.post('/api/auth/register/', {
