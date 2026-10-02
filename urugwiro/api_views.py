@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from decimal import Decimal, InvalidOperation
 from django.core.cache import cache
 from django.db import connection, transaction
@@ -2468,14 +2469,49 @@ def manage_system_logs(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def valuation_estimate(request):
-    category = request.data.get('category') or request.data.get('property_type')
-    district = request.data.get('district')
-    sector = request.data.get('sector')
+    category = str(request.data.get('category') or request.data.get('property_type') or '').strip().lower()
+    purpose = str(request.data.get('purpose') or '').strip().lower()
+    currency = str(request.data.get('currency') or 'RWF').strip().upper()
+    rental_frequency = str(request.data.get('rental_frequency') or '').strip().lower() or None
     size = request.data.get('area_sqm') or request.data.get('size')
     if not category:
         return Response({'error': 'Property category is required'}, status=status.HTTP_400_BAD_REQUEST)
-    estimate = ValuationService.get_valuation_estimate(category, district, sector, size=size)
-    return Response({**estimate, 'currency': 'RWF', 'property_type': category, 'size': size})
+    if category not in dict(Listing.CATEGORY_CHOICES):
+        return Response({'error': 'Unsupported property category'}, status=status.HTTP_400_BAD_REQUEST)
+    if purpose not in dict(Listing.PURPOSE_CHOICES):
+        return Response({'error': 'Purpose must be sale or rent'}, status=status.HTTP_400_BAD_REQUEST)
+    if not re.fullmatch(r'[A-Z]{3,10}', currency):
+        return Response({'error': 'Currency must be a 3-10 letter code'}, status=status.HTTP_400_BAD_REQUEST)
+    if purpose == 'rent' and rental_frequency not in dict(Listing.RENTAL_FREQUENCY_CHOICES):
+        return Response(
+            {'error': 'Rental frequency is required for rental estimates'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if size not in (None, ''):
+        try:
+            if Decimal(str(size)) <= 0:
+                raise ValueError
+        except (InvalidOperation, TypeError, ValueError):
+            return Response({'error': 'Area must be a positive number'}, status=status.HTTP_400_BAD_REQUEST)
+
+    estimate = ValuationService.get_valuation_estimate(
+        category=category,
+        purpose=purpose,
+        currency=currency,
+        province=request.data.get('province'),
+        district=request.data.get('district'),
+        sector=request.data.get('sector'),
+        size=size,
+        rental_frequency=rental_frequency,
+    )
+    return Response({
+        **estimate,
+        'currency': currency,
+        'property_type': category,
+        'purpose': purpose,
+        'rental_frequency': rental_frequency,
+        'size': size,
+    })
 
 @api_view(['POST'])
 def ai_listing_narrative(request):

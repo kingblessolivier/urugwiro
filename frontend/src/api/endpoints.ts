@@ -23,7 +23,7 @@ export const api = {
         detail: (slugOrId: string | number) => apiClient.get<Listing>(`/listings/${slugOrId}/`),
         get: (slugOrId: string | number) => apiClient.get<Listing>(`/listings/${slugOrId}/`),
         like: (id: string | number, data?: { name?: string; phone?: string; email?: string }) => apiClient.post<{ liked: boolean; total_likes: number }>(`/listings/${id}/like/`, data),
-        estimateValuation: (data: { category: ListingCategory; purpose: ListingPurpose; province?: string; district?: string; sector?: string; bedrooms?: number; bathrooms?: number; area_sqm?: number }) => apiClient.post<{ estimated_value: number; currency: string }>('/valuation/estimate/', data),
+        estimateValuation: (data: { category: ListingCategory; purpose: ListingPurpose; currency?: string; rental_frequency?: 'per_day' | 'per_month' | 'per_year'; province?: string; district?: string; sector?: string; bedrooms?: number; bathrooms?: number; area_sqm?: number }) => apiClient.post<{ estimated_value: number | null; low_range: number | null; high_range: number | null; currency: string; confidence: 'high' | 'medium' | 'low' | 'insufficient_data'; method: string; comparables_count: number; limitations: string[] }>('/valuation/estimate/', data),
         reviews: (id: string | number) => apiClient.get<ReviewSummary>(`/listings/${id}/reviews/`),
         submitReview: (id: string | number, data: { rating: number; comment?: string; reviewer_name?: string }) =>
             apiClient.post<Review>(`/listings/${id}/reviews/`, data),

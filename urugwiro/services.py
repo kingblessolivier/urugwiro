@@ -3,9 +3,10 @@ import json
 import mimetypes
 import os
 import re
+from decimal import Decimal, InvalidOperation
+from statistics import median
 
 import requests
-from django.db.models import Avg, Min, Max
 from .models import Listing
 
 
@@ -16,48 +17,157 @@ class ValuationService:
     """
 
     @staticmethod
-    def get_valuation_estimate(category, district, sector, size=None):
+    def get_valuation_estimate(
+        category, purpose, currency='RWF', province=None, district=None,
+        sector=None, size=None, rental_frequency=None,
+    ):
+        """Estimate from like-for-like published asking prices.
+
+        The result deliberately describes a market comparison, not a certified
+        valuation. Sale and rental prices, currencies, and rental periods are
+        never mixed.
         """
-        Calculate FMV range using a hierarchical fallback search (Sector -> District -> Province).
-        """
-        # Hierarchical search for comparables
-        search_levels = []
+        try:
+            subject_size = Decimal(str(size)) if size not in (None, '') else None
+        except (InvalidOperation, TypeError, ValueError):
+            subject_size = None
+
+        base_filters = {
+            'status': 'published',
+            'category': category,
+            'purpose': purpose,
+            'currency__iexact': currency,
+        }
+        if purpose == 'rent':
+            base_filters['rental_frequency'] = rental_frequency
+
+        location_levels = []
         if sector:
-            search_levels.append({'asset__sector__iexact': sector})
+            filters = {'asset__sector__iexact': sector}
+            if district:
+                filters['asset__district__iexact'] = district
+            if province:
+                filters['asset__province__iexact'] = province
+            location_levels.append(('sector', filters))
         if district:
-            search_levels.append({'asset__district__iexact': district})
+            filters = {'asset__district__iexact': district}
+            if province:
+                filters['asset__province__iexact'] = province
+            location_levels.append(('district', filters))
+        if province:
+            location_levels.append(('province', {'asset__province__iexact': province}))
+        location_levels.append(('national', {}))
 
-        for level in search_levels:
-            qs = Listing.objects.filter(
-                status='published',
-                category=category,
-                **level
-            )
+        selected = None
+        search_level = 'none'
+        total_count = 0
+        for level_name, location_filters in location_levels:
+            queryset = Listing.objects.filter(**base_filters, **location_filters)
+            count = queryset.count()
+            if count:
+                selected = queryset
+                search_level = level_name
+                total_count = count
+                break
 
-            if qs.exists():
-                stats = qs.aggregate(
-                    avg_price=Avg('price'),
-                    min_price=Min('price'),
-                    max_price=Max('price'),
+        limitations = [
+            'Based on published asking prices, not completed transaction prices.',
+            'Does not adjust for condition, legal status, amenities, or negotiation.',
+        ]
+        if selected is None:
+            return {
+                'estimated_value': None,
+                'low_range': None,
+                'high_range': None,
+                'comparables_count': 0,
+                'analyzed_count': 0,
+                'search_level': 'none',
+                'method': 'insufficient_data',
+                'confidence': 'insufficient_data',
+                'comparables': [],
+                'freshness': {'newest': None, 'oldest': None},
+                'limitations': limitations + [
+                    'No published listings match the requested market segment.'
+                ],
+            }
+
+        rows = list(selected.order_by('-date_listed').values(
+            'id', 'title', 'price', 'currency', 'purpose', 'rental_frequency',
+            'asset__total_area', 'asset__province', 'asset__district',
+            'asset__sector', 'date_listed',
+        )[:100])
+        if total_count > len(rows):
+            limitations.append('The calculation uses the 100 most recent matching listings.')
+        if search_level == 'national' and any((province, district, sector)):
+            limitations.append('No local matches were available, so the search expanded nationwide.')
+
+        area_rows = [row for row in rows if row['asset__total_area'] and row['asset__total_area'] > 0]
+        if subject_size and subject_size > 0 and len(area_rows) >= 2:
+            observations = [
+                (row['price'] / row['asset__total_area']) * subject_size
+                for row in area_rows
+            ]
+            method = 'median_price_per_sqm'
+            analyzed_rows = area_rows
+        else:
+            observations = [row['price'] for row in rows]
+            method = 'median_listing_price'
+            analyzed_rows = rows
+            if subject_size and subject_size > 0:
+                limitations.append(
+                    'Fewer than two comparable listings have area data; size was not used.'
                 )
 
-                avg = float(stats['avg_price'] or 0)
-                return {
-                    'estimated_value': round(avg),
-                    'low_range': round(float(stats['min_price'] or avg * 0.85)),
-                    'high_range': round(float(stats['max_price'] or avg * 1.15)),
-                    'comparables_count': qs.count(),
-                    'search_level': list(level.keys())[0].split('__')[1] if level else 'global',
-                    'confidence': 'high' if qs.count() >= 5 else 'medium' if qs.count() >= 2 else 'low',
-                }
+        ordered = sorted(observations)
+        estimate = Decimal(median(ordered))
+        if len(ordered) < 4:
+            low, high = ordered[0], ordered[-1]
+        else:
+            low = ordered[(len(ordered) - 1) // 4]
+            high = ordered[(3 * (len(ordered) - 1)) // 4]
+        analyzed_count = len(analyzed_rows)
+        if analyzed_count >= 8 and method == 'median_price_per_sqm':
+            confidence = 'high'
+        elif analyzed_count >= 4:
+            confidence = 'medium'
+        else:
+            confidence = 'low'
+            limitations.append('The small comparable sample makes this estimate less reliable.')
 
+        comparable_sample = []
+        for row in analyzed_rows[:8]:
+            area = row['asset__total_area']
+            comparable_sample.append({
+                'id': row['id'],
+                'title': row['title'],
+                'price': float(row['price']),
+                'currency': row['currency'],
+                'purpose': row['purpose'],
+                'rental_frequency': row['rental_frequency'],
+                'area_sqm': float(area) if area else None,
+                'price_per_sqm': float(row['price'] / area) if area else None,
+                'province': row['asset__province'],
+                'district': row['asset__district'],
+                'sector': row['asset__sector'],
+                'date_listed': row['date_listed'].isoformat(),
+            })
+
+        dates = [row['date_listed'] for row in analyzed_rows]
         return {
-            'estimated_value': 0,
-            'low_range': 0,
-            'high_range': 0,
-            'comparables_count': 0,
-            'search_level': 'none',
-            'confidence': 'insufficient_data',
+            'estimated_value': round(float(estimate)),
+            'low_range': round(float(low)),
+            'high_range': round(float(high)),
+            'comparables_count': total_count,
+            'analyzed_count': analyzed_count,
+            'search_level': search_level,
+            'method': method,
+            'confidence': confidence,
+            'comparables': comparable_sample,
+            'freshness': {
+                'newest': max(dates).isoformat(),
+                'oldest': min(dates).isoformat(),
+            },
+            'limitations': limitations,
         }
 
 

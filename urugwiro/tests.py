@@ -139,6 +139,57 @@ class ApiSecurityTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.data['count'], expected, response.data)
 
+    def test_valuation_uses_consistent_market_segment_and_area(self):
+        self.asset.total_area = 100
+        self.asset.save(update_fields=['total_area'])
+        second_asset = Asset.objects.create(
+            asset_type='BUILDING', name='Second home', province='Kigali',
+            district='Gasabo', sector='Remera', total_area=100,
+        )
+        Listing.objects.create(
+            asset=second_asset, seller=self.seller, title='Second sale',
+            description='Comparable sale', purpose='sale', category='house',
+            price=200_000_000, currency='RWF', address='Remera',
+            status='published', slug='second-sale',
+        )
+        Listing.objects.create(
+            asset=second_asset, seller=self.seller, title='Monthly rental',
+            description='Rental should not enter sale estimate', purpose='rent',
+            rental_frequency='per_month', category='house', price=500_000,
+            currency='RWF', address='Remera', status='published', slug='monthly-rental',
+        )
+        Listing.objects.create(
+            asset=second_asset, seller=self.seller, title='Dollar sale',
+            description='USD should not enter RWF estimate', purpose='sale',
+            category='house', price=1_000, currency='USD', address='Remera',
+            status='published', slug='dollar-sale',
+        )
+
+        response = self.client.post('/api/valuation/estimate/', {
+            'category': 'house', 'purpose': 'sale', 'currency': 'RWF',
+            'district': 'Gasabo', 'sector': 'Remera', 'area_sqm': 200,
+        }, format='json')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['estimated_value'], 300_000_000)
+        self.assertEqual(response.data['comparables_count'], 2)
+        self.assertEqual(response.data['analyzed_count'], 2)
+        self.assertEqual(response.data['method'], 'median_price_per_sqm')
+        self.assertEqual(response.data['search_level'], 'sector')
+        self.assertEqual({item['currency'] for item in response.data['comparables']}, {'RWF'})
+        self.assertEqual({item['purpose'] for item in response.data['comparables']}, {'sale'})
+
+    def test_valuation_rejects_ambiguous_rental_period(self):
+        missing_purpose = self.client.post('/api/valuation/estimate/', {
+            'category': 'house',
+        }, format='json')
+        missing_period = self.client.post('/api/valuation/estimate/', {
+            'category': 'house', 'purpose': 'rent',
+        }, format='json')
+
+        self.assertEqual(missing_purpose.status_code, 400)
+        self.assertEqual(missing_period.status_code, 400)
+
     def test_listing_intent_returns_validated_filter_contract(self):
         response = self.client.get(
             '/api/listings/search-intent/',
