@@ -501,7 +501,6 @@ export const RWANDA_COORDINATES: Record<string, { lat: number; lng: number }> = 
 
   // Kigali Sectors (Kicukiro)
   'Niboye': { lat: -1.9800, lng: 30.1050 },
-  'Kicukiro': { lat: -1.9750, lng: 30.1000 },
   'Kanombe': { lat: -1.9722, lng: 30.1417 },
   'Gikondo': { lat: -1.9700, lng: 30.0750 },
   'Kagarama': { lat: -1.9950, lng: 30.0900 },
@@ -512,7 +511,6 @@ export const RWANDA_COORDINATES: Record<string, { lat: number; lng: number }> = 
   'Nyarugunga': { lat: -1.9900, lng: 30.1500 },
 
   // Kigali Sectors (Nyarugenge)
-  'Nyarugenge': { lat: -1.9500, lng: 30.0583 },
   'Muhima': { lat: -1.9417, lng: 30.0556 },
   'Nyamirambo': { lat: -1.9750, lng: 30.0450 },
   'Kimisagara': { lat: -1.9528, lng: 30.0444 },

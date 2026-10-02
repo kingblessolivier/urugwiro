@@ -36,6 +36,13 @@ const SystemLogsPage: React.FC = () => {
     const [categoryFilter, setCategoryFilter] = useState('');
     const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
 
+    const toggleExpand = (pk: number) => {
+        const newExpanded = new Set(expandedLogs);
+        if (newExpanded.has(pk)) newExpanded.delete(pk);
+        else newExpanded.add(pk);
+        setExpandedLogs(newExpanded);
+    };
+
     const filteredLogs = logs.filter(log => {
         const matchesSearch = !search || log.message.toLowerCase().includes(search.toLowerCase()) || log.user?.toLowerCase().includes(search.toLowerCase()) || log.path.toLowerCase().includes(search.toLowerCase());
         const matchesLevel = !levelFilter || log.level === levelFilter;
@@ -62,7 +69,7 @@ const SystemLogsPage: React.FC = () => {
                 </button>
             ) : <span className="text-[var(--color-text-dim)]">—</span>
         ) },
-    ], [expandedLogs, toggleExpand]);
+    ], [expandedLogs]);
 
     const stats: Stat[] = [
         { label: 'Total Entries', value: logs.length, color: 'text-[var(--color-text-main)]', icon: '📊' },
@@ -70,13 +77,6 @@ const SystemLogsPage: React.FC = () => {
         { label: 'Warnings', value: logs.filter(l => l.level === 'WARNING').length, color: 'text-yellow-600 dark:text-yellow-400', icon: '⚠️' },
         { label: 'Errors', value: logs.filter(l => l.level === 'ERROR' || l.level === 'CRITICAL').length, color: 'text-red-600 dark:text-red-400', icon: '🚫' },
     ];
-
-    const toggleExpand = (pk: number) => {
-        const newExpanded = new Set(expandedLogs);
-        if (newExpanded.has(pk)) newExpanded.delete(pk);
-        else newExpanded.add(pk);
-        setExpandedLogs(newExpanded);
-    };
 
     const getLevelBadge = (level: string) => {
         switch (level) {

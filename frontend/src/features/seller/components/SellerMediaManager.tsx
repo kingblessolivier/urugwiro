@@ -7,7 +7,7 @@ import { resolveImageUrl } from '../../../lib/imageUrl';
 interface ListingMedia {
   id?: string | number;
   file?: string;
-  media_type?: 'image' | 'video' | '360' | '3d' | 'model_3d' | 'cadastral_sketch';
+  media_type?: 'image' | 'video' | '360' | '3d' | 'model_3d' | 'cadastral_sketch' | 'floor_plan' | string;
   category?: string;
   caption?: string;
   room_name?: string;

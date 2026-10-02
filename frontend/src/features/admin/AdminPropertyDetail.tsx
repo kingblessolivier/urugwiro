@@ -1413,9 +1413,9 @@ const AdminPropertyDetail: React.FC<AdminPropertyDetailProps> = ({ propertyId, o
         title="Owner / Agent"
         icon={User}
         data={{
-          full_name: owner.full_name || owner.name || '',
+          full_name: owner.full_name || '',
           email: owner.email || '',
-          phone: owner.phone || owner.phone_number || '',
+          phone: owner.phone || '',
           id_number: owner.id_number || '',
           bio: owner.bio || '',
           is_verified: !!owner.is_verified,

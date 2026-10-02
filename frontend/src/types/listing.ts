@@ -7,7 +7,7 @@ export interface ListingMedia {
   id?: number | string;
   url?: string;
   file?: string;
-  media_type?: 'image' | 'video' | '360' | '3d' | 'floor_plan';
+  media_type?: 'image' | 'video' | '360' | '3d' | 'floor_plan' | 'model_3d' | 'cadastral_sketch' | string;
   category?: string;
   caption?: string;
   room_name?: string;

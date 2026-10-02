@@ -805,7 +805,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
                       {specs.grossArea || specs.builtAreaSqm} m²
                     </span>
                   )}
-                  {category === 'hotel' && (specs.totalRooms > 0 || Number(specs.totalKeys) > 0) && (
+                  {(subtype === 'Hotel' || (category as any) === 'hotel') && (specs.totalRooms > 0 || Number(specs.totalKeys) > 0) && (
                     <span className="px-2.5 py-1 rounded-lg text-xs" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-muted)' }}>
                       {specs.totalRooms || specs.totalKeys} rooms
                     </span>

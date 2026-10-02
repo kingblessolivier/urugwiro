@@ -497,7 +497,7 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
             </div>
             <SellerMediaManager
               listingId={listingId}
-              media={listing.media || []}
+              media={(listing.media as any) || []}
               onRefresh={() => refetch()}
             />
           </div>

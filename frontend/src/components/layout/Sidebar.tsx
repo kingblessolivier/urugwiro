@@ -302,7 +302,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     )}
                     {isCollapsed && item.badge !== undefined && (
                       <span className="absolute top-1.5 right-1.5">
-                        <Badge variant="dot" tone={accentTone} />
+                        <Badge variant="dot" tone={accentTone === 'gold' ? 'amber' : 'emerald'} />
                       </span>
                     )}
 
