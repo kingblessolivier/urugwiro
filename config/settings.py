@@ -232,7 +232,15 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv(
     'CORS_ALLOWED_ORIGINS',
-    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174',
+    ','.join([
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:5174',
+        'http://127.0.0.1:5174',
+        'https://urugwiro-frontend.vercel.app',
+        'https://urugwiro-fronten-git-98bd0a-nsengimanaolivier100-6820s-projects.vercel.app',
+        'https://urugwiro-frontend-4i5rnz7lz-nsengimanaolivier100-6820s-projects.vercel.app',
+    ]),
 ).split(',') if origin.strip()]
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()]
 
