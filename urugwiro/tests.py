@@ -61,6 +61,11 @@ class ApiSecurityTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertFalse(User.objects.filter(username='attacker').exists())
 
+    def test_readiness_checks_dependencies(self):
+        response = self.client.get('/api/ready/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, {'status': 'ready'})
+
     def test_public_registration_creates_customer_and_validates_password(self):
         weak = self.client.post('/api/auth/register/', {
             'username': 'weak', 'email': 'weak@example.com', 'password': 'x', 'role': 'buyer',

@@ -1,7 +1,8 @@
 import json
 import logging
 from decimal import Decimal, InvalidOperation
-from django.db import transaction
+from django.core.cache import cache
+from django.db import connection, transaction
 from django.db.models import Q, Sum, Count, Avg, F, Exists, OuterRef
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -2482,9 +2483,33 @@ def visual_search(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def health_check(request):
-    """Container / platform health check endpoint"""
+    """Process liveness check; dependency checks live at /api/ready/."""
     return Response({
         'status': 'ok',
         'service': 'urugwiro-backend',
         'healthy': True
     }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def readiness_check(request):
+    failures = []
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT 1')
+            cursor.fetchone()
+    except Exception:
+        logger.exception('Readiness database probe failed')
+        failures.append('database')
+    try:
+        cache.set('urugwiro-readiness', 'ok', timeout=10)
+        if cache.get('urugwiro-readiness') != 'ok':
+            raise RuntimeError('Cache read-after-write failed')
+    except Exception:
+        logger.exception('Readiness cache probe failed')
+        failures.append('cache')
+    return Response(
+        {'status': 'unavailable', 'dependencies': failures} if failures else {'status': 'ready'},
+        status=status.HTTP_503_SERVICE_UNAVAILABLE if failures else status.HTTP_200_OK,
+    )

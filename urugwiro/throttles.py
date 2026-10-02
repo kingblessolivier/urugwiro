@@ -5,7 +5,7 @@ class EndpointThrottle(SimpleRateThrottle):
     scope = 'public_read'
 
     def allow_request(self, request, view):
-        if request.path in {'/api/health/', '/health/', '/', '/api/'}:
+        if request.path in {'/api/health/', '/api/ready/', '/health/', '/', '/api/'}:
             return True
         if request.path.startswith(('/api/auth/login', '/api/auth/register', '/api/token/')):
             self.scope = 'authentication'

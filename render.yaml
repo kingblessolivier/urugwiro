@@ -3,7 +3,8 @@ services:
     name: urugwiro-api
     runtime: docker
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /api/about/
+    preDeployCommand: python manage.py migrate --noinput
+    healthCheckPath: /api/ready/
     envVars:
       - key: DJANGO_DEBUG
         value: "false"

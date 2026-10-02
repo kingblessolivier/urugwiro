@@ -7,6 +7,7 @@ urlpatterns = [
     path('', api_views.health_check, name='root_health'),
     path('api/', api_views.health_check, name='api_root_health'),
     path('api/health/', api_views.health_check, name='api_health'),
+    path('api/ready/', api_views.readiness_check, name='api_ready'),
     path('health/', api_views.health_check, name='health'),
 
     # ─── Auth & Profile ───

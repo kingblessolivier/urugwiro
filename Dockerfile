@@ -15,4 +15,4 @@ COPY . .
 RUN DJANGO_SECRET_KEY=temporary-collectstatic-key-not-used-at-runtime-0123456789 python manage.py collectstatic --noinput
 
 EXPOSE 8000
-CMD ["sh", "-c", "python manage.py migrate --noinput && daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application"]
+CMD ["sh", "-c", "daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application"]
