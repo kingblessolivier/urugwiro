@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const rawBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
+const rawBaseUrl = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').trim();
 const API_BASE_URL = rawBaseUrl
   ? (rawBaseUrl.endsWith('/api') ? rawBaseUrl : `${rawBaseUrl.replace(/\/+$/, '')}/api`)
   : (import.meta.env.DEV ? '/api' : 'https://urugwiro-api-production-b6d5.up.railway.app/api');

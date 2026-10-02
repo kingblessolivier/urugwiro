@@ -2,6 +2,8 @@ import type { Listing } from '../types/listing';
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, '') : '') ||
+  (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') : '') ||
   (import.meta.env.DEV ? 'http://localhost:8000' : 'https://urugwiro-api-production-b6d5.up.railway.app');
 
 export function resolveImageUrl(url: string | null | undefined): string | null {

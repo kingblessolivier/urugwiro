@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { AppView } from '../../types/navigation';
 import { ArrowLeft, Search, Sparkles } from 'lucide-react';
+import { api } from '../../api/endpoints';
 
 interface UpdateItem {
   id?: string | number;
@@ -65,10 +66,13 @@ export const UpdatesPage: React.FC<UpdatesPageProps> = ({ onNavigate }) => {
   const { data: serverUpdates = [], isLoading } = useQuery<UpdateItem[]>({
     queryKey: ['public-updates'],
     queryFn: async () => {
-      const response = await fetch('/api/public/updates/');
-      if (!response.ok) return [];
-      const data = await response.json();
-      return Array.isArray(data) ? data : data.results || [];
+      try {
+        const response = await api.public.updates();
+        const data = response.data;
+        return Array.isArray(data) ? data : data.results || [];
+      } catch {
+        return [];
+      }
     },
     retry: false,
   });

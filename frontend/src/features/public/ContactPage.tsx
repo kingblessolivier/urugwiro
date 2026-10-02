@@ -3,6 +3,7 @@ import { CheckCircle2, Mail, MapPin, Phone, Clock, Send } from 'lucide-react';
 import { PageHero } from '../../components/layout/PageHero';
 import { Button } from '../../components/ui/Button';
 import { cn } from '../../lib/utils';
+import { api } from '../../api/endpoints';
 
 const ContactPage: React.FC = () => {
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
@@ -14,12 +15,7 @@ const ContactPage: React.FC = () => {
     setStatus(null);
     setLoading(true);
     try {
-      const response = await fetch('/api/public/contact/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      if (!response.ok) throw new Error('Could not send the message. Please try again.');
+      await api.public.contactSubmit(formData);
       setStatus({ type: 'success', text: 'Your message has been sent. We\'ll get back to you within 24 hours.' });
       setFormData({ name: '', email: '', subject: '', message: '' });
     } catch (error) {
