@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { ArrowLeft, ArrowRight, Rocket, ShieldCheck, Sparkles, Check, Upload, FileText, Eye, AlertCircle } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { ArrowLeft, ArrowRight, Rocket, ShieldCheck, Sparkles, Check, Upload, FileText, Eye, AlertCircle, Crown, Star } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { api } from '../../api/endpoints';
 import apiClient from '../../api/client';
@@ -44,21 +44,29 @@ const initialSpecs: SpecsData = {
   hasWaterTank: true, waterTankLiters: '5000', hasGenerator: false, generatorKva: '15',
   hasSolarWater: false, hasThreePhase: false, hasFiber: true, hasCctv: false,
   parkingSpaces: '2', securityType: 'Perimeter Wall', electricityMeter: 'Cash Power Prepaid', roadAccess: 'Tarmac',
+  kitchenType: 'Open', masterPlanZoning: '', balcony: false,
   floorNumber: '', unitNumber: '', unitOrientation: '', balconySqm: '', parkingSlot: '',
   hasElevator: false, serviceCharge: '',
   sellingMode: 'per_unit', totalBuildingFloors: 3, floorPlan: [] as FloorPlan[],
   plotSizeSqm: '', zoningCode: 'R1', landUse: 'Residential', tenure: 'EmphyteuticLease',
   leaseYears: '49', far: '1.5', bcr: '50', maxFloors: 'G+2', terrain: 'Gentle Slope',
   slopePercent: '5', landRoadType: 'Tarmac', waterOnsite: true, electricityOnsite: true, wetlandBuffer: false,
+  titleDeedNumber: '', soilType: '', drainageSystem: '', isEncumbranceFree: true,
+  waterLineDistance: '', powerPoleDistance: '', hasFiberConduit: false, roadType: 'Tarmac',
   make: '', model: '', year: '2022', mileage: '', engineCc: '', horsepower: '',
   transmission: 'Automatic', fuelType: 'Petrol', drivetrain: '4WD', bodyType: 'SUV',
   seats: '5', condition: 'Foreign Used (Clean)', plateNumber: '', plateType: 'Private',
   vinChassis: '', rraCustoms: 'DutyPaid', hasAc: true, hasLeather: true, hasSunroof: false,
   hasReverseCamera: true, includesHelmet: false, hasDeliveryRack: false,
+  hasServiceHistory: false, includesDriver: false, controleTechniqueExpiry: '', insuranceExpiry: '',
   commercialFloors: '4', grossArea: '', commercialZoning: 'Commercial C1',
   hasCommercialElevator: true, hasLoadingBay: false,
+  powerCapacity: '', parkingSpacesCommercial: '', footTrafficScore: '', hasCommercialGenerator: false,
+  buildingUse: '', ceilingHeight: '', hasShowroom: false, hasWarehouse: false, hasOfficeSpace: false, netArea: '',
   starRating: 0, totalRooms: 0, conferenceHallsCount: 0,
   hasRestaurantBar: false, commercialLicenseNumber: '', managementType: 'Independent',
+  occupancyRate: '', hasCommercialLicense: true, hasHotelPool: false, hasSpa: false, hasGym: false,
+  includesBreakfast: false, averageDailyRate: '', totalKeys: '',
 };
 
 // ─── Component ───
@@ -77,12 +85,28 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [currency, setCurrency] = useState('RWF');
   const [purpose, setPurpose] = useState<'sale' | 'rent'>('sale');
   const [rentalFrequency, setRentalFrequency] = useState('per_month');
   const [securityDeposit, setSecurityDeposit] = useState('');
   const [isNegotiable, setIsNegotiable] = useState(false);
+  const [adminStatus, setAdminStatus] = useState<'published' | 'draft' | 'under_review'>('published');
+  const [adminFeatured, setAdminFeatured] = useState(false);
+  const [sellerId, setSellerId] = useState('');
+  const [sellersList, setSellersList] = useState<any[]>([]);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [aiMessage, setAiMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    if (listedByRole === 'admin') {
+      api.admin.sellers()
+        .then((res: any) => {
+          const items = res?.data?.results || (Array.isArray(res?.data) ? res.data : []);
+          setSellersList(items);
+        })
+        .catch(() => {});
+    }
+  }, [listedByRole]);
 
   // Stage 3: Media
   const [heroImage, setHeroImage] = useState<File | null>(null);
@@ -257,11 +281,24 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
       fd.append('purpose', purpose);
       fd.append('listed_by_role', listedByRole);
       fd.append('price', price);
+      fd.append('currency', currency);
       fd.append('negotiable', String(isNegotiable));
       if (purpose === 'rent') {
         fd.append('rental_frequency', rentalFrequency);
         if (securityDeposit) fd.append('security_deposit', securityDeposit);
       }
+
+      if (listedByRole === 'admin') {
+        fd.append('status', adminStatus);
+        fd.append('is_featured', String(adminFeatured));
+        if (sellerId) fd.append('seller_id', sellerId);
+      } else {
+        fd.append('status', 'published');
+      }
+
+      // Calculate total area
+      const derivedArea = specs.plotSizeSqm || specs.builtAreaSqm || specs.grossArea || specs.netArea;
+      if (derivedArea) fd.append('total_area', derivedArea);
 
       // Map wizard category to backend category
       const backendCategory = category === 'apartment' ? 'house' : category;
@@ -456,12 +493,24 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
               </div>
             )}
 
-            {/* Price */}
+            {/* Price & Currency */}
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Price (RWF)</label>
+              <label className="text-[11px] font-bold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Price &amp; Currency</label>
               {validationErrors.price && <p className={errorClass}>{validationErrors.price}</p>}
-              <input type="number" className={cn(inputClass, 'text-lg font-mono font-bold')} style={inputStyle} value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" />
-              {Number(price) > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <input type="number" className={cn(inputClass, 'text-lg font-mono font-bold')} style={inputStyle} value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" />
+                </div>
+                <div>
+                  <select className={cn(inputClass, 'h-[46px] font-bold cursor-pointer')} style={inputStyle} value={currency} onChange={(e) => setCurrency(e.target.value)}>
+                    <option value="RWF">RWF (Frw)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                  </select>
+                </div>
+              </div>
+              {Number(price) > 0 && currency === 'RWF' && (
                 <p className="text-[10px] mt-1 font-mono" style={{ color: 'var(--color-text-dim)' }}>
                   ≈ ${Math.round(Number(price) / 1350).toLocaleString()} USD
                 </p>
@@ -475,6 +524,49 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
               </div>
               <span className="text-xs font-medium" style={{ color: 'var(--color-text-main)' }}>Price is negotiable</span>
             </label>
+
+            {/* Admin Controls */}
+            {listedByRole === 'admin' && (
+              <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Crown size={16} className="text-amber-400" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Admin Controls</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-bold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Publishing Status</label>
+                    <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={adminStatus} onChange={(e) => setAdminStatus(e.target.value as any)}>
+                      <option value="published">Published (Live)</option>
+                      <option value="draft">Draft</option>
+                      <option value="under_review">Under Review</option>
+                    </select>
+                  </div>
+                  {sellersList.length > 0 && (
+                    <div>
+                      <label className="text-[11px] font-bold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Assign To Seller</label>
+                      <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={sellerId} onChange={(e) => setSellerId(e.target.value)}>
+                        <option value="">Default (Admin / Platform)</option>
+                        {sellersList.map((s: any) => (
+                          <option key={s.id} value={s.id}>
+                            {s.first_name || s.username || s.name || `Seller #${s.id}`} ({s.email || s.phone || 'No contact'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                <label className="flex items-center gap-3 cursor-pointer pt-1">
+                  <input type="checkbox" checked={adminFeatured} onChange={(e) => setAdminFeatured(e.target.checked)} className="sr-only peer" />
+                  <div className="relative w-9 h-5 rounded-full peer peer-checked:bg-amber-500 transition-colors" style={{ background: adminFeatured ? undefined : 'var(--color-input-bg)' }}>
+                    <div className={cn('absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform', adminFeatured && 'translate-x-4')} />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Star size={14} className={adminFeatured ? "text-amber-400 fill-amber-400" : "text-gray-400"} />
+                    <span className="text-xs font-semibold" style={{ color: 'var(--color-text-main)' }}>Featured Property (Showcase on homepage)</span>
+                  </div>
+                </label>
+              </div>
+            )}
           </div>
         );
 
@@ -673,25 +765,32 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
               <div className="p-5 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-lg font-bold" style={{ color: 'var(--color-text-main)' }}>{title || 'Untitled Listing'}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg font-bold" style={{ color: 'var(--color-text-main)' }}>{title || 'Untitled Listing'}</h3>
+                      {adminFeatured && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                          <Star size={10} className="fill-amber-500" /> Featured
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
                       {location.province}, {location.district}, {location.sector}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-emerald-500">{Number(price).toLocaleString()} RWF</p>
+                    <p className="text-lg font-bold text-emerald-500">{Number(price).toLocaleString()} {currency}</p>
                     {purpose === 'rent' && <p className="text-[10px]" style={{ color: 'var(--color-text-dim)' }}>{rentalFrequency.replace('per_', 'per ')}</p>}
                   </div>
                 </div>
 
                 {/* Preview Specs */}
                 <div className="flex flex-wrap gap-2">
-                  {category === 'house' && specs.bedrooms && (
+                  {(category === 'house' || category === 'apartment') && specs.bedrooms && (
                     <span className="px-2.5 py-1 rounded-lg text-xs" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-muted)' }}>
                       {specs.bedrooms} beds
                     </span>
                   )}
-                  {category === 'house' && specs.bathrooms && (
+                  {(category === 'house' || category === 'apartment') && specs.bathrooms && (
                     <span className="px-2.5 py-1 rounded-lg text-xs" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-muted)' }}>
                       {specs.bathrooms} baths
                     </span>
@@ -701,7 +800,17 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
                       {specs.plotSizeSqm} m²
                     </span>
                   )}
-                  {category === 'car' && specs.make && (
+                  {category === 'commercial' && (specs.grossArea || specs.builtAreaSqm) && (
+                    <span className="px-2.5 py-1 rounded-lg text-xs" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-muted)' }}>
+                      {specs.grossArea || specs.builtAreaSqm} m²
+                    </span>
+                  )}
+                  {category === 'hotel' && (specs.totalRooms > 0 || Number(specs.totalKeys) > 0) && (
+                    <span className="px-2.5 py-1 rounded-lg text-xs" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-muted)' }}>
+                      {specs.totalRooms || specs.totalKeys} rooms
+                    </span>
+                  )}
+                  {(category === 'car' || category === 'motorbike') && specs.make && (
                     <span className="px-2.5 py-1 rounded-lg text-xs" style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-muted)' }}>
                       {specs.year} {specs.make} {specs.model}
                     </span>

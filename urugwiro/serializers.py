@@ -186,6 +186,12 @@ class ListingCreateSerializer(serializers.ModelSerializer):
             data.pop('price', None)
         if data.get('slug') == '':
             data['slug'] = None
+        if 'is_featured' in data:
+            val = data.get('is_featured')
+            data['is_featured'] = str(val).lower() in ['true', '1', 'yes'] if val is not None else False
+        if 'negotiable' in data:
+            val = data.get('negotiable')
+            data['negotiable'] = str(val).lower() in ['true', '1', 'yes'] if val is not None else True
         return super().to_internal_value(data)
 
 

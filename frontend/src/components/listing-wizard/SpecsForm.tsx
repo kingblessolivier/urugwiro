@@ -28,6 +28,9 @@ export interface SpecsData {
   securityType: string;
   electricityMeter: string;
   roadAccess: string;
+  kitchenType: string;
+  masterPlanZoning: string;
+  balcony: boolean;
 
   // Apartment
   floorNumber: string;
@@ -56,6 +59,14 @@ export interface SpecsData {
   waterOnsite: boolean;
   electricityOnsite: boolean;
   wetlandBuffer: boolean;
+  titleDeedNumber: string;
+  soilType: string;
+  drainageSystem: string;
+  isEncumbranceFree: boolean;
+  waterLineDistance: string;
+  powerPoleDistance: string;
+  hasFiberConduit: boolean;
+  roadType: string;
 
   // Vehicle
   make: string;
@@ -80,6 +91,10 @@ export interface SpecsData {
   hasReverseCamera: boolean;
   includesHelmet: boolean;
   hasDeliveryRack: boolean;
+  hasServiceHistory: boolean;
+  includesDriver: boolean;
+  controleTechniqueExpiry: string;
+  insuranceExpiry: string;
 
   // Commercial
   commercialFloors: string;
@@ -87,6 +102,16 @@ export interface SpecsData {
   commercialZoning: string;
   hasCommercialElevator: boolean;
   hasLoadingBay: boolean;
+  powerCapacity: string;
+  parkingSpacesCommercial: string;
+  footTrafficScore: string;
+  hasCommercialGenerator: boolean;
+  buildingUse: string;
+  ceilingHeight: string;
+  hasShowroom: boolean;
+  hasWarehouse: boolean;
+  hasOfficeSpace: boolean;
+  netArea: string;
 
   // Hotel
   starRating: number;
@@ -95,6 +120,14 @@ export interface SpecsData {
   hasRestaurantBar: boolean;
   commercialLicenseNumber: string;
   managementType: string;
+  occupancyRate: string;
+  hasCommercialLicense: boolean;
+  hasHotelPool: boolean;
+  hasSpa: boolean;
+  hasGym: boolean;
+  includesBreakfast: boolean;
+  averageDailyRate: string;
+  totalKeys: string;
 }
 
 interface SpecsFormProps {
@@ -145,28 +178,50 @@ const SpecsForm: React.FC<SpecsFormProps> = ({ category, subtype, specs, onChang
           <div><Label>Built Area (m²)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.builtAreaSqm} onChange={(e) => onChange({ builtAreaSqm: e.target.value })} /></div>
           <div><Label>Compound (m²)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.compoundSizeSqm} onChange={(e) => onChange({ compoundSizeSqm: e.target.value })} /></div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Year Built</Label><input type="number" className={inputClass} style={inputStyle} value={specs.yearBuilt} onChange={(e) => onChange({ yearBuilt: e.target.value })} /></div>
           <div><Label>Parking Spaces</Label><input type="number" className={inputClass} style={inputStyle} value={specs.parkingSpaces} onChange={(e) => onChange({ parkingSpaces: e.target.value })} /></div>
           <div>
+            <Label>Kitchen Type</Label>
+            <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.kitchenType} onChange={(e) => onChange({ kitchenType: e.target.value })}>
+              <option value="Open">Open Plan</option>
+              <option value="Closed">Closed Kitchen</option>
+              <option value="American">American Kitchen</option>
+            </select>
+          </div>
+          <div>
             <Label>Road Access</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.roadAccess} onChange={(e) => onChange({ roadAccess: e.target.value })}>
-              <option value="Tarmac">Tarmac</option><option value="Cobblestone">Cobblestone</option><option value="Murram">Murram/Dirt</option><option value="Footpath">Footpath</option>
+              <option value="Tarmac">Tarmac</option>
+              <option value="Cobblestone">Cobblestone</option>
+              <option value="Murram">Murram/Dirt</option>
+              <option value="Footpath">Footpath</option>
             </select>
           </div>
         </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div>
             <Label>Electricity</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.electricityMeter} onChange={(e) => onChange({ electricityMeter: e.target.value })}>
-              <option value="Cash Power Prepaid">Cashpower Prepaid</option><option value="Postpaid Meter">Postpaid Meter</option><option value="Shared Meter">Shared Meter</option>
+              <option value="Cash Power Prepaid">Cashpower Prepaid</option>
+              <option value="Postpaid Meter">Postpaid Meter</option>
+              <option value="Shared Meter">Shared Meter</option>
             </select>
           </div>
           <div>
             <Label>Security</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.securityType} onChange={(e) => onChange({ securityType: e.target.value })}>
-              <option value="Perimeter Wall">Perimeter Wall</option><option value="Electric Fence">Electric Fence</option><option value="Gated Community">Gated Community</option><option value="None">None</option>
+              <option value="Perimeter Wall">Perimeter Wall</option>
+              <option value="Electric Fence">Electric Fence</option>
+              <option value="Gated Community">Gated Community</option>
+              <option value="None">None</option>
             </select>
+          </div>
+          <div>
+            <Label>Master Plan Zoning</Label>
+            <input type="text" className={inputClass} style={inputStyle} value={specs.masterPlanZoning} onChange={(e) => onChange({ masterPlanZoning: e.target.value })} placeholder="e.g. R1, R2" />
           </div>
         </div>
 
@@ -174,11 +229,13 @@ const SpecsForm: React.FC<SpecsFormProps> = ({ category, subtype, specs, onChang
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-0">
           <Toggle label="Furnished" checked={specs.isFurnished} onChange={(v) => onChange({ isFurnished: v })} />
           <Toggle label="Garden" checked={specs.hasGarden} onChange={(v) => onChange({ hasGarden: v })} />
+          <Toggle label="Balcony" checked={specs.balcony} onChange={(v) => onChange({ balcony: v })} />
           <Toggle label="Water Tank" checked={specs.hasWaterTank} onChange={(v) => onChange({ hasWaterTank: v })} />
           {specs.hasWaterTank && (
             <div className="col-span-2 sm:col-span-1"><Label>Tank (Liters)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.waterTankLiters} onChange={(e) => onChange({ waterTankLiters: e.target.value })} /></div>
           )}
           <Toggle label="Fiber Internet" checked={specs.hasFiber} onChange={(v) => onChange({ hasFiber: v })} />
+          <Toggle label="CCTV Security" checked={specs.hasCctv} onChange={(v) => onChange({ hasCctv: v })} />
           {(isVilla || !isModest) && (
             <>
               <Toggle label="Swimming Pool" checked={specs.hasSwimmingPool} onChange={(v) => onChange({ hasSwimmingPool: v })} />
@@ -187,7 +244,6 @@ const SpecsForm: React.FC<SpecsFormProps> = ({ category, subtype, specs, onChang
                 <div><Label>Generator (KVA)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.generatorKva} onChange={(e) => onChange({ generatorKva: e.target.value })} /></div>
               )}
               <Toggle label="Solar Water Heater" checked={specs.hasSolarWater} onChange={(v) => onChange({ hasSolarWater: v })} />
-              <Toggle label="CCTV" checked={specs.hasCctv} onChange={(v) => onChange({ hasCctv: v })} />
             </>
           )}
           {isVilla && (
@@ -223,16 +279,27 @@ const SpecsForm: React.FC<SpecsFormProps> = ({ category, subtype, specs, onChang
               <div><Label>Bedrooms</Label><input type="number" className={inputClass} style={inputStyle} value={specs.bedrooms} onChange={(e) => onChange({ bedrooms: e.target.value })} /></div>
               <div><Label>Bathrooms</Label><input type="number" className={inputClass} style={inputStyle} value={specs.bathrooms} onChange={(e) => onChange({ bathrooms: e.target.value })} /></div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div><Label>Built Area (m²)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.builtAreaSqm} onChange={(e) => onChange({ builtAreaSqm: e.target.value })} /></div>
               <div><Label>Balcony (m²)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.balconySqm} onChange={(e) => onChange({ balconySqm: e.target.value })} /></div>
+              <div>
+                <Label>Kitchen Type</Label>
+                <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.kitchenType} onChange={(e) => onChange({ kitchenType: e.target.value })}>
+                  <option value="Open">Open Plan</option>
+                  <option value="Closed">Closed Kitchen</option>
+                  <option value="American">American</option>
+                </select>
+              </div>
               <div>
                 <Label>View / Orientation</Label>
                 <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.unitOrientation} onChange={(e) => onChange({ unitOrientation: e.target.value })}>
                   <option value="">Select view</option>
-                  <option value="City Skyline">City Skyline</option><option value="Garden / Courtyard">Garden / Courtyard</option>
-                  <option value="Mountain View">Mountain View</option><option value="Lake View">Lake View</option>
-                  <option value="Street View">Street View</option><option value="Pool Side">Pool Side</option>
+                  <option value="City Skyline">City Skyline</option>
+                  <option value="Garden / Courtyard">Garden / Courtyard</option>
+                  <option value="Mountain View">Mountain View</option>
+                  <option value="Lake View">Lake View</option>
+                  <option value="Street View">Street View</option>
+                  <option value="Pool Side">Pool Side</option>
                 </select>
               </div>
             </div>
@@ -243,14 +310,17 @@ const SpecsForm: React.FC<SpecsFormProps> = ({ category, subtype, specs, onChang
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div><Label>Parking Slot</Label><input type="text" className={inputClass} style={inputStyle} value={specs.parkingSlot} onChange={(e) => onChange({ parkingSlot: e.target.value })} placeholder="e.g. B1-14" /></div>
           <div><Label>Service Charge (RWF/mo)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.serviceCharge} onChange={(e) => onChange({ serviceCharge: e.target.value })} /></div>
+          <div><Label>Master Plan Zoning</Label><input type="text" className={inputClass} style={inputStyle} value={specs.masterPlanZoning} onChange={(e) => onChange({ masterPlanZoning: e.target.value })} placeholder="e.g. R3, R4" /></div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-0">
           <Toggle label="Elevator" checked={specs.hasElevator} onChange={(v) => onChange({ hasElevator: v })} />
           <Toggle label="Furnished" checked={specs.isFurnished} onChange={(v) => onChange({ isFurnished: v })} />
           <Toggle label="Backup Generator" checked={specs.hasGenerator} onChange={(v) => onChange({ hasGenerator: v })} />
           <Toggle label="Fiber Internet" checked={specs.hasFiber} onChange={(v) => onChange({ hasFiber: v })} />
-          <Toggle label="CCTV" checked={specs.hasCctv} onChange={(v) => onChange({ hasCctv: v })} />
+          <Toggle label="CCTV Security" checked={specs.hasCctv} onChange={(v) => onChange({ hasCctv: v })} />
           <Toggle label="Swimming Pool" checked={specs.hasSwimmingPool} onChange={(v) => onChange({ hasSwimmingPool: v })} />
+          <Toggle label="Staff Quarters" checked={specs.hasStaffQuarters} onChange={(v) => onChange({ hasStaffQuarters: v })} />
+          <Toggle label="3-Phase Power" checked={specs.hasThreePhase} onChange={(v) => onChange({ hasThreePhase: v })} />
         </div>
       </div>
     );
@@ -265,43 +335,120 @@ const SpecsForm: React.FC<SpecsFormProps> = ({ category, subtype, specs, onChang
           <div>
             <Label>Master Plan Zoning</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.zoningCode} onChange={(e) => onChange({ zoningCode: e.target.value })}>
-              <option value="R1">R1 — Low Density Residential</option><option value="R2">R2 — Medium Density</option><option value="R3">R3 — High Density</option>
-              <option value="C1">C1 — Commercial</option><option value="C2">C2 — Mixed Use</option><option value="A1">A1 — Agricultural</option><option value="M1">M1 — Industrial</option>
+              <option value="R1">R1 — Low Density Residential</option>
+              <option value="R1A">R1A — Single Family</option>
+              <option value="R2">R2 — Medium Density</option>
+              <option value="R3">R3 — High Density</option>
+              <option value="R4">R4 — High Rise Residential</option>
+              <option value="C1">C1 — Commercial Central</option>
+              <option value="C2">C2 — Mixed Use</option>
+              <option value="C3">C3 — City Commercial</option>
+              <option value="A1">A1 — Agricultural</option>
+              <option value="M1">M1 — Light Industrial</option>
+              <option value="M2">M2 — Heavy Industrial</option>
             </select>
           </div>
           <div>
             <Label>Land Use</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.landUse} onChange={(e) => onChange({ landUse: e.target.value })}>
-              <option value="Residential">Residential Building</option><option value="Commercial">Commercial</option><option value="Agricultural">Agricultural</option><option value="Industrial">Industrial</option>
+              <option value="Residential">Residential Building Land</option>
+              <option value="Commercial">Commercial / Mixed-Use Land</option>
+              <option value="Agricultural">Agricultural / Farming Land</option>
+              <option value="Industrial">Industrial / Logistics Land</option>
             </select>
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div>
             <Label>Tenure</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.tenure} onChange={(e) => onChange({ tenure: e.target.value })}>
-              <option value="EmphyteuticLease">Emphyteutic Lease (99-yr)</option><option value="Freehold">Freehold</option>
+              <option value="EmphyteuticLease">Emphyteutic Lease (99-yr)</option>
+              <option value="Freehold">Freehold (Ubukonde)</option>
             </select>
           </div>
           <div><Label>Lease Years Left</Label><input type="number" className={inputClass} style={inputStyle} value={specs.leaseYears} onChange={(e) => onChange({ leaseYears: e.target.value })} /></div>
           <div>
             <Label>Terrain</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.terrain} onChange={(e) => onChange({ terrain: e.target.value })}>
-              <option value="Flat">Flat</option><option value="Gentle Slope">Gentle Slope</option><option value="Sloped">Sloped</option><option value="Hilly">Hilly</option><option value="Rocky">Rocky</option>
+              <option value="Flat">Flat</option>
+              <option value="Gentle Slope">Gentle Slope</option>
+              <option value="Sloped">Sloped</option>
+              <option value="Hilly">Hilly</option>
+              <option value="Rocky">Rocky</option>
+              <option value="Valley">Valley</option>
+            </select>
+          </div>
+          <div>
+            <Label>Road Type</Label>
+            <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.roadType} onChange={(e) => onChange({ roadType: e.target.value, landRoadType: e.target.value })}>
+              <option value="Tarmac">Tarmac Road</option>
+              <option value="Cobblestone">Cobblestone / Paved</option>
+              <option value="Murram">Murram / Gravel</option>
+              <option value="Earth">Dirt / Earth Road</option>
             </select>
           </div>
         </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>FAR</Label><input type="text" className={inputClass} style={inputStyle} value={specs.far} onChange={(e) => onChange({ far: e.target.value })} placeholder="1.5" /></div>
           <div><Label>BCR (%)</Label><input type="text" className={inputClass} style={inputStyle} value={specs.bcr} onChange={(e) => onChange({ bcr: e.target.value })} placeholder="50" /></div>
           <div><Label>Max Floors</Label><input type="text" className={inputClass} style={inputStyle} value={specs.maxFloors} onChange={(e) => onChange({ maxFloors: e.target.value })} placeholder="G+2" /></div>
           <div><Label>Slope (%)</Label><input type="text" className={inputClass} style={inputStyle} value={specs.slopePercent} onChange={(e) => onChange({ slopePercent: e.target.value })} placeholder="5" /></div>
         </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div><Label>Title Deed / UPI Doc #</Label><input type="text" className={inputClass} style={inputStyle} value={specs.titleDeedNumber} onChange={(e) => onChange({ titleDeedNumber: e.target.value })} placeholder="e.g. 1/03/04/..." /></div>
+          <div>
+            <Label>Soil Type</Label>
+            <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.soilType} onChange={(e) => onChange({ soilType: e.target.value })}>
+              <option value="">Select soil...</option>
+              <option value="Clay">Clay Soil</option>
+              <option value="Loam">Loam / Agricultural</option>
+              <option value="Sandy">Sandy Loam</option>
+              <option value="Volcanic">Volcanic Soil</option>
+              <option value="Rocky">Rocky / Gravelly</option>
+            </select>
+          </div>
+          <div>
+            <Label>Drainage System</Label>
+            <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.drainageSystem} onChange={(e) => onChange({ drainageSystem: e.target.value })}>
+              <option value="">Select drainage...</option>
+              <option value="Stormwater Channel">Municipal Stormwater Channel</option>
+              <option value="Open Gutter">Paved Open Gutter</option>
+              <option value="Natural Runoff">Natural Water Runoff</option>
+              <option value="Soak Pit">Soak Pit / Retained</option>
+              <option value="None">None</option>
+            </select>
+          </div>
+        </div>
+
+        <SectionTitle>Utilities & Boundaries</SectionTitle>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-0">
           <Toggle label="WASAC Water On-site" checked={specs.waterOnsite} onChange={(v) => onChange({ waterOnsite: v })} />
           <Toggle label="EUCL Electricity On-site" checked={specs.electricityOnsite} onChange={(v) => onChange({ electricityOnsite: v })} />
+          <Toggle label="Clean Title / Encumbrance Free" checked={specs.isEncumbranceFree} onChange={(v) => onChange({ isEncumbranceFree: v })} />
+          <Toggle label="Fiber Optic Conduit" checked={specs.hasFiberConduit} onChange={(v) => onChange({ hasFiberConduit: v })} />
+          <Toggle label="Road Access" checked={true} onChange={() => {}} />
           <Toggle label="In Wetland Buffer Zone" checked={specs.wetlandBuffer} onChange={(v) => onChange({ wetlandBuffer: v })} />
         </div>
+
+        {(!specs.waterOnsite || !specs.electricityOnsite) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            {!specs.waterOnsite && (
+              <div>
+                <Label>Water Line Distance (meters)</Label>
+                <input type="number" className={inputClass} style={inputStyle} value={specs.waterLineDistance} onChange={(e) => onChange({ waterLineDistance: e.target.value })} placeholder="e.g. 50" />
+              </div>
+            )}
+            {!specs.electricityOnsite && (
+              <div>
+                <Label>Power Pole Distance (meters)</Label>
+                <input type="number" className={inputClass} style={inputStyle} value={specs.powerPoleDistance} onChange={(e) => onChange({ powerPoleDistance: e.target.value })} placeholder="e.g. 100" />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -315,63 +462,88 @@ const SpecsForm: React.FC<SpecsFormProps> = ({ category, subtype, specs, onChang
           <div><Label>Model</Label><input type="text" className={inputClass} style={inputStyle} value={specs.model} onChange={(e) => onChange({ model: e.target.value })} placeholder="RAV4" /></div>
           <div><Label>Year</Label><input type="number" className={inputClass} style={inputStyle} value={specs.year} onChange={(e) => onChange({ year: e.target.value })} /></div>
         </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Mileage (km)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.mileage} onChange={(e) => onChange({ mileage: e.target.value })} /></div>
           <div><Label>Engine (cc)</Label><input type="text" className={inputClass} style={inputStyle} value={specs.engineCc} onChange={(e) => onChange({ engineCc: e.target.value })} placeholder="2000cc" /></div>
           <div><Label>Horsepower</Label><input type="number" className={inputClass} style={inputStyle} value={specs.horsepower} onChange={(e) => onChange({ horsepower: e.target.value })} /></div>
           <div><Label>Seats</Label><input type="number" className={inputClass} style={inputStyle} value={specs.seats} onChange={(e) => onChange({ seats: e.target.value })} /></div>
         </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div>
             <Label>Transmission</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.transmission} onChange={(e) => onChange({ transmission: e.target.value })}>
-              <option value="Automatic">Automatic</option><option value="Manual">Manual</option><option value="CVT">CVT</option>
+              <option value="Automatic">Automatic</option>
+              <option value="Manual">Manual</option>
+              <option value="CVT">CVT</option>
             </select>
           </div>
           <div>
             <Label>Fuel</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.fuelType} onChange={(e) => onChange({ fuelType: e.target.value })}>
-              <option value="Petrol">Petrol</option><option value="Diesel">Diesel</option><option value="Hybrid">Hybrid</option><option value="Electric">Electric</option>
+              <option value="Petrol">Petrol</option>
+              <option value="Diesel">Diesel</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="Electric">Electric</option>
             </select>
           </div>
           <div>
             <Label>Drivetrain</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.drivetrain} onChange={(e) => onChange({ drivetrain: e.target.value })}>
-              <option value="4WD">4WD</option><option value="AWD">AWD</option><option value="FWD">FWD</option><option value="RWD">RWD</option>
+              <option value="4WD">4WD</option>
+              <option value="AWD">AWD</option>
+              <option value="FWD">FWD</option>
+              <option value="RWD">RWD</option>
             </select>
           </div>
           <div>
             <Label>Condition</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.condition} onChange={(e) => onChange({ condition: e.target.value })}>
-              <option value="Brand New">Brand New</option><option value="Foreign Used (Clean)">Foreign Used (Clean)</option><option value="Locally Used">Locally Used</option><option value="Salvage">Salvage / Rebuilt</option>
+              <option value="Brand New">Brand New</option>
+              <option value="Foreign Used (Clean)">Foreign Used (Clean)</option>
+              <option value="Locally Used">Locally Used</option>
+              <option value="Salvage">Salvage / Rebuilt</option>
             </select>
           </div>
         </div>
 
         <SectionTitle>Registration & Customs</SectionTitle>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div><Label>Plate Number</Label><input type="text" className={cn(inputClass, 'font-mono')} style={inputStyle} value={specs.plateNumber} onChange={(e) => onChange({ plateNumber: e.target.value })} placeholder="RAD 780 K" /></div>
           <div>
             <Label>Plate Type</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.plateType} onChange={(e) => onChange({ plateType: e.target.value })}>
-              <option value="Private">Private (RAx)</option><option value="Government">Government (GR)</option><option value="Diplomatic">Diplomatic (CD)</option><option value="Commercial">Commercial (RC)</option>
+              <option value="Private">Private (RAx)</option>
+              <option value="Government">Government (GR)</option>
+              <option value="Diplomatic">Diplomatic (CD)</option>
+              <option value="Commercial">Commercial (RC)</option>
             </select>
           </div>
           <div><Label>VIN / Chassis</Label><input type="text" className={cn(inputClass, 'font-mono')} style={inputStyle} value={specs.vinChassis} onChange={(e) => onChange({ vinChassis: e.target.value })} /></div>
-        </div>
-        <div>
-          <Label>RRA Customs Status</Label>
-          <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.rraCustoms} onChange={(e) => onChange({ rraCustoms: e.target.value })}>
-            <option value="DutyPaid">Duty Paid — Cleared in Rwanda</option><option value="InBond">In Bond — Transit/Warehouse</option><option value="Exempt">Exempt (Diplomatic / NGO)</option>
-          </select>
+          <div>
+            <Label>RRA Customs</Label>
+            <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.rraCustoms} onChange={(e) => onChange({ rraCustoms: e.target.value })}>
+              <option value="DutyPaid">Duty Paid — Cleared</option>
+              <option value="InBond">In Bond — Transit</option>
+              <option value="Exempt">Exempt (Diplomatic/NGO)</option>
+            </select>
+          </div>
         </div>
 
-        <SectionTitle>Features</SectionTitle>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <div><Label>Contrôle Technique Expiry</Label><input type="date" className={inputClass} style={inputStyle} value={specs.controleTechniqueExpiry} onChange={(e) => onChange({ controleTechniqueExpiry: e.target.value })} /></div>
+          <div><Label>Insurance Expiry</Label><input type="date" className={inputClass} style={inputStyle} value={specs.insuranceExpiry} onChange={(e) => onChange({ insuranceExpiry: e.target.value })} /></div>
+        </div>
+
+        <SectionTitle>Features & Options</SectionTitle>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-0">
           <Toggle label="Air Conditioning" checked={specs.hasAc} onChange={(v) => onChange({ hasAc: v })} />
           <Toggle label="Leather Seats" checked={specs.hasLeather} onChange={(v) => onChange({ hasLeather: v })} />
           <Toggle label="Sunroof" checked={specs.hasSunroof} onChange={(v) => onChange({ hasSunroof: v })} />
           <Toggle label="Reverse Camera" checked={specs.hasReverseCamera} onChange={(v) => onChange({ hasReverseCamera: v })} />
+          <Toggle label="Full Service History" checked={specs.hasServiceHistory} onChange={(v) => onChange({ hasServiceHistory: v })} />
+          <Toggle label="Driver Included" checked={specs.includesDriver} onChange={(v) => onChange({ includesDriver: v })} />
         </div>
       </div>
     );
@@ -392,7 +564,9 @@ const SpecsForm: React.FC<SpecsFormProps> = ({ category, subtype, specs, onChang
           <div>
             <Label>Condition</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.condition} onChange={(e) => onChange({ condition: e.target.value })}>
-              <option value="Brand New">Brand New</option><option value="Foreign Used (Clean)">Foreign Used</option><option value="Locally Used">Locally Used</option>
+              <option value="Brand New">Brand New</option>
+              <option value="Foreign Used (Clean)">Foreign Used</option>
+              <option value="Locally Used">Locally Used</option>
             </select>
           </div>
         </div>
@@ -401,13 +575,19 @@ const SpecsForm: React.FC<SpecsFormProps> = ({ category, subtype, specs, onChang
           <div>
             <Label>RRA Customs</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.rraCustoms} onChange={(e) => onChange({ rraCustoms: e.target.value })}>
-              <option value="DutyPaid">Duty Paid</option><option value="InBond">In Bond</option>
+              <option value="DutyPaid">Duty Paid</option>
+              <option value="InBond">In Bond</option>
             </select>
           </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <div><Label>Contrôle Technique Expiry</Label><input type="date" className={inputClass} style={inputStyle} value={specs.controleTechniqueExpiry} onChange={(e) => onChange({ controleTechniqueExpiry: e.target.value })} /></div>
+          <div><Label>Insurance Expiry</Label><input type="date" className={inputClass} style={inputStyle} value={specs.insuranceExpiry} onChange={(e) => onChange({ insuranceExpiry: e.target.value })} /></div>
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-0">
           <Toggle label="Helmet Included" checked={specs.includesHelmet} onChange={(v) => onChange({ includesHelmet: v })} />
           <Toggle label="Delivery Rack" checked={specs.hasDeliveryRack} onChange={(v) => onChange({ hasDeliveryRack: v })} />
+          <Toggle label="Full Service History" checked={specs.hasServiceHistory} onChange={(v) => onChange({ hasServiceHistory: v })} />
         </div>
       </div>
     );
@@ -417,22 +597,36 @@ const SpecsForm: React.FC<SpecsFormProps> = ({ category, subtype, specs, onChang
   if (category === 'commercial' && (subtype === 'Hotel' || subtype?.toLowerCase() === 'hotel')) {
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div><Label>Star Rating</Label><input type="number" className={inputClass} style={inputStyle} value={specs.starRating} onChange={(e) => onChange({ starRating: Number(e.target.value) })} /></div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div><Label>Star Rating</Label><input type="number" min={1} max={5} className={inputClass} style={inputStyle} value={specs.starRating} onChange={(e) => onChange({ starRating: Number(e.target.value) })} /></div>
           <div><Label>Total Rooms</Label><input type="number" className={inputClass} style={inputStyle} value={specs.totalRooms} onChange={(e) => onChange({ totalRooms: Number(e.target.value) })} /></div>
+          <div><Label>Total Keys</Label><input type="number" className={inputClass} style={inputStyle} value={specs.totalKeys} onChange={(e) => onChange({ totalKeys: e.target.value })} /></div>
           <div><Label>Conference Halls</Label><input type="number" className={inputClass} style={inputStyle} value={specs.conferenceHallsCount} onChange={(e) => onChange({ conferenceHallsCount: Number(e.target.value) })} /></div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div><Label>Commercial License</Label><input type="text" className={inputClass} style={inputStyle} value={specs.commercialLicenseNumber} onChange={(e) => onChange({ commercialLicenseNumber: e.target.value })} /></div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div><Label>Commercial License #</Label><input type="text" className={inputClass} style={inputStyle} value={specs.commercialLicenseNumber} onChange={(e) => onChange({ commercialLicenseNumber: e.target.value })} /></div>
           <div>
             <Label>Management Type</Label>
             <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.managementType} onChange={(e) => onChange({ managementType: e.target.value })}>
-              <option value="Independent">Independent</option><option value="Franchise">Franchise</option><option value="Corporate">Corporate</option>
+              <option value="Independent">Independent</option>
+              <option value="Franchise">Franchise</option>
+              <option value="Corporate">Corporate</option>
+              <option value="Owner-Managed">Owner-Managed</option>
             </select>
           </div>
+          <div><Label>Occupancy Rate (%)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.occupancyRate} onChange={(e) => onChange({ occupancyRate: e.target.value })} placeholder="e.g. 75" /></div>
         </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><Label>Average Daily Rate (ADR)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.averageDailyRate} onChange={(e) => onChange({ averageDailyRate: e.target.value })} placeholder="e.g. 85000" /></div>
+        </div>
+        <SectionTitle>Hotel Facilities</SectionTitle>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-0">
+          <Toggle label="Licensed Hotel" checked={specs.hasCommercialLicense} onChange={(v) => onChange({ hasCommercialLicense: v })} />
           <Toggle label="Restaurant / Bar" checked={specs.hasRestaurantBar} onChange={(v) => onChange({ hasRestaurantBar: v })} />
+          <Toggle label="Swimming Pool" checked={specs.hasHotelPool} onChange={(v) => onChange({ hasHotelPool: v })} />
+          <Toggle label="Spa & Wellness" checked={specs.hasSpa} onChange={(v) => onChange({ hasSpa: v })} />
+          <Toggle label="Gym & Fitness" checked={specs.hasGym} onChange={(v) => onChange({ hasGym: v })} />
+          <Toggle label="Breakfast Included" checked={specs.includesBreakfast} onChange={(v) => onChange({ includesBreakfast: v })} />
         </div>
       </div>
     );
@@ -445,11 +639,37 @@ const SpecsForm: React.FC<SpecsFormProps> = ({ category, subtype, specs, onChang
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div><Label>Total Floors</Label><input type="number" className={inputClass} style={inputStyle} value={specs.commercialFloors} onChange={(e) => onChange({ commercialFloors: e.target.value })} /></div>
           <div><Label>Gross Area (m²)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.grossArea} onChange={(e) => onChange({ grossArea: e.target.value })} /></div>
-          <div><Label>Zoning</Label><input type="text" className={inputClass} style={inputStyle} value={specs.commercialZoning} onChange={(e) => onChange({ commercialZoning: e.target.value })} placeholder="Commercial C1" /></div>
+          <div><Label>Net Leasable Area (m²)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.netArea} onChange={(e) => onChange({ netArea: e.target.value })} /></div>
         </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-0">
-          <Toggle label="Elevator" checked={specs.hasCommercialElevator} onChange={(v) => onChange({ hasCommercialElevator: v })} />
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div>
+            <Label>Zoning Type</Label>
+            <select className={cn(inputClass, 'cursor-pointer')} style={inputStyle} value={specs.commercialZoning} onChange={(e) => onChange({ commercialZoning: e.target.value })}>
+              <option value="Retail">Retail</option>
+              <option value="Office">Office Building</option>
+              <option value="Mixed">Mixed Commercial</option>
+              <option value="Industrial">Industrial</option>
+            </select>
+          </div>
+          <div><Label>Building Use</Label><input type="text" className={inputClass} style={inputStyle} value={specs.buildingUse} onChange={(e) => onChange({ buildingUse: e.target.value })} placeholder="e.g. Bank / Headquarters" /></div>
+          <div><Label>Ceiling Height (m)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.ceilingHeight} onChange={(e) => onChange({ ceilingHeight: e.target.value })} placeholder="e.g. 3.5" /></div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div><Label>Power Capacity (kVA)</Label><input type="number" className={inputClass} style={inputStyle} value={specs.powerCapacity} onChange={(e) => onChange({ powerCapacity: e.target.value })} placeholder="e.g. 150" /></div>
+          <div><Label>Parking Capacity</Label><input type="number" className={inputClass} style={inputStyle} value={specs.parkingSpacesCommercial} onChange={(e) => onChange({ parkingSpacesCommercial: e.target.value })} placeholder="e.g. 20" /></div>
+          <div><Label>Foot Traffic Score (1-10)</Label><input type="number" min={1} max={10} className={inputClass} style={inputStyle} value={specs.footTrafficScore} onChange={(e) => onChange({ footTrafficScore: e.target.value })} placeholder="1-10" /></div>
+        </div>
+
+        <SectionTitle>Building Infrastructure</SectionTitle>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-0">
+          <Toggle label="Passenger Elevator" checked={specs.hasCommercialElevator} onChange={(v) => onChange({ hasCommercialElevator: v })} />
           <Toggle label="Loading Bay" checked={specs.hasLoadingBay} onChange={(v) => onChange({ hasLoadingBay: v })} />
+          <Toggle label="Backup Generator" checked={specs.hasCommercialGenerator} onChange={(v) => onChange({ hasCommercialGenerator: v })} />
+          <Toggle label="Showroom Space" checked={specs.hasShowroom} onChange={(v) => onChange({ hasShowroom: v })} />
+          <Toggle label="Warehouse Space" checked={specs.hasWarehouse} onChange={(v) => onChange({ hasWarehouse: v })} />
+          <Toggle label="Dedicated Office Space" checked={specs.hasOfficeSpace} onChange={(v) => onChange({ hasOfficeSpace: v })} />
         </div>
       </div>
     );
