@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Mail,
@@ -20,10 +20,10 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { cn, logError } from '../../lib/utils';
-import { tableHead, tableTh, tableBody, tableTr } from '../../components/ui/Dashboard';
+import { DataTable } from '../../components/ui/DataTable';
+import { StatusBadge } from '../../components/ui/StatusBadge';
 
 import { api } from '../../api/endpoints';
-import { Pagination } from '../../components/ui/Pagination';
 import { CustomerLeadsManager, type LeadChannel } from '../../components/crm/CustomerLeadsManager';
 
 interface Enquiry {
@@ -40,7 +40,7 @@ interface Enquiry {
 export type AdminEnquirySection = 'leads' | 'visits' | 'inquiries' | 'likes' | 'proposals';
 
 export const AdminEnquiries: React.FC = () => {
-  // Mode: Proposals Intake vs Customer CRM Channels
+  // Mode: New Listings vs Customers tabs
   const [section, setSection] = useState<AdminEnquirySection>('leads');
 
   // Proposal State
@@ -111,6 +111,58 @@ export const AdminEnquiries: React.FC = () => {
     }
   };
 
+  const proposalColumns = useMemo(() => [
+    { accessorKey: 'proposal_code', id: 'code', header: 'Code', cell: ({ row }: any) => (
+      <div>
+        <span className="font-mono font-bold text-[var(--color-brand-emerald)]">{row.original.proposal_code}</span>
+        <span className="block text-[10px] font-sans font-normal text-[var(--color-text-dim)] mt-0.5">{new Date(row.original.created_at).toLocaleDateString()}</span>
+      </div>
+    ) },
+    { accessorKey: 'title', id: 'asset', header: 'Asset & UPI', cell: ({ row }: any) => (
+      <div>
+        <div className="font-bold text-[var(--color-text-main)] truncate">{row.original.title}</div>
+        <div className="text-xs text-[var(--color-text-muted)] flex items-center gap-1.5 mt-0.5">
+          <MapPin size={12} className="text-[var(--color-text-dim)] shrink-0" />
+          <span>{row.original.district}</span>
+          {row.original.sector && <span>• {row.original.sector}</span>}
+        </div>
+        {row.original.land_upi && (
+          <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[10px] font-mono text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-[var(--color-brand-emerald)]">
+            <ShieldCheck size={11} /> UPI: {row.original.land_upi}
+          </div>
+        )}
+      </div>
+    ) },
+    { accessorKey: 'full_name', id: 'owner', header: 'Owner', cell: ({ row }: any) => (
+      <div>
+        <div className="font-medium text-[var(--color-text-main)]">{row.original.full_name}</div>
+        <div className="text-xs text-[var(--color-text-muted)]">{row.original.phone || '-'}</div>
+      </div>
+    ) },
+    { accessorKey: 'price', id: 'price', header: 'Price', cell: ({ row }: any) => (
+      <span className="font-mono font-bold text-[var(--color-text-main)]">{Number(row.original.price || 0).toLocaleString()} RWF</span>
+    ) },
+    { accessorKey: 'preferred_date', id: 'visit', header: 'Visit', cell: ({ row }: any) => (
+      <span className="text-xs text-[var(--color-text-muted)]">{row.original.preferred_date || '-'}</span>
+    ) },
+    { accessorKey: 'status', id: 'status', header: 'Status', cell: ({ row }: any) => {
+      const status = row.original.status;
+      const variant = status === 'approved' ? 'published' : status === 'visit_scheduled' ? 'pending' : status === 'pending' ? 'draft' : 'draft';
+      return <StatusBadge status={variant} size="sm" />;
+    } },
+    { id: 'actions', header: '', cell: ({ row }: any) => (
+      <div className="flex items-center justify-end gap-1.5">
+        <button onClick={() => setSelectedProposal(row.original)} className="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors" title="View"><Eye size={14} /></button>
+        {row.original.status === 'pending' && (
+          <button onClick={() => handleConfirmVisit(row.original.id)} className="px-2 py-1 text-[11px] rounded-lg bg-[var(--color-bg-elevated)] hover:bg-emerald-600 hover:text-white text-[var(--color-text-muted)] font-semibold transition-all">Confirm</button>
+        )}
+        {row.original.status === 'visit_scheduled' && (
+          <button onClick={() => handleConvertToLiveListing(row.original.id)} className="px-2 py-1 text-[11px] rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-all">Convert</button>
+        )}
+      </div>
+    ) },
+  ], [setSelectedProposal, handleConfirmVisit, handleConvertToLiveListing]);
+
 
   const pendingCount = proposals.filter(p => p.status === 'pending').length;
   const visitCount = proposals.filter(p => p.status === 'visit_scheduled').length;
@@ -123,13 +175,13 @@ export const AdminEnquiries: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[var(--color-brand-emerald)] text-xs font-bold uppercase tracking-wider mb-2">
-              <ShieldCheck size={14} /> Intake & Customer Communication Hub
+              <ShieldCheck size={14} /> Customers & New Listings
             </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-[var(--color-text-main)] font-display">
-              Customer Leads & <span className="text-[var(--color-brand-emerald)]">Communication Hub</span>
+              Customers & <span className="text-[var(--color-brand-emerald)]">Listing Intake</span>
             </h1>
             <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-1">
-              Platform-wide customer showing visits, property inquiries, wishlist leads, and intake proposals.
+              Manage property inquiries, booked visits, saved listings, and new property submissions.
             </p>
           </div>
 
@@ -146,7 +198,7 @@ export const AdminEnquiries: React.FC = () => {
               )}
             >
               <Users size={14} />
-              <span>Customer Leads CRM</span>
+              <span>Customers</span>
             </button>
 
             <button
@@ -160,7 +212,7 @@ export const AdminEnquiries: React.FC = () => {
               )}
             >
               <Building2 size={14} />
-              <span>Asset Proposals</span>
+              <span>New Listings</span>
               {pendingCount > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full bg-emerald-700 text-[10px] font-bold">
                   {pendingCount}
@@ -178,13 +230,13 @@ export const AdminEnquiries: React.FC = () => {
           </div>
         )}
 
-        {/* ━━━ SECTION 1: ASSET PROPOSALS & PHYSICAL INSPECTION QUEUE ━━━ */}
+        {/* ━━━ SECTION 1: NEW LISTINGS SUBMISSIONS & REVIEW QUEUE ━━━ */}
         {section === 'proposals' && (
           <div className="space-y-6">
             {/* KPI Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)]">
-                <span className="text-[var(--color-text-dim)] text-xs font-bold uppercase tracking-wider">Awaiting Cadastre Review</span>
+                <span className="text-[var(--color-text-dim)] text-xs font-bold uppercase tracking-wider">Awaiting Review</span>
                 <div className="flex items-end justify-between mt-2">
                   <h3 className="text-3xl font-bold text-[var(--color-text-main)] font-mono">{pendingCount}</h3>
                   <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 text-xs font-bold">Pending</span>
@@ -192,18 +244,18 @@ export const AdminEnquiries: React.FC = () => {
               </div>
 
               <div className="p-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)]">
-                <span className="text-[var(--color-text-dim)] text-xs font-bold uppercase tracking-wider">Physical Visits Scheduled</span>
+                <span className="text-[var(--color-text-dim)] text-xs font-bold uppercase tracking-wider">Visits Scheduled</span>
                 <div className="flex items-end justify-between mt-2">
                   <h3 className="text-3xl font-bold text-[var(--color-text-main)] font-mono">{visitCount}</h3>
-                  <span className="px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400 text-xs font-bold">Field Dispatch</span>
+                  <span className="px-2 py-0.5 rounded-md bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400 text-xs font-bold">Scheduled</span>
                 </div>
               </div>
 
               <div className="p-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)]">
-                <span className="text-[var(--color-text-dim)] text-xs font-bold uppercase tracking-wider">Converted To Live Listings</span>
+                <span className="text-[var(--color-text-dim)] text-xs font-bold uppercase tracking-wider">Published Live</span>
                 <div className="flex items-end justify-between mt-2">
                   <h3 className="text-3xl font-bold text-[var(--color-text-main)] font-mono">{approvedCount}</h3>
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] text-xs font-bold">Trust Verified</span>
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] text-xs font-bold">Approved</span>
                 </div>
               </div>
             </div>
@@ -224,10 +276,10 @@ export const AdminEnquiries: React.FC = () => {
               {/* Status Pill Filters */}
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto">
                 {[
-                  { id: 'all', label: 'All Proposals' },
-                  { id: 'pending', label: 'Pending Review' },
+                  { id: 'all', label: 'All Submissions' },
+                  { id: 'pending', label: 'Awaiting Review' },
                   { id: 'visit_scheduled', label: 'Visit Scheduled' },
-                  { id: 'approved', label: 'Converted' },
+                  { id: 'approved', label: 'Published' },
                 ].map((f) => (
                   <button
                     key={f.id}
@@ -246,185 +298,30 @@ export const AdminEnquiries: React.FC = () => {
             </div>
 
             {/* Proposals Table */}
-            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] overflow-hidden shadow-[var(--shadow-depth-1)]">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs sm:text-sm">
-                  <thead className={tableHead}>
-                    <tr>
-                      <th className={tableTh}>Proposal Code</th>
-                      <th className={tableTh}>Asset & Cadastre UPI</th>
-                      <th className={tableTh}>Owner / Submitter</th>
-                      <th className={tableTh}>Asking Price</th>
-                      <th className={tableTh}>Requested Visit</th>
-                      <th className={cn(tableTh, 'text-center')}>Status</th>
-                      <th className={cn(tableTh, 'text-right')}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className={tableBody}>
-                    {paginatedProposals.map((prop) => (
-                      <tr key={prop.id} className={cn(tableTr, 'group')}>
-                        {/* Code */}
-                        <td className="px-5 py-4 font-mono font-bold text-[var(--color-text-main)] whitespace-nowrap">
-                          <span className="text-[var(--color-brand-emerald)]">{prop.proposal_code}</span>
-                          <span className="block text-[10px] font-sans font-normal text-[var(--color-text-dim)] mt-0.5">
-                            {new Date(prop.created_at).toLocaleDateString()}
-                          </span>
-                        </td>
-
-                        {/* Asset Title & UPI */}
-                        <td className="px-5 py-4 max-w-xs">
-                          <div className="font-bold text-[var(--color-text-main)] group-hover:text-[var(--color-brand-emerald)] transition-colors truncate">
-                            {prop.title}
-                          </div>
-                          <div className="text-xs text-[var(--color-text-muted)] flex items-center gap-1.5 mt-0.5">
-                            <MapPin size={12} className="text-[var(--color-text-dim)] shrink-0" />
-                            <span>{prop.district}</span>
-                            {prop.sector && <span>• {prop.sector}</span>}
-                          </div>
-                          {prop.asset_type === 'vehicle' ? (
-                            <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-sky-50 border border-sky-200 text-[10px] font-mono text-sky-700 dark:bg-sky-500/10 dark:border-sky-500/20 dark:text-sky-400">
-                              <Car size={11} /> {prop.specifications?.make || 'Vehicle'} {prop.specifications?.model || ''} ({prop.specifications?.year || ''})
-                            </div>
-                          ) : prop.land_upi ? (
-                            <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[10px] font-mono text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-[var(--color-brand-emerald)]">
-                              <ShieldCheck size={11} /> UPI: {prop.land_upi}
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-[var(--color-text-dim)] block mt-1">UPI pending</span>
-                          )}
-                        </td>
-
-                        {/* Owner */}
-                        <td className="px-5 py-4 whitespace-nowrap">
-                          <div className="font-medium text-[var(--color-text-main)]">{prop.full_name}</div>
-                          <div className="text-xs text-[var(--color-text-muted)] flex items-center gap-1 mt-0.5">
-                            <Phone size={11} className="text-[var(--color-text-dim)]" />
-                            <span>{prop.phone_number}</span>
-                          </div>
-                          <div className="text-[10px] text-[var(--color-text-dim)] mt-0.5 capitalize">
-                            {prop.relationship_label || prop.owner_relationship.replace('_', ' ')}
-                          </div>
-                        </td>
-
-                        {/* Price */}
-                        <td className="px-5 py-4 font-mono font-bold text-[var(--color-text-main)] whitespace-nowrap">
-                          {Number(prop.proposed_price).toLocaleString()} {prop.currency}
-                          <span className="block text-[10px] font-sans font-normal text-[var(--color-text-dim)] mt-0.5 capitalize">
-                            For {prop.purpose}
-                          </span>
-                        </td>
-
-                        {/* Requested Visit */}
-                        <td className="px-5 py-4 whitespace-nowrap">
-                          {prop.preferred_visit_date ? (
-                            <div>
-                              <div className="flex items-center gap-1.5 text-[var(--color-text-main)] font-medium">
-                                <Calendar size={13} className="text-[var(--color-brand-emerald)]" />
-                                <span>{prop.preferred_visit_date}</span>
-                              </div>
-                              <div className="flex items-center gap-1 text-[11px] text-[var(--color-text-muted)] mt-0.5">
-                                <Clock size={11} />
-                                <span className="capitalize">{prop.preferred_time_slot}</span>
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-[var(--color-text-dim)] text-xs">Unspecified</span>
-                          )}
-                        </td>
-
-                        {/* Status Badge */}
-                        <td className="px-5 py-4 text-center whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                              prop.status === 'pending'
-                                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30'
-                                : prop.status === 'visit_scheduled'
-                                ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/30'
-                                : prop.status === 'approved'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/30'
-                                : 'bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] border-[var(--color-border)]'
-                            }`}
-                          >
-                            {prop.status_label || prop.status.replace('_', ' ')}
-                          </span>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-5 py-4 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {/* View Modal */}
-                            <button
-                              type="button"
-                              onClick={() => setSelectedProposal(prop)}
-                              className="p-1.5 rounded-lg border border-[var(--color-border)] hover:border-[var(--color-border-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] bg-[var(--color-bg-elevated)] transition-colors cursor-pointer"
-                              title="Inspect Details"
-                            >
-                              <Eye size={15} />
-                            </button>
-
-                            {/* Confirm Visit */}
-                            {prop.status === 'pending' && (
-                              <button
-                                type="button"
-                                disabled={actionLoading}
-                                onClick={() => handleConfirmVisit(prop.id)}
-                                className="px-2.5 py-1 rounded-lg border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-300 font-semibold text-[11px] transition-colors cursor-pointer"
-                                title="Confirm visit date with owner"
-                              >
-                                Confirm Visit
-                              </button>
-                            )}
-
-                            {/* Convert to Live Listing */}
-                            {prop.status !== 'approved' && (
-                              <button
-                                type="button"
-                                disabled={actionLoading}
-                                onClick={() => handleConvertToLiveListing(prop.id)}
-                                className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] font-bold text-[11px] shadow-[var(--shadow-emerald-soft)] transition-all cursor-pointer"
-                                title="Approve and convert to official marketplace listing"
-                              >
-                                Publish Listing
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-
-                    {proposals.length === 0 && !loadingProposals && (
-                      <tr>
-                        <td colSpan={7} className="p-12 text-center text-[var(--color-text-dim)]">
-                          <Building2 size={36} className="mx-auto mb-2 text-[var(--color-text-dim)]" />
-                          <p>No asset proposals found matching this filter.</p>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              <div className="p-4 border-t border-[var(--color-border)]">
-                <Pagination
-                  currentPage={proposalPage}
-                  totalPages={Math.max(1, Math.ceil(proposals.length / proposalPageSize))}
-                  onPageChange={setProposalPage}
-                  pageSize={proposalPageSize}
-                  onPageSizeChange={(sz) => { setProposalPageSize(sz); setProposalPage(1); }}
-                  totalItems={proposals.length}
-                />
-              </div>
-            </div>
+            <DataTable
+              data={proposals}
+              columns={proposalColumns}
+              searchKeys={['title', 'full_name', 'proposal_code']}
+              searchPlaceholder="Search by title, owner, UPI, code..."
+              emptyTitle="No submissions found"
+              emptyDescription="No submissions match the current filters."
+              isLoading={loadingProposals}
+              showBulkActions={false}
+              showDensityToggle={true}
+              showColumnToggle={true}
+              pageSize={proposalPageSize}
+            />
           </div>
         )}
 
-        {/* ━━━ SECTION 2: CUSTOMER LEADS CRM (SHOWING VISITS, INQUIRIES, WISHLIST) ━━━ */}
+        {/* ━━━ SECTION 2: CUSTOMERS — VISITS, INQUIRIES, SAVED LISTINGS ━━━ */}
         {section !== 'proposals' && (
           <div className="space-y-6">
             <CustomerLeadsManager
               mode="admin"
               initialChannel={section === 'leads' ? 'all' : (section as LeadChannel)}
-              title="Platform Customer Leads CRM"
-              subtitle="Manage prospects who scheduled showing inspections, submitted inquiries, or wishlisted assets."
+              title="Customers"
+              subtitle="View and respond to property inquiries, booked visits, and saved listings."
             />
           </div>
         )}

@@ -1,6 +1,60 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
+
+/* ─── Focus Trap ─── */
+function useFocusTrap(containerRef: React.RefObject<HTMLElement | null>, isActive: boolean) {
+  useEffect(() => {
+    if (!isActive || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const focusableSelectors = [
+      'a[href]',
+      'button:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ].join(', ');
+
+    const getFocusableElements = () =>
+      Array.from(container.querySelectorAll<HTMLElement>(focusableSelectors)).filter(
+        (el) => el.offsetParent !== null
+      );
+
+    // Focus first element on open
+    const firstElement = getFocusableElements()[0];
+    if (firstElement) {
+      setTimeout(() => firstElement.focus(), 50);
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    container.addEventListener('keydown', handleKeyDown);
+    return () => container.removeEventListener('keydown', handleKeyDown);
+  }, [containerRef, isActive]);
+}
 
 /* ─── Types ─── */
 
@@ -133,6 +187,8 @@ const ModalRenderer: React.FC<{
   onClose: () => void;
 }> = ({ modal, zIndex, isTop, onClose }) => {
   const { type, title, subtitle, content, footer, width = 'md', closeOnBackdrop = true } = modal;
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, true);
 
   const handleBackdrop = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget && closeOnBackdrop) {
@@ -167,6 +223,7 @@ const ModalRenderer: React.FC<{
         />
         {/* Drawer panel */}
         <div
+          ref={panelRef}
           className={cn(
             'absolute right-0 top-0 h-full w-full bg-[var(--color-bg-surface)] shadow-2xl',
             'flex flex-col',
@@ -184,10 +241,10 @@ const ModalRenderer: React.FC<{
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)] transition-colors"
+              className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)] transition-colors"
               aria-label="Close"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              <X size={16} />
             </button>
           </div>
           {/* Content */}
@@ -224,6 +281,7 @@ const ModalRenderer: React.FC<{
       />
       {/* Dialog panel */}
       <div
+        ref={panelRef}
         className={cn(
           'relative w-full bg-[var(--color-bg-surface)] rounded-xl shadow-2xl',
           'flex flex-col max-h-[90vh]',
@@ -241,10 +299,10 @@ const ModalRenderer: React.FC<{
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)] transition-colors"
+            className="p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)] transition-colors"
             aria-label="Close"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <X size={16} />
           </button>
         </div>
         {/* Content */}

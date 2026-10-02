@@ -39,6 +39,7 @@ pnpm-debug.log*
 # Editors and operating-system files
 .vscode/
 .idea/
+.trae/
 .DS_Store
 Thumbs.db
 

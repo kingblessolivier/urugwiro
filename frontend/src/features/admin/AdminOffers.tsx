@@ -1,37 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   User, Search, ArrowUpRight, Sparkles, Calendar, DollarSign, Loader2,
 } from 'lucide-react';
-import { Badge } from '../../components/ui/Badge';
-import { Pagination } from '../../components/ui/Pagination';
-import { tableHead, tableTh, tableBody, tableTr, StatCard } from '../../components/ui/Dashboard';
+import { StatCard } from '../../components/ui/Dashboard';
+import { DataTable } from '../../components/ui/DataTable';
+import { StatusBadge } from '../../components/ui/StatusBadge';
 import { cn } from '../../lib/utils';
 import { api } from '../../api/endpoints';
 
 // Offer statuses (backend): new | reviewing | negotiating | accepted | declined | withdrawn
 const OPEN_OFFER_STATUSES = ['new', 'reviewing', 'negotiating'];
-
-const offerChip = (status?: string) =>
-  status === 'accepted'
-    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/40'
-    : status === 'declined' || status === 'withdrawn'
-    ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/40'
-    : status === 'negotiating'
-    ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/40'
-    : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/40';
-
-// Visit statuses (backend): requested | confirmed | rescheduled | completed | cancelled | no_show
-const visitChip = (status?: string) =>
-  status === 'completed'
-    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/40'
-    : status === 'confirmed' || status === 'rescheduled'
-    ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/40'
-    : status === 'cancelled' || status === 'no_show'
-    ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/40'
-    : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/40';
-
-const chipBase = 'px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border inline-block';
 
 const money = (value: unknown, currency = 'RWF') => {
   const n = Number(value ?? 0);
@@ -130,7 +109,6 @@ const AdminOffers: React.FC<AdminOffersProps> = ({ initialTab = 'offers' }) => {
   );
 
   const activeRows = activeTab === 'offers' ? filteredOffers : filteredVisits;
-  const paginatedRows = activeRows.slice((page - 1) * pageSize, page * pageSize);
 
   const switchTab = (tab: TabKey) => {
     setActiveTab(tab);
@@ -144,6 +122,88 @@ const AdminOffers: React.FC<AdminOffersProps> = ({ initialTab = 'offers' }) => {
     { key: 'offers', label: 'Offers & Bids', icon: DollarSign, count: offers.length },
     { key: 'visits', label: 'Site Inspections', icon: Calendar, count: visits.length },
   ];
+
+  const offerColumns = useMemo(() => [
+    { accessorKey: 'listing_title', id: 'listing', header: 'Listing', cell: ({ row }: any) => (
+      <div>
+        <p className="font-semibold text-[var(--color-text-main)]">{row.original.listing_title || `Listing #${row.original.listing}`}</p>
+        <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Asking: {money(row.original.asking_price ?? row.original.listing_price)}</p>
+      </div>
+    ) },
+    { accessorKey: 'customer_name', id: 'buyer', header: 'Buyer', cell: ({ row }: any) => (
+      <div className="flex items-center gap-2 text-[var(--color-text-main)]">
+        <User size={14} className="text-[var(--color-text-dim)]" />
+        <span className="font-medium">{row.original.customer_name || 'Buyer'}</span>
+      </div>
+    ) },
+    { accessorKey: 'offered_amount', id: 'offer', header: 'Offer', cell: ({ row }: any) => (
+      <span className="font-mono font-bold text-[var(--color-text-main)]">{money(row.original.offered_amount)}</span>
+    ) },
+    { accessorKey: 'message', id: 'message', header: 'Message', cell: ({ row }: any) => (
+      <span className="text-xs text-[var(--color-text-muted)] max-w-xs truncate block">{row.original.message || '—'}</span>
+    ) },
+    { accessorKey: 'status', id: 'status', header: 'Status', cell: ({ row }: any) => <StatusBadge status={row.original.status} size="sm" /> },
+    { id: 'actions', header: '', cell: ({ row }: any) => {
+      const offer = row.original;
+      const analysis = offerAnalysis && offerAnalysis.id === offer.id ? offerAnalysis.data : null;
+      return (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => runAiAnalysis(offer)}
+            disabled={analyzingOfferId === offer.id}
+            className="flex items-center gap-1 rounded-lg border border-purple-300 px-2.5 py-1.5 text-xs font-semibold text-purple-600 transition-colors hover:bg-purple-50 disabled:opacity-50 dark:border-purple-500/30 dark:text-purple-400 dark:hover:bg-purple-500/10"
+            title="AI valuation check"
+          >
+            {analyzingOfferId === offer.id ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            <span className="hidden sm:inline">Analyze</span>
+          </button>
+          {OPEN_OFFER_STATUSES.includes(offer.status) && (
+            <>
+              <button onClick={() => offerStatusMutation.mutate({ offerId: offer.id, status: 'accepted' })} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400">Accept</button>
+              <button onClick={() => { setCounteringOfferId(offer.id); setCounterAmount(Math.round(Number(offer.offered_amount ?? 0) * 1.05)); }} className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-400 dark:hover:bg-emerald-500/10">Counter</button>
+              <button onClick={() => offerStatusMutation.mutate({ offerId: offer.id, status: 'declined' })} className="rounded-lg px-3 py-1.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10">Decline</button>
+            </>
+          )}
+        </div>
+      );
+    } },
+  ], [offerAnalysis, analyzingOfferId, offerStatusMutation, runAiAnalysis, setCounteringOfferId, setCounterAmount]);
+
+  const visitColumns = useMemo(() => [
+    { accessorKey: 'listing_title', id: 'property', header: 'Property', cell: ({ row }: any) => (
+      <span className="font-semibold text-[var(--color-text-main)]">{row.original.listing_title || `Listing #${row.original.listing}`}</span>
+    ) },
+    { accessorKey: 'customer_name', id: 'client', header: 'Client', cell: ({ row }: any) => (
+      <div>
+        <span className="font-medium text-[var(--color-text-main)]">{row.original.customer_name || 'Client'}</span>
+        {row.original.phone && <div className="text-xs text-[var(--color-text-muted)] font-mono">{row.original.phone}</div>}
+      </div>
+    ) },
+    { accessorKey: 'scheduled_date', id: 'scheduled', header: 'Scheduled', cell: ({ row }: any) => (
+      <span className="text-xs text-[var(--color-text-muted)] font-mono">{row.original.scheduled_date || row.original.preferred_date}</span>
+    ) },
+    { accessorKey: 'notes', id: 'notes', header: 'Notes', cell: ({ row }: any) => (
+      <span className="text-xs text-[var(--color-text-muted)] max-w-xs truncate block">{row.original.notes || '—'}</span>
+    ) },
+    { accessorKey: 'status', id: 'status', header: 'Status', cell: ({ row }: any) => <StatusBadge status={row.original.status} size="sm" /> },
+    { id: 'actions', header: '', cell: ({ row }: any) => {
+      const visit = row.original;
+      return (
+        <div className="flex items-center justify-end gap-2">
+          {visit.status === 'requested' && (
+            <button onClick={() => visitStatusMutation.mutate({ visitId: visit.id, status: 'confirmed' })} className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-blue-700">Confirm</button>
+          )}
+          {(visit.status === 'requested' || visit.status === 'confirmed') && (
+            <>
+              <button onClick={() => visitStatusMutation.mutate({ visitId: visit.id, status: 'completed' })} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400">Complete</button>
+              <button onClick={() => visitStatusMutation.mutate({ visitId: visit.id, status: 'cancelled' })} className="rounded-lg px-3 py-1.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10">Cancel</button>
+            </>
+          )}
+        </div>
+      );
+    } },
+  ], [visitStatusMutation]);
 
   return (
     <div className="min-h-screen bg-transparent px-6 py-10 text-[var(--color-text-main)] lg:px-12">
@@ -210,262 +270,35 @@ const AdminOffers: React.FC<AdminOffersProps> = ({ initialTab = 'offers' }) => {
         </div>
 
         {activeTab === 'offers' && (
-          <div className="space-y-4">
-            <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)]">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[980px] text-left border-collapse">
-                  <thead className={tableHead}>
-                    <tr>
-                      <th className={tableTh}>Listing</th>
-                      <th className={tableTh}>Buyer</th>
-                      <th className={cn(tableTh, 'text-right')}>Offer</th>
-                      <th className={tableTh}>Message</th>
-                      <th className={cn(tableTh, 'text-center')}>Status</th>
-                      <th className={cn(tableTh, 'text-right')}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className={cn(tableBody, 'text-sm')}>
-                    {offersLoading && (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-[var(--color-text-muted)] font-medium">Loading offers...</td>
-                      </tr>
-                    )}
-                    {!offersLoading && paginatedRows.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-[var(--color-text-muted)]">No offers found.</td>
-                      </tr>
-                    )}
-                    {!offersLoading && paginatedRows.map((offer: any) => {
-                      const currency = offer.currency || 'RWF';
-                      const isOpen = OPEN_OFFER_STATUSES.includes(offer.status);
-                      const analysis = offerAnalysis && offerAnalysis.id === offer.id ? offerAnalysis.data : null;
-                      return (
-                        <tr key={offer.id} className={tableTr}>
-                          <td className="px-5 py-4">
-                            <p className="font-semibold text-[var(--color-text-main)]">{offer.listing_title || `Listing #${offer.listing}`}</p>
-                            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                              Asking: {money(offer.asking_price ?? offer.listing_price, currency)}
-                            </p>
-                            <p className="text-xs text-[var(--color-text-dim)] mt-0.5">
-                              {new Date(offer.created_at).toLocaleDateString()}
-                            </p>
-                          </td>
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-2 text-[var(--color-text-main)]">
-                              <User size={14} className="text-[var(--color-text-dim)]" />
-                              <span className="font-medium">{offer.customer_name || 'Buyer'}</span>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 text-right font-mono font-bold text-[var(--color-text-main)]">
-                            {money(offer.offered_amount, currency)}
-                          </td>
-                          <td className="px-5 py-4 text-xs text-[var(--color-text-muted)] max-w-xs truncate">
-                            {offer.message || '—'}
-                          </td>
-                          <td className="px-5 py-4 text-center">
-                            <Badge variant="neutral" className={cn(chipBase, offerChip(offer.status))}>
-                              {offer.status}
-                            </Badge>
-                          </td>
-                          <td className="px-5 py-4 text-right">
-                            <div className="flex justify-end items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => runAiAnalysis(offer)}
-                                disabled={analyzingOfferId === offer.id}
-                                className="flex items-center gap-1 rounded-lg border border-purple-300 px-2.5 py-1.5 text-xs font-semibold text-purple-600 transition-colors hover:bg-purple-50 disabled:opacity-50 dark:border-purple-500/30 dark:text-purple-400 dark:hover:bg-purple-500/10"
-                                title="AI valuation check"
-                              >
-                                {analyzingOfferId === offer.id ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                                <span className="hidden sm:inline">Analyze</span>
-                              </button>
-
-                              {isOpen && (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={() => offerStatusMutation.mutate({ offerId: offer.id, status: 'accepted' })}
-                                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-[#fff] transition-colors hover:bg-emerald-700 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400"
-                                  >
-                                    Accept
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setCounteringOfferId(offer.id);
-                                      setCounterAmount(Math.round(Number(offer.offered_amount ?? 0) * 1.05));
-                                    }}
-                                    className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
-                                  >
-                                    Counter
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => offerStatusMutation.mutate({ offerId: offer.id, status: 'declined' })}
-                                    className="rounded-lg px-3 py-1.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-                                  >
-                                    Decline
-                                  </button>
-                                </>
-                              )}
-                            </div>
-
-                            {counteringOfferId === offer.id && (
-                              <div className="mt-3 p-3 rounded-lg bg-[var(--color-bg-elevated)] border border-amber-300 dark:border-amber-500/40 flex items-center gap-2 justify-end">
-                                <input
-                                  type="number"
-                                  value={counterAmount}
-                                  onChange={(e) => setCounterAmount(Number(e.target.value))}
-                                  placeholder="Counter amount"
-                                  className="bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-md px-3 py-1 text-xs text-[var(--color-text-main)] font-mono outline-none focus:border-emerald-500/50"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => offerStatusMutation.mutate({ offerId: offer.id, status: 'negotiating', offered_amount: counterAmount })}
-                                  className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-bold text-[#fff] hover:bg-emerald-700 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400"
-                                >
-                                  Send
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setCounteringOfferId(null)}
-                                  className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            )}
-
-                            {analysis && (
-                              <div className="mt-3 p-4 rounded-lg bg-purple-50 border border-purple-200 dark:bg-purple-500/10 dark:border-purple-500/30 text-left text-xs space-y-1.5">
-                                <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300 font-bold">
-                                  <Sparkles size={14} /> AI Valuation Check
-                                </div>
-                                {analysis.discount_percent != null && (
-                                  <p className="text-[var(--color-text-main)]">
-                                    Discount vs asking: <strong>{analysis.discount_percent}%</strong>
-                                    {analysis.recommended_counter != null && (
-                                      <> · Suggested counter: <strong className="font-mono">{money(analysis.recommended_counter, currency)}</strong></>
-                                    )}
-                                  </p>
-                                )}
-                                <p className="text-[var(--color-text-muted)] leading-relaxed">
-                                  {analysis.analysis || analysis.ai_analysis}
-                                </p>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <Pagination
-              currentPage={page}
-              totalItems={filteredOffers.length}
-              pageSize={pageSize}
-              onPageChange={setPage}
-              onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
-              itemLabel="offers"
-            />
-          </div>
+          <DataTable
+            data={filteredOffers}
+            columns={offerColumns}
+            searchKeys={['listing_title', 'customer_name']}
+            searchPlaceholder="Search listings or people..."
+            emptyTitle="No offers found"
+            emptyDescription="No offers have been received yet."
+            isLoading={offersLoading}
+            showBulkActions={false}
+            showDensityToggle={true}
+            showColumnToggle={true}
+            pageSize={pageSize}
+          />
         )}
 
         {activeTab === 'visits' && (
-          <div className="space-y-4">
-            <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)]">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px] text-left border-collapse">
-                  <thead className={tableHead}>
-                    <tr>
-                      <th className={tableTh}>Property</th>
-                      <th className={tableTh}>Client</th>
-                      <th className={tableTh}>Scheduled</th>
-                      <th className={tableTh}>Notes</th>
-                      <th className={cn(tableTh, 'text-center')}>Status</th>
-                      <th className={cn(tableTh, 'text-right')}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className={cn(tableBody, 'text-sm')}>
-                    {visitsLoading && (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-[var(--color-text-muted)] font-medium">Loading visits...</td>
-                      </tr>
-                    )}
-                    {!visitsLoading && paginatedRows.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-[var(--color-text-muted)]">No visits scheduled.</td>
-                      </tr>
-                    )}
-                    {!visitsLoading && paginatedRows.map((visit: any) => (
-                      <tr key={visit.id} className={tableTr}>
-                        <td className="px-5 py-4 font-semibold text-[var(--color-text-main)]">
-                          {visit.listing_title || `Listing #${visit.listing}`}
-                        </td>
-                        <td className="px-5 py-4 text-[var(--color-text-main)] font-medium">
-                          {visit.customer_name || 'Client'}
-                          {visit.phone && <div className="text-xs text-[var(--color-text-muted)] font-normal font-mono">{visit.phone}</div>}
-                        </td>
-                        <td className="px-5 py-4 text-[var(--color-text-muted)] font-mono text-xs">
-                          {visit.scheduled_date || visit.preferred_date}
-                          {(visit.scheduled_time || visit.preferred_time) && ` · ${visit.scheduled_time || visit.preferred_time}`}
-                        </td>
-                        <td className="px-5 py-4 text-xs text-[var(--color-text-muted)] max-w-xs truncate">
-                          {visit.notes || '—'}
-                        </td>
-                        <td className="px-5 py-4 text-center">
-                          <Badge variant="neutral" className={cn(chipBase, visitChip(visit.status))}>
-                            {visit.status}
-                          </Badge>
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          <div className="flex justify-end gap-2">
-                            {visit.status === 'requested' && (
-                              <button
-                                type="button"
-                                onClick={() => visitStatusMutation.mutate({ visitId: visit.id, status: 'confirmed' })}
-                                className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-[#fff] transition-colors hover:bg-blue-700"
-                              >
-                                Confirm
-                              </button>
-                            )}
-                            {(visit.status === 'requested' || visit.status === 'confirmed') && (
-                              <button
-                                type="button"
-                                onClick={() => visitStatusMutation.mutate({ visitId: visit.id, status: 'completed' })}
-                                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-[#fff] transition-colors hover:bg-emerald-700 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400"
-                              >
-                                Complete
-                              </button>
-                            )}
-                            {(visit.status === 'requested' || visit.status === 'confirmed') && (
-                              <button
-                                type="button"
-                                onClick={() => visitStatusMutation.mutate({ visitId: visit.id, status: 'cancelled' })}
-                                className="rounded-lg px-3 py-1.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-                              >
-                                Cancel
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <Pagination
-              currentPage={page}
-              totalItems={filteredVisits.length}
-              pageSize={pageSize}
-              onPageChange={setPage}
-              onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
-              itemLabel="visits"
-            />
-          </div>
+          <DataTable
+            data={filteredVisits}
+            columns={visitColumns}
+            searchKeys={['listing_title', 'customer_name']}
+            searchPlaceholder="Search listings or people..."
+            emptyTitle="No visits scheduled"
+            emptyDescription="No visits have been scheduled yet."
+            isLoading={visitsLoading}
+            showBulkActions={false}
+            showDensityToggle={true}
+            showColumnToggle={true}
+            pageSize={pageSize}
+          />
         )}
 
       </div>

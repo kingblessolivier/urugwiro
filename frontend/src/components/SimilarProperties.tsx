@@ -35,17 +35,27 @@ export const SimilarProperties: React.FC<SimilarPropertiesProps> = ({
     if (!listings || listings.length === 0) return null;
 
     return (
-        <section className="mt-12">
+        <section className="mt-4 ld-section-anchor">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-[var(--color-text-main)]">Similar Properties</h2>
+                <h2
+                    className="font-display text-2xl sm:text-3xl tracking-tight"
+                    style={{ color: 'var(--color-text-main)' }}
+                >
+                    Similar Properties
+                </h2>
                 <button
                     onClick={() => onListingClick?.('')}
-                    className="flex items-center gap-1 text-xs font-semibold text-[var(--color-brand-emerald)] hover:underline"
+                    className="inline-flex items-center gap-1 rounded-full border px-3.5 py-1.5 text-xs font-bold transition oneui-press"
+                    style={{
+                        borderColor: 'rgba(5,150,105,0.3)',
+                        background: 'rgba(5,150,105,0.06)',
+                        color: 'var(--color-brand-emerald)',
+                    }}
                 >
                     View All <ArrowRight size={12} />
                 </button>
             </div>
-            <div className="grid gap-4 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {listings.map((listing: any) => (
                     <ListingCard
                         key={listing.id}

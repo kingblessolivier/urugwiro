@@ -8,13 +8,13 @@ export const dashCard =
   'rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)]';
 
 export const tableHead =
-  'bg-[var(--color-bg-elevated)] border-b border-[var(--color-border)] text-[11px] uppercase tracking-wider text-[var(--color-text-muted)]';
+  'bg-[var(--color-bg-elevated)] border-b border-[var(--color-border)] text-[11px] uppercase tracking-wider text-[var(--color-text-muted)] sticky top-0 z-10';
 
 export const tableTh = 'py-3 px-4 font-bold text-left';
 
 export const tableBody = 'divide-y divide-[var(--color-border)]';
 
-export const tableTr = 'hover:bg-[var(--color-bg-card-hover)] transition-colors';
+export const tableTr = 'hover:bg-[var(--color-bg-card-hover)] transition-colors even:bg-[var(--color-bg-surface)]';
 
 export const tableTd = 'py-3.5 px-4 align-top';
 

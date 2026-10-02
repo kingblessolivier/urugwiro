@@ -81,11 +81,12 @@ export const PropertyInspectionDrawer: React.FC<PropertyInspectionDrawerProps> =
         <div className="p-6 border-b border-[var(--color-border)] flex items-start justify-between bg-[var(--color-bg-elevated)]">
           <div className="flex-1 pr-4">
             <div className="flex items-center gap-2 mb-1.5">
-              <Badge variant="neutral" className="uppercase font-mono text-[10px] tracking-wider bg-[var(--color-bg-elevated)] border-[var(--color-border)] text-[var(--color-brand-emerald)]">
+              <Badge variant="text" tone="neutral" className="uppercase font-mono text-[10px] tracking-wider bg-[var(--color-bg-elevated)] border-[var(--color-border)] text-[var(--color-brand-emerald)]">
                 {listing?.category || 'Property'} • {listing?.purpose === 'rent' ? 'For Rent' : 'For Sale'}
               </Badge>
               <Badge 
-                variant={listing?.status === 'listed' ? 'success' : 'neutral'} 
+                variant="text"
+                tone={listing?.status === 'listed' ? 'emerald' : 'neutral'} 
                 className="text-[10px] font-mono px-2 py-0.5"
               >
                 {listing?.status === 'listed' ? 'Active' : listing?.status}
@@ -251,7 +252,8 @@ export const PropertyInspectionDrawer: React.FC<PropertyInspectionDrawerProps> =
                             </span>
                           </div>
                           <Badge 
-                            variant={offer.status === 'accepted' ? 'success' : offer.status === 'rejected' ? 'error' : 'neutral'}
+                            variant="text"
+                            tone={offer.status === 'accepted' ? 'emerald' : offer.status === 'rejected' ? 'red' : 'neutral'}
                             className="text-[10px] font-mono uppercase"
                           >
                             {offer.status}
@@ -404,7 +406,7 @@ export const PropertyInspectionDrawer: React.FC<PropertyInspectionDrawerProps> =
                             <span className="text-[10px] text-[var(--color-text-muted)]">{listing.assigned_agent.phone} • Rating: {listing.assigned_agent.rating}★</span>
                           </div>
                         </div>
-                        <Badge variant="success" className="text-[10px]">Active Representative</Badge>
+                        <Badge variant="text" tone="emerald" className="text-[10px]">Active Representative</Badge>
                       </div>
                     ) : (
                       <div className="p-3 rounded-xl bg-[var(--color-bg-surface)] border border-[var(--color-border)] text-xs text-[var(--color-text-muted)] flex items-center justify-between">

@@ -322,7 +322,7 @@ const AdminReports: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-[var(--color-text-main)]">Monthly Revenue</h3>
               </div>
-              <Badge variant="neutral" className="text-[10px] uppercase tracking-widest">Real Database Records</Badge>
+              <Badge variant="text" tone="neutral" className="text-[10px] uppercase tracking-widest">Real Database Records</Badge>
             </div>
             <div className="h-[300px]">
               <Line data={revenueData} options={{
@@ -346,7 +346,7 @@ const AdminReports: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-[var(--color-text-main)]">User Signups Growth</h3>
               </div>
-              <Badge variant="neutral" className="text-[10px] uppercase tracking-widest">By Month ({new Date().getFullYear()})</Badge>
+              <Badge variant="text" tone="neutral" className="text-[10px] uppercase tracking-widest">By Month ({new Date().getFullYear()})</Badge>
             </div>
             <div className="h-[300px]">
               <Bar data={userData} options={{

@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, GraduationCap, Bus, ShoppingCart, Trees, Train } from 'lucide-react';
+import { MapPin, GraduationCap, Bus, ShoppingCart, Trees, Train, Footprints } from 'lucide-react';
 
 interface NeighborhoodInfoProps {
     address?: string;
@@ -12,7 +12,6 @@ export const NeighborhoodInfo: React.FC<NeighborhoodInfoProps> = ({
     district,
     sector,
 }) => {
-    // In production, this would fetch real neighborhood data
     const amenities = [
         { icon: GraduationCap, label: 'Schools', distance: '0.5 km', count: 3 },
         { icon: Bus, label: 'Bus Stops', distance: '0.2 km', count: 5 },
@@ -21,46 +20,97 @@ export const NeighborhoodInfo: React.FC<NeighborhoodInfoProps> = ({
         { icon: Train, label: 'Transit', distance: '2.5 km', count: 1 },
     ];
 
+    const scores = [
+        { label: 'Walk Score', value: 78, icon: Footprints },
+        { label: 'Transit Score', value: 65, icon: Bus },
+        { label: 'Bike Score', value: 72, icon: Train },
+    ];
+
     return (
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6">
-            <div className="flex items-center gap-2 mb-4">
-                <MapPin size={18} className="text-[var(--color-brand-emerald)]" />
-                <h3 className="text-base font-bold text-[var(--color-text-main)]">Neighborhood</h3>
+        <div
+            className="surface-card oneui-card"
+            style={{ padding: '1.5rem' }}
+        >
+            <div className="flex items-center gap-2.5 mb-5"
+              style={{ paddingBottom: '1rem', borderBottom: '1px solid var(--color-border)' }}
+            >
+                <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                    style={{ background: 'rgba(5,150,105,0.12)', color: 'var(--color-brand-emerald)' }}
+                >
+                    <MapPin size={17} />
+                </div>
+                <h3
+                    className="font-display text-xl tracking-tight"
+                    style={{ color: 'var(--color-text-main)' }}
+                >
+                    Neighborhood
+                </h3>
             </div>
 
             {(address || district || sector) && (
-                <p className="text-xs text-[var(--color-text-muted)] mb-4">
+                <p className="text-xs font-medium mb-5 break-words"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
                     {[address, district, sector].filter(Boolean).join(', ')}
                 </p>
             )}
 
-            <div className="space-y-3">
+            <div className="space-y-3.5">
                 {amenities.map((amenity) => (
-                    <div key={amenity.label} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                            <amenity.icon size={14} className="text-[var(--color-text-dim)]" />
-                            <span className="text-xs text-[var(--color-text-main)]">{amenity.label}</span>
+                    <div key={amenity.label} className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+                                style={{ background: 'var(--color-input-bg)', color: 'var(--color-text-dim)' }}
+                            >
+                                <amenity.icon size={13} />
+                            </div>
+                            <span className="text-sm font-semibold truncate"
+                              style={{ color: 'var(--color-text-main)' }}
+                            >
+                                {amenity.label}
+                            </span>
                         </div>
-                        <span className="text-[11px] text-[var(--color-text-muted)]">
+                        <span className="text-[11px] font-medium whitespace-nowrap shrink-0"
+                          style={{ color: 'var(--color-text-muted)' }}
+                        >
                             {amenity.distance} · {amenity.count} place{amenity.count > 1 ? 's' : ''}
                         </span>
                     </div>
                 ))}
             </div>
 
-            <div className="mt-5 pt-4 border-t border-[var(--color-border)]">
-                <div className="flex justify-between mb-2">
-                    <span className="text-xs text-[var(--color-text-muted)]">Walk Score</span>
-                    <span className="text-xs font-bold text-emerald-500">78/100</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                    <span className="text-xs text-[var(--color-text-muted)]">Transit Score</span>
-                    <span className="text-xs font-bold text-emerald-500">65/100</span>
-                </div>
-                <div className="flex justify-between">
-                    <span className="text-xs text-[var(--color-text-muted)]">Bike Score</span>
-                    <span className="text-xs font-bold text-emerald-500">72/100</span>
-                </div>
+            <div
+                className="mt-6 grid grid-cols-3 gap-3"
+                style={{ paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}
+            >
+                {scores.map((s) => (
+                    <div
+                        key={s.label}
+                        className="rounded-xl border p-3 text-center"
+                        style={{
+                            borderColor: 'rgba(5,150,105,0.2)',
+                            background: 'rgba(5,150,105,0.05)',
+                        }}
+                    >
+                        <s.icon
+                            size={14}
+                            className="mx-auto mb-1.5"
+                            style={{ color: 'var(--color-brand-emerald)' }}
+                        />
+                        <p className="font-mono tabular-nums text-sm font-bold"
+                          style={{ color: 'var(--color-brand-emerald)' }}
+                        >
+                            {s.value}
+                        </p>
+                        <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.14em]"
+                          style={{ color: 'var(--color-text-dim)' }}
+                        >
+                            {s.label.replace(' Score', '')}
+                        </p>
+                    </div>
+                ))}
             </div>
         </div>
     );
