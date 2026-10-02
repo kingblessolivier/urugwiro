@@ -237,6 +237,12 @@ export const api = {
             update: (data: Record<string, unknown>) => apiClient.post('/admin/settings/', data),
         },
 
+        systemLogs: {
+            list: (params?: { search?: string; level?: string; category?: string; page_size?: number }) =>
+                apiClient.get('/admin/system-logs/', { params }),
+            clear: () => apiClient.delete('/admin/system-logs/'),
+        },
+
         // Announcements
         announcements: () => apiClient.get('/updates/'),
 

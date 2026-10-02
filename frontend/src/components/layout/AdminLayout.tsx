@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard, Building2, ShieldCheck,
   MessageSquare, Mail, BarChart3, Users,
-  PlusCircle, ArrowUpRight,
+  ArrowUpRight,
   PanelLeftClose,
   Settings,
-  UserCheck, PhoneCall, Newspaper, FolderTree, UserRound, Tag
+  UserCheck, Newspaper, FolderTree, UserRound, Tag
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { type AppView } from '../../types/navigation';
@@ -70,14 +70,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
       title: 'Insights & System',
       items: [
         { view: 'admin-reports', label: 'Reports & Analytics', icon: BarChart3 },
-        { view: 'admin-announcements', label: 'Announcements', icon: Newspaper },
+        { view: 'admin-updates', label: 'Announcements', icon: Newspaper },
+        { view: 'admin-activity-log', label: 'System Logs', icon: FolderTree },
         { view: 'admin-settings', label: 'Platform Settings', icon: Settings },
       ],
     },
   ];
-
-  // Flatten for mobile
-  const flatItems = NAV_SECTIONS.flatMap(s => s.items.map(i => ({ ...i, sectionTitle: s.title })));
 
   const isNavActive = (itemView: string) => {
     if (currentView === itemView) return true;
@@ -89,14 +87,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
       'admin-enquiries': ['admin-leads'],
       'admin-offers': ['admin-visits'],
       'admin-reports': ['admin-transactions', 'admin-revenue', 'admin-seller-payments', 'admin-expenses', 'admin-documents'],
-      'admin-settings': ['admin-activity-log', 'admin-updates', 'admin-categories'],
-      'admin-announcements': ['admin-system-logs'],
+      'admin-settings': ['admin-categories'],
     };
     return (matchTable[itemView] || []).includes(currentView);
   };
 
   // Map AppView → breadcrumb/title
-  const pageMeta = useMemo(() => {
+  const pageMeta = (() => {
     const findMatch = (): { section: string; crumb: string; title: string; view?: AppView } | null => {
       for (const sec of NAV_SECTIONS) {
         for (const it of sec.items) {
@@ -131,7 +128,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
       title: specificTitle,
       subtitle: m.section,
     };
-  }, [currentView]);
+  })();
 
   const handleQuickAdd = () => onNavigate('admin-property-wizard');
 

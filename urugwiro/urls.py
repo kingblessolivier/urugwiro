@@ -131,6 +131,7 @@ urlpatterns = [
 
     # ─── Admin: System ───
     path('api/admin/settings/', api_views.manage_system_settings, name='api_admin_settings'),
+    path('api/admin/system-logs/', api_views.manage_system_logs, name='api_admin_system_logs'),
 
     # ─── Chat ───
     path('api/chat/contacts/', views.chat_contacts_api, name='api_chat_contacts'),

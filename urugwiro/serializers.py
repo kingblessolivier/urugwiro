@@ -740,9 +740,15 @@ class SystemSettingSerializer(serializers.ModelSerializer):
 
 
 class SystemLogSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.username', read_only=True, default='')
+
     class Meta:
         model = SystemLog
-        fields = '__all__'
+        fields = [
+            'id', 'timestamp', 'level', 'category', 'message', 'user', 'user_name',
+            'ip_address', 'path', 'method', 'status_code', 'details',
+        ]
+        read_only_fields = fields
 
 
 # ─── User ───

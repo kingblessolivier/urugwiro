@@ -1,7 +1,9 @@
-import React, { useState, useMemo } from 'react';
-import { cn } from '../../lib/utils';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ChartNoAxesColumn, CircleAlert, CircleX, FileClock, FolderTree, Info, Search, Trash2 } from 'lucide-react';
 import { DataTable } from '../../components/ui/DataTable';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { api } from '../../api/endpoints';
 
 interface LogEntry {
     pk: number;
@@ -20,28 +22,48 @@ interface Stat {
     label: string;
     value: number;
     color: string;
-    icon: string;
+    icon: React.ComponentType<{ size?: number }>;
 }
 
 const SystemLogsPage: React.FC = () => {
-    const [logs, setLogs] = useState<LogEntry[]>([
-        { pk: 1042, timestamp: '2026-09-18 14:20:01', level: 'INFO', category: 'AUTH', message: 'User admin_olivier logged in successfully', user: 'admin_olivier', ip_address: '192.168.1.10', method: 'POST', path: '/api/auth/login/', details: '{"session_id": "sess_abc123", "duration": "120ms"}' },
-        { pk: 1041, timestamp: '2026-09-18 14:15:30', level: 'WARNING', category: 'SYSTEM', message: 'API latency increased in Visual Search module', user: undefined, ip_address: '10.0.0.5', method: 'GET', path: '/api/ai/visual-search/', details: '{"latency": "1.2s", "threshold": "0.5s"}' },
-        { pk: 1040, timestamp: '2026-09-18 14:10:12', level: 'ERROR', category: 'DATABASE', message: 'Failed to update listing #452', user: 'admin_olivier', ip_address: '192.168.1.10', method: 'PATCH', path: '/api/listings/452/', details: '{"error": "Deadlock detected", "query": "UPDATE listings SET status=verified..."}' },
-        { pk: 1039, timestamp: '2026-09-18 14:05:00', level: 'DEBUG', category: 'AI', message: 'NVIDIA API request sent for valuation', user: undefined, ip_address: '10.0.0.1', method: 'POST', path: '/api/ai/valuation/', details: '{"payload": {"asset_id": 88, "coords": [1.9, 30.1]}}' },
-        { pk: 1038, timestamp: '2026-09-18 13:55:45', level: 'CRITICAL', category: 'SECURITY', message: 'Unauthorized access attempt to Admin Hub', user: 'unknown', ip_address: '45.12.33.101', method: 'GET', path: '/api/admin/hub/', details: '{"reason": "Invalid JWT token", "attempt_count": 5}' },
-    ]);
+    const queryClient = useQueryClient();
+    const logsQuery = useQuery({
+        queryKey: ['admin-system-logs'],
+        queryFn: async () => {
+            const response = await api.admin.systemLogs.list({ page_size: 100 });
+            const rows: any[] = Array.isArray(response.data) ? response.data : response.data?.results || [];
+            return rows.map((row: any): LogEntry => ({
+                pk: row.id,
+                timestamp: new Date(row.timestamp).toLocaleString(),
+                level: row.level,
+                category: row.category,
+                message: row.message,
+                user: row.user_name || undefined,
+                ip_address: row.ip_address || '',
+                method: row.method || '',
+                path: row.path || '',
+                details: row.details && Object.keys(row.details).length ? JSON.stringify(row.details, null, 2) : undefined,
+            }));
+        },
+    });
+    const logs = logsQuery.data || [];
+    const clearMutation = useMutation({
+        mutationFn: () => api.admin.systemLogs.clear(),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-system-logs'] }),
+    });
     const [search, setSearch] = useState('');
     const [levelFilter, setLevelFilter] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
     const [expandedLogs, setExpandedLogs] = useState<Set<number>>(new Set());
 
-    const toggleExpand = (pk: number) => {
-        const newExpanded = new Set(expandedLogs);
-        if (newExpanded.has(pk)) newExpanded.delete(pk);
-        else newExpanded.add(pk);
-        setExpandedLogs(newExpanded);
-    };
+    const toggleExpand = useCallback((pk: number) => {
+        setExpandedLogs((current) => {
+            const next = new Set(current);
+            if (next.has(pk)) next.delete(pk);
+            else next.add(pk);
+            return next;
+        });
+    }, []);
 
     const filteredLogs = logs.filter(log => {
         const matchesSearch = !search || log.message.toLowerCase().includes(search.toLowerCase()) || log.user?.toLowerCase().includes(search.toLowerCase()) || log.path.toLowerCase().includes(search.toLowerCase());
@@ -69,52 +91,53 @@ const SystemLogsPage: React.FC = () => {
                 </button>
             ) : <span className="text-[var(--color-text-dim)]">—</span>
         ) },
-    ], [expandedLogs]);
+    ], [expandedLogs, toggleExpand]);
 
     const stats: Stat[] = [
-        { label: 'Total Entries', value: logs.length, color: 'text-[var(--color-text-main)]', icon: '📊' },
-        { label: 'Info', value: logs.filter(l => l.level === 'INFO').length, color: 'text-[var(--color-brand-emerald)]', icon: 'ℹ️' },
-        { label: 'Warnings', value: logs.filter(l => l.level === 'WARNING').length, color: 'text-yellow-600 dark:text-yellow-400', icon: '⚠️' },
-        { label: 'Errors', value: logs.filter(l => l.level === 'ERROR' || l.level === 'CRITICAL').length, color: 'text-red-600 dark:text-red-400', icon: '🚫' },
+        { label: 'Total Entries', value: logs.length, color: 'text-[var(--color-text-main)]', icon: ChartNoAxesColumn },
+        { label: 'Info', value: logs.filter(l => l.level === 'INFO').length, color: 'text-[var(--color-brand-emerald)]', icon: Info },
+        { label: 'Warnings', value: logs.filter(l => l.level === 'WARNING').length, color: 'text-yellow-600 dark:text-yellow-400', icon: CircleAlert },
+        { label: 'Errors', value: logs.filter(l => l.level === 'ERROR' || l.level === 'CRITICAL').length, color: 'text-red-600 dark:text-red-400', icon: CircleX },
     ];
-
-    const getLevelBadge = (level: string) => {
-        switch (level) {
-            case 'DEBUG': return <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-50 text-indigo-700 rounded border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-400 dark:border-indigo-500/30 uppercase">Debug</span>;
-            case 'INFO': return <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 rounded border border-emerald-200 dark:bg-emerald-500/20 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/30 uppercase">Info</span>;
-            case 'WARNING': return <span className="px-2 py-0.5 text-[10px] font-bold bg-yellow-50 text-yellow-700 rounded border border-yellow-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30 uppercase">Warning</span>;
-            case 'ERROR': return <span className="px-2 py-0.5 text-[10px] font-bold bg-red-50 text-red-700 rounded border border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30 uppercase">Error</span>;
-            case 'CRITICAL': return <span className="px-2 py-0.5 text-[10px] font-bold bg-red-600 text-[#fff] rounded border border-red-600 dark:bg-red-500 dark:border-red-500 uppercase">Critical</span>;
-            default: return <span className="px-2 py-0.5 text-[10px] font-bold bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] rounded border border-[var(--color-border)] uppercase">{level}</span>;
-        }
-    };
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                    <span className="text-3xl">📜</span>
+                    <FileClock size={28} aria-hidden="true" />
                     <h1 className="text-3xl font-bold text-[var(--color-text-main)]">System Logs</h1>
                 </div>
                 <button
-                    onClick={() => { if(window.confirm('Clear all logs?')) setLogs([]); }}
+                    onClick={() => { if (window.confirm('Clear all system logs?')) clearMutation.mutate(); }}
+                    disabled={clearMutation.isPending || logs.length === 0}
                     className="px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-xl hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20 dark:hover:bg-red-500/20 transition-all text-sm font-medium"
                 >
-                    🗑️ Clear All
+                    <Trash2 size={16} aria-hidden="true" /> Clear All
                 </button>
             </div>
 
+            {logsQuery.isLoading && (
+                <div className="border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-4 text-sm text-[var(--color-text-muted)]">Loading system logs...</div>
+            )}
+            {logsQuery.isError && (
+                <div role="alert" className="border border-red-300 bg-red-50 p-4 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">
+                    System logs are unavailable. Try again after checking the backend connection.
+                </div>
+            )}
+
             {/* Stats Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat, i) => (
-                    <div key={i} className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-6 rounded-xl flex items-center gap-4 hover:border-[var(--color-border-hover)] transition-all shadow-[var(--shadow-depth-1)]">
-                        <div className="text-3xl">{stat.icon}</div>
+                {stats.map((stat, i) => {
+                    const Icon = stat.icon;
+                    return (
+                    <div key={i} className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-6 rounded-lg flex items-center gap-4 hover:border-[var(--color-border-hover)] transition-all shadow-[var(--shadow-depth-1)]">
+                        <Icon size={28} />
                         <div>
                             <p className="text-xs font-medium text-[var(--color-text-dim)] uppercase tracking-wider">{stat.label}</p>
                             <h3 className={`text-2xl font-bold ${stat.color}`}>{stat.value}</h3>
                         </div>
                     </div>
-                ))}
+                );})}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -123,7 +146,7 @@ const SystemLogsPage: React.FC = () => {
                     {/* Filter Bar */}
                     <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-6 rounded-xl flex flex-wrap gap-4 items-center shadow-[var(--shadow-depth-1)]">
                         <div className="relative flex-1 min-w-[200px]">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)]">🔍</span>
+                            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)]" aria-hidden="true" />
                             <input
                                 type="text"
                                 className="w-full pl-12 pr-4 py-2 bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-xl text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
@@ -183,7 +206,7 @@ const SystemLogsPage: React.FC = () => {
                 <div className="space-y-6">
                     <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-6 rounded-xl space-y-6 shadow-[var(--shadow-depth-1)]">
                         <h2 className="text-lg font-bold text-[var(--color-text-main)] flex items-center gap-2">
-                            <span>📊</span> By Level
+                            <ChartNoAxesColumn size={18} aria-hidden="true" /> By Level
                         </h2>
                         <div className="space-y-4">
                             {['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'].map(lvl => {
@@ -213,7 +236,7 @@ const SystemLogsPage: React.FC = () => {
 
                     <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] p-6 rounded-xl space-y-6 shadow-[var(--shadow-depth-1)]">
                         <h2 className="text-lg font-bold text-[var(--color-text-main)] flex items-center gap-2">
-                            <span>📁</span> Top Categories
+                            <FolderTree size={18} aria-hidden="true" /> Top Categories
                         </h2>
                         <div className="space-y-4">
                             {Array.from(new Set(logs.map(l => l.category))).map(cat => {

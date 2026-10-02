@@ -24,7 +24,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import (
     User, Listing, ListingMedia, SellerProfile, SavedProperty, ListingReview, PropertyInquiry, Updates,
     VerificationDocument, VerificationReview, ListingAuditLog, Offer, Visit, Customer, Conversation, ConversationEvent, Message,
-    FollowUp, Transaction, SellerPayment, CommissionRule, BusinessExpense, ListingProposal, SystemSetting, ArticleCategory, Article, Announcement, Asset, ResidentialSpec, LandSpec, VehicleSpec, CommercialSpec, HotelSpec, Notification,
+    FollowUp, Transaction, SellerPayment, CommissionRule, BusinessExpense, ListingProposal, SystemSetting, SystemLog, ArticleCategory, Article, Announcement, Asset, ResidentialSpec, LandSpec, VehicleSpec, CommercialSpec, HotelSpec, Notification,
 )
 
 # Import serializers
@@ -34,7 +34,7 @@ from .serializers import (
     ListingAuditLogSerializer, ListingCreateSerializer, ListingMediaSerializer, OfferSerializer, VisitSerializer,
     PropertyInquirySerializer, CustomerSerializer, ConversationSerializer, FollowUpSerializer, VisitCreateSerializer,
     TransactionSerializer, SellerPaymentSerializer, CommissionRuleSerializer, BusinessExpenseSerializer,
-    ListingProposalSerializer, PublicListingProposalSerializer, SystemSettingSerializer, SavedPropertySerializer, ConversationEventSerializer,
+    ListingProposalSerializer, PublicListingProposalSerializer, SystemSettingSerializer, SystemLogSerializer, SavedPropertySerializer, ConversationEventSerializer,
     AdminUserCreateSerializer, AdminUserUpdateSerializer, RegistrationSerializer, SelfProfileSerializer, SellerListingWriteSerializer
 )
 
@@ -2425,6 +2425,32 @@ def manage_system_settings(request):
                 status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'DELETE'])
+def manage_system_logs(request):
+    err = check_admin_permission(request, 'settings')
+    if err: return err
+    if request.method == 'DELETE':
+        if request.user.role != 'owner' and not request.user.is_superuser:
+            return Response({'error': 'Only an owner can clear system logs.'}, status=status.HTTP_403_FORBIDDEN)
+        deleted, _ = SystemLog.objects.all().delete()
+        return Response({'deleted': deleted})
+
+    logs = SystemLog.objects.select_related('user').all()
+    level = request.query_params.get('level', '').strip().upper()
+    category = request.query_params.get('category', '').strip().upper()
+    search = request.query_params.get('search', '').strip()
+    if level:
+        logs = logs.filter(level=level)
+    if category:
+        logs = logs.filter(category=category)
+    if search:
+        logs = logs.filter(
+            Q(message__icontains=search) | Q(path__icontains=search)
+            | Q(user__username__icontains=search)
+        )
+    return get_paginated_response(logs, SystemLogSerializer, request)
 
 # ==========================================
 # Valuation

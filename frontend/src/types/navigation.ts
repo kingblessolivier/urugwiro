@@ -215,11 +215,9 @@ export function isViewAllowedForUser(view: AppView, user: UserRoleLike | null | 
   }
 
   const role = (user.role || '').toLowerCase();
-  const username = (user.username || '').toLowerCase();
   const isSuper = Boolean(user.is_superuser);
   const isStaff = Boolean(user.is_staff);
-  const isKnownAdmin = username === 'admin' || username === 'admin1';
-  const isAdmin = role === 'admin' || role === 'owner' || role === 'finance' || role === 'staff' || isStaff || isSuper || isKnownAdmin;
+  const isAdmin = role === 'admin' || role === 'owner' || role === 'finance' || role === 'staff' || isStaff || isSuper;
 
   // Platform Admins/Owners/Staff have full access
   if (isAdmin) {
@@ -253,15 +251,13 @@ export function getDefaultDashboardForUser(user: UserRoleLike | null | undefined
   }
 
   const role = (user.role || '').toLowerCase();
-  const username = (user.username || '').toLowerCase();
   const isSuper = Boolean(user.is_superuser);
   const isStaff = Boolean(user.is_staff);
-  const isKnownAdmin = username === 'admin' || username === 'admin1';
 
   if (role === 'owner') {
     return 'owner-dashboard';
   }
-  if (role === 'admin' || role === 'staff' || role === 'finance' || isStaff || isSuper || isKnownAdmin) {
+  if (role === 'admin' || role === 'staff' || role === 'finance' || isStaff || isSuper) {
     return 'admin';
   }
   if (role === 'seller') {

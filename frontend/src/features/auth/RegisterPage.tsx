@@ -11,7 +11,7 @@ interface RegisterPageProps {
 
 const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
     const { register } = useAuth();
-    const [selectedRole, setSelectedRole] = useState<'Buyer' | 'Tenant'>('Buyer');
+    const [selectedRole, setSelectedRole] = useState<'buyer' | 'tenant'>('buyer');
     const [fullName, setFullName] = useState('');
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
@@ -208,13 +208,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                                 >
                                     <button
                                         type="button"
-                                        onClick={() => setSelectedRole('Buyer')}
+                                        onClick={() => setSelectedRole('buyer')}
                                         className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer oneui-press ${
-                                            selectedRole === 'Buyer'
+                                            selectedRole === 'buyer'
                                                 ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
                                                 : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.04]'
                                         }`}
-                                        style={selectedRole !== 'Buyer' ? { color: 'var(--color-text-muted)' } : undefined}
+                                        style={selectedRole !== 'buyer' ? { color: 'var(--color-text-muted)' } : undefined}
                                     >
                                         <Building2 size={13} />
                                         <span>Buyer</span>
@@ -222,13 +222,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
 
                                     <button
                                         type="button"
-                                        onClick={() => setSelectedRole('Tenant')}
+                                        onClick={() => setSelectedRole('tenant')}
                                         className={`flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer oneui-press ${
-                                            selectedRole === 'Tenant'
+                                            selectedRole === 'tenant'
                                                 ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
                                                 : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.04]'
                                         }`}
-                                        style={selectedRole !== 'Tenant' ? { color: 'var(--color-text-muted)' } : undefined}
+                                        style={selectedRole !== 'tenant' ? { color: 'var(--color-text-muted)' } : undefined}
                                     >
                                         <KeyRound size={13} />
                                         <span>Tenant</span>

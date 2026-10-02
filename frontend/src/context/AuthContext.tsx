@@ -7,7 +7,7 @@ export interface AuthUser {
     id: number | string;
     username: string;
     email: string;
-    role: 'Admin' | 'Agent' | 'Seller' | 'Owner' | 'Tenant' | 'Buyer' | string;
+    role: 'customer' | 'seller' | 'staff' | 'admin' | 'finance' | 'owner' | string;
     first_name?: string;
     last_name?: string;
     full_name?: string;
@@ -20,7 +20,7 @@ interface AuthContextType {
     isLoading: boolean;
     isAuthenticated: boolean;
     login: (credentials: { username?: string; email?: string; password: string }) => Promise<AuthUser>;
-    register: (data: { username?: string; email: string; password: string; role: 'Buyer' | 'Tenant'; full_name?: string }) => Promise<AuthUser>;
+    register: (data: { username?: string; email: string; password: string; role: 'customer' | 'buyer' | 'tenant'; full_name?: string }) => Promise<AuthUser>;
     logout: () => Promise<void>;
 }
 

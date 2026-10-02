@@ -11,7 +11,7 @@ from .consumers import ChatConsumer
 from .models import (
     Asset, CommissionRule, Customer, Listing, ListingProposal, Offer,
     ResidentialSpec, SellerPayment, SellerProfile, SystemSetting, Transaction, User,
-    VerificationDocument,
+    VerificationDocument, SystemLog,
 )
 
 
@@ -65,6 +65,27 @@ class ApiSecurityTests(TestCase):
         response = self.client.get('/api/ready/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {'status': 'ready'})
+
+    def test_system_logs_are_real_and_only_owner_can_clear_them(self):
+        entry = SystemLog.objects.create(
+            level='WARNING', category='SECURITY', message='Test security event',
+            user=self.owner, path='/api/test/', method='POST',
+        )
+        admin = User.objects.create_user(
+            username='log-admin', password='Admin-pass-123!', role='admin', is_staff=True,
+        )
+        self.authenticate(admin)
+        listed = self.client.get('/api/admin/system-logs/')
+        denied = self.client.delete('/api/admin/system-logs/')
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(listed.data['results'][0]['id'], entry.pk)
+        self.assertEqual(listed.data['results'][0]['user_name'], self.owner.username)
+        self.assertEqual(denied.status_code, 403)
+
+        self.authenticate(self.owner)
+        cleared = self.client.delete('/api/admin/system-logs/')
+        self.assertEqual(cleared.status_code, 200)
+        self.assertFalse(SystemLog.objects.exists())
 
     def test_public_registration_creates_customer_and_validates_password(self):
         weak = self.client.post('/api/auth/register/', {
