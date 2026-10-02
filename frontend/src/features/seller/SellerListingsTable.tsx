@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCoreRowModel, getSortedRowModel, useReactTable, type ColumnDef, type SortingState, type VisibilityState } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, ArrowUpDown, Building2, CheckSquare, Columns3, Edit3, ExternalLink, Eye, LayoutGrid, ListFilter, MapPin, Search, ShieldCheck, Square, Table2, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Building2, CheckSquare, Columns3, Edit3, ExternalLink, Eye, LayoutGrid, ListFilter, MapPin, Search, ShieldCheck, Square, Table2, Trash2, X, Rows3, Rows2 } from 'lucide-react';
 import { api } from '../../api/endpoints';
 import { Pagination } from '../../components/ui/Pagination';
-import { tableHead, tableTh, tableBody, tableTr } from '../../components/ui/Dashboard';
+import { tableHead, tableTh, tableBody, tableTr, SkeletonGrid, EmptyState } from '../../components/ui/Dashboard';
+import { StatusBadge } from '../../components/ui/StatusBadge';
 import { cn } from '../../lib/utils';
 import { getListingImage } from '../../lib/imageUrl';
 
@@ -26,10 +27,14 @@ const SellerListingsTable: React.FC<SellerListingsTableProps> = ({ onListingClic
   const [sorting, setSorting] = useState<SortingState>([]);
   const [showColumns, setShowColumns] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({ category: true, location: true, price: true, status: true, verification: true, views: true });
+  const [density, setDensity] = useState<'compact' | 'comfortable' | 'relaxed'>('comfortable');
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['seller-listings-table'],
-    queryFn: async () => (await api.seller.listings()).data,
+    queryFn: async () => {
+      const d: any = (await api.seller.listings()).data;
+      return (Array.isArray(d) ? d : (d?.results || [])) as any[];
+    },
   });
 
   const deleteMutation = useMutation({
@@ -176,6 +181,32 @@ const SellerListingsTable: React.FC<SellerListingsTableProps> = ({ onListingClic
             <span className="hidden sm:inline">Cards</span>
           </button>
         </div>
+
+        {/* Density Toggle */}
+        <div className="flex items-center gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1">
+          <button
+            type="button"
+            onClick={() => setDensity('compact')}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+              density === 'compact' ? 'bg-emerald-500 text-black' : 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-card-hover)] hover:text-[var(--color-text-main)]'
+            }`}
+            title="Compact density"
+            aria-label="Compact density"
+          >
+            <Rows3 size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDensity('comfortable')}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+              density === 'comfortable' ? 'bg-emerald-500 text-black' : 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-card-hover)] hover:text-[var(--color-text-main)]'
+            }`}
+            title="Comfortable density"
+            aria-label="Comfortable density"
+          >
+            <Rows2 size={14} />
+          </button>
+        </div>
         <div className="relative">
           <button
             type="button"
@@ -209,14 +240,24 @@ const SellerListingsTable: React.FC<SellerListingsTableProps> = ({ onListingClic
 
       {/* Content */}
       {isLoading && (
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] backdrop-blur-xl p-12 text-center text-[var(--color-text-muted)] font-medium">
-          Loading listings...
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] backdrop-blur-xl p-6">
+          <SkeletonGrid count={6} />
         </div>
       )}
       {isError && (
-        <div className="rounded-2xl border border-red-300 bg-red-50 p-10 text-center text-red-700 font-medium dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
-          The listings API could not be loaded.
-        </div>
+        <EmptyState
+          title="Failed to load listings"
+          hint="The listings API could not be loaded. Please try again."
+          action={
+            <button
+              type="button"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['seller-listings-table'] })}
+              className="rounded-xl bg-[var(--color-brand-emerald)] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-700"
+            >
+              Retry
+            </button>
+          }
+        />
       )}
 
       {!isLoading && !isError && (
@@ -264,7 +305,7 @@ const SellerListingsTable: React.FC<SellerListingsTableProps> = ({ onListingClic
                           {columnVisibility.category && <td className="px-5 py-5 capitalize text-[var(--color-text-muted)] font-medium">{listing.listing_type || 'Property'}</td>}
                           {columnVisibility.location && <td className="max-w-[190px] px-5 py-5 text-xs text-[var(--color-text-muted)]"><span className="flex items-center gap-1.5"><MapPin size={13} className="shrink-0 text-[var(--color-brand-emerald)]" />{getListingLocation(listing)}</span></td>}
                           {columnVisibility.price && <td className="px-5 py-5 text-right font-mono text-sm font-bold text-[var(--color-brand-emerald)]">{Number(listing.price || 0).toLocaleString()} {listing.currency || 'RWF'}</td>}
-                          {columnVisibility.status && <td className="px-5 py-5"><span className="rounded-full border border-[var(--color-border)] bg-[var(--color-bg-elevated)] px-3 py-1 text-xs font-semibold text-[var(--color-text-muted)]">{listing.status || 'Pending'}</span></td>}
+                          {columnVisibility.status && <td className="px-5 py-5"><StatusBadge status={listing.status || 'draft'} size="sm" /></td>}
                           {columnVisibility.verification && <td className="px-5 py-5">{listing.verification_level === 'verified' ? <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[var(--color-brand-emerald)]"><ShieldCheck size={14} /> Verified</span> : <span className="text-xs text-[var(--color-text-muted)]">{listing.verification_level || 'Not submitted'}</span>}</td>}
                           {columnVisibility.views && <td className="px-5 py-5 text-right font-mono text-sm text-[var(--color-text-muted)]"><Eye className="mr-1 inline text-[var(--color-text-muted)]" size={14} />{listing.views_count ?? 0}</td>}
                           <td className="px-5 py-5 text-right" onClick={(e) => e.stopPropagation()}>
@@ -281,7 +322,7 @@ const SellerListingsTable: React.FC<SellerListingsTableProps> = ({ onListingClic
                     })}
                   </tbody>
                 </table>
-                {filteredListings.length === 0 && <div className="p-12 text-center text-[var(--color-text-muted)]">No listings match the selected filters.</div>}
+                {filteredListings.length === 0 && <EmptyState title="No listings found" hint="No listings match the selected filters." />}
               </div>
             </div>
           ) : (
@@ -317,7 +358,7 @@ const SellerListingsTable: React.FC<SellerListingsTableProps> = ({ onListingClic
                   </article>
                 );
               })}
-              {filteredListings.length === 0 && <div className="col-span-full rounded-2xl border border-[var(--color-border)] p-12 text-center text-[var(--color-text-muted)]">No listings match the selected filters.</div>}
+              {filteredListings.length === 0 && <div className="col-span-full"><EmptyState title="No listings found" hint="No listings match the selected filters." /></div>}
             </div>
           )}
 

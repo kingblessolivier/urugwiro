@@ -112,7 +112,7 @@ export function getViewFriendlyName(view: AppView): string {
     case 'admin-sellers':
       return 'Sellers Directory';
     case 'admin-customers':
-      return 'Customers & CRM';
+      return 'Customers';
     case 'admin-conversations':
       return 'Customer Conversations';
     case 'admin-leads':

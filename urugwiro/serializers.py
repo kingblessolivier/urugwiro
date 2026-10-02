@@ -50,14 +50,27 @@ class AssetSerializer(serializers.ModelSerializer):
     land_spec = LandSpecSerializer(read_only=True)
     hotel_spec = HotelSpecSerializer(read_only=True)
     vehicle_spec = VehicleSpecSerializer(read_only=True)
+    upi_number = serializers.SerializerMethodField()
+    title_deed_number = serializers.SerializerMethodField()
 
     class Meta:
         model = Asset
         fields = [
             'id', 'asset_type', 'name', 'latitude', 'longitude', 'boundary_geojson',
             'province', 'district', 'sector', 'cell', 'village', 'total_area',
+            'upi_number', 'title_deed_number',
             'residential_spec', 'commercial_spec', 'land_spec', 'hotel_spec', 'vehicle_spec',
         ]
+
+    def get_upi_number(self, obj):
+        if hasattr(obj, 'land_spec') and obj.land_spec:
+            return obj.land_spec.upi_number
+        return None
+
+    def get_title_deed_number(self, obj):
+        if hasattr(obj, 'land_spec') and obj.land_spec:
+            return obj.land_spec.title_deed_number
+        return None
 
 
 # ─── Media ───
@@ -99,6 +112,7 @@ class SellerProfileCreateSerializer(serializers.ModelSerializer):
 class ListingSerializer(serializers.ModelSerializer):
     media = ListingMediaSerializer(many=True, read_only=True)
     asset = AssetSerializer(read_only=True)
+    seller = SellerProfileSerializer(read_only=True)
     seller_name = serializers.CharField(source='seller.name', read_only=True, default='')
     seller_phone = serializers.CharField(source='seller.phone_number', read_only=True, default='')
     seller_user_id = serializers.IntegerField(source='seller.user_id', read_only=True, default=None)
@@ -144,7 +158,35 @@ class ListingCreateSerializer(serializers.ModelSerializer):
             'title', 'description', 'purpose', 'category',
             'price', 'currency', 'rental_frequency', 'security_deposit', 'negotiable',
             'address', 'asset', 'status', 'verification_level', 'listed_by_role', 'is_featured',
+            'views_count', 'slug',
         ]
+        extra_kwargs = {
+            'title': {'required': False},
+            'description': {'required': False, 'allow_blank': True},
+            'price': {'required': False},
+            'address': {'required': False, 'allow_blank': True},
+            'slug': {'required': False, 'allow_null': True, 'allow_blank': True},
+            'views_count': {'required': False},
+            'security_deposit': {'required': False, 'allow_null': True},
+            'rental_frequency': {'required': False, 'allow_null': True, 'allow_blank': True},
+        }
+
+    def to_internal_value(self, data):
+        if hasattr(data, 'copy'):
+            data = data.copy()
+        else:
+            data = dict(data)
+        if data.get('security_deposit') == '':
+            data['security_deposit'] = None
+        if data.get('rental_frequency') == '':
+            data['rental_frequency'] = None
+        if data.get('views_count') == '':
+            data['views_count'] = 0
+        if data.get('price') == '':
+            data.pop('price', None)
+        if data.get('slug') == '':
+            data['slug'] = None
+        return super().to_internal_value(data)
 
 
 # ─── Customer ───

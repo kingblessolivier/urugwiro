@@ -5,8 +5,8 @@ import {
   ShieldCheck, ShieldAlert, Search, X, MapPin, Mail, Phone, Building 
 } from 'lucide-react';
 import { api } from '../../api/endpoints';
-import { Pagination } from '../../components/ui/Pagination';
-import { tableHead, tableTh, tableBody, tableTr } from '../../components/ui/Dashboard';
+import { DataTable } from '../../components/ui/DataTable';
+import { StatusBadge } from '../../components/ui/StatusBadge';
 import { cn } from '../../lib/utils';
 
 interface Stat {
@@ -105,10 +105,41 @@ const AdminSellerManager: React.FC = () => {
     });
   }, [sellers, search]);
 
-  const paginatedSellers = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredSellers.slice(start, start + pageSize);
-  }, [filteredSellers, page, pageSize]);
+  const columns = useMemo(() => [
+    { accessorKey: 'name', id: 'seller', header: 'Seller', cell: ({ row }: any) => (
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-[var(--color-bg-elevated)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-muted)] shrink-0 overflow-hidden">
+          {row.original.image ? <img src={row.original.image} alt="" className="w-full h-full object-cover" /> : <User size={14} />}
+        </div>
+        <span className="font-semibold text-[var(--color-text-main)]">{row.original.name}</span>
+      </div>
+    ) },
+    { accessorKey: 'email', id: 'email', header: 'Email', cell: ({ row }: any) => <span className="font-mono text-[var(--color-text-muted)]">{row.original.email}</span> },
+    { accessorKey: 'phone', id: 'phone', header: 'Phone', cell: ({ row }: any) => <span className="font-mono text-[var(--color-text-muted)]">{row.original.phone || row.original.phone_number || '-'}</span> },
+    { accessorKey: 'id_number', id: 'id_number', header: 'National ID', cell: ({ row }: any) => <span className="font-mono text-[var(--color-text-muted)]">{row.original.id_number || '-'}</span> },
+    { accessorKey: 'listing_count', id: 'listings', header: 'Listings', cell: ({ row }: any) => <span className="font-mono font-bold text-[var(--color-text-muted)]">{row.original.listing_count ?? 0}</span> },
+    { accessorKey: 'is_verified', id: 'status', header: 'Status', cell: ({ row }: any) => (
+      <button
+        onClick={(e) => { e.stopPropagation(); toggleVerify(row.original.id, row.original.is_verified); }}
+        className={cn(
+          'inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full border uppercase transition-colors cursor-pointer',
+          row.original.is_verified
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/30'
+            : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30'
+        )}
+        title={row.original.is_verified ? 'Click to Unverify' : 'Click to Verify'}
+      >
+        {row.original.is_verified ? <><ShieldCheck size={12} /><span>Verified</span></> : <><Clock size={12} /><span>Pending</span></>}
+      </button>
+    ) },
+    { id: 'actions', header: '', cell: ({ row }: any) => (
+      <div className="flex items-center justify-end gap-1.5">
+        <button onClick={() => setInspectSeller(row.original)} className="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors" title="View"><Eye size={14} /></button>
+        <button onClick={() => setEditingSeller(row.original)} className="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-amber-500 transition-colors" title="Edit"><Edit size={14} /></button>
+        <button onClick={() => setDeletingId(row.original.id)} className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:text-red-500 hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10 transition-colors" title="Delete"><Trash2 size={14} /></button>
+      </div>
+    ) },
+  ], [toggleVerify, setInspectSeller, setEditingSeller, setDeletingId]);
 
   const stats: Stat[] = [
     { label: 'Total Sellers', value: sellers.length, icon: Store, color: 'bg-emerald-500/10 text-[var(--color-brand-emerald)] border-emerald-500/20' },
@@ -175,122 +206,19 @@ const AdminSellerManager: React.FC = () => {
       </div>
 
       {/* Sellers Table */}
-      <div className="space-y-4">
-        <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-[var(--shadow-depth-1)]">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs sm:text-sm">
-              <thead className={tableHead}>
-                <tr>
-                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>Seller</th>
-                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>Email</th>
-                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>Phone</th>
-                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>National ID</th>
-                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>Listings</th>
-                  <th className={cn(tableTh, 'px-6 py-4 font-semibold')}>Status</th>
-                  <th className={cn(tableTh, 'px-6 py-4 font-semibold text-right')}>Actions</th>
-                </tr>
-              </thead>
-              <tbody className={tableBody}>
-                {paginatedSellers.map((seller: any) => (
-                  <tr
-                    key={seller.id}
-                    onClick={() => setInspectSeller(seller)}
-                    className={cn(tableTr, 'group cursor-pointer')}
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[var(--color-bg-elevated)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-muted)] shrink-0 overflow-hidden">
-                          {seller.image ? (
-                            <img src={seller.image} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <User size={16} />
-                          )}
-                        </div>
-                        <div className="font-semibold text-[var(--color-text-main)] group-hover:text-[var(--color-brand-emerald)] transition-colors">
-                          {seller.name}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-[var(--color-text-muted)] font-mono">
-                      {seller.email}
-                    </td>
-                    <td className="px-6 py-4 text-[var(--color-text-muted)] font-mono">
-                      {seller.phone || seller.phone_number || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-[var(--color-text-muted)] font-mono">
-                      {seller.id_number || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-[var(--color-text-muted)] font-mono font-bold">
-                      {seller.listing_count ?? 0}
-                    </td>
-                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => toggleVerify(seller.id, seller.is_verified)}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold rounded-full border uppercase transition-colors cursor-pointer ${
-                          seller.is_verified
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/30 hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-500/10 dark:hover:text-red-400 dark:hover:border-red-500/30'
-                            : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 dark:hover:bg-emerald-500/10 dark:hover:text-[var(--color-brand-emerald)] dark:hover:border-emerald-500/30'
-                        }`}
-                        title={seller.is_verified ? 'Click to Unverify' : 'Click to Verify'}
-                      >
-                        {seller.is_verified ? (
-                          <>
-                            <ShieldCheck size={12} />
-                            <span>Verified</span>
-                          </>
-                        ) : (
-                          <>
-                            <Clock size={12} />
-                            <span>Pending</span>
-                          </>
-                        )}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setInspectSeller(seller)}
-                          className="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-card-hover)] transition-colors"
-                          title="View Details"
-                        >
-                          <Eye size={15} />
-                        </button>
-                        <button
-                          onClick={() => setEditingSeller(seller)}
-                          className="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-amber-500 dark:hover:text-amber-400 hover:bg-[var(--color-bg-card-hover)] transition-colors"
-                          title="Edit Seller"
-                        >
-                          <Edit size={15} />
-                        </button>
-                        <button
-                          onClick={() => setDeletingId(seller.id)}
-                          className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:text-red-500 hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-500/10 transition-colors"
-                          title="Delete Seller"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {filteredSellers.length === 0 && (
-              <div className="p-12 text-center text-[var(--color-text-dim)]">No sellers found matching your search.</div>
-            )}
-          </div>
-        </div>
-
-        {/* Pagination */}
-        <Pagination
-          currentPage={page}
-          totalItems={filteredSellers.length}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-          itemLabel="sellers"
-        />
-      </div>
+      <DataTable
+        data={filteredSellers}
+        columns={columns}
+        searchKeys={['name', 'email', 'phone', 'id_number']}
+        searchPlaceholder="Search by name, email, phone or ID..."
+        emptyTitle="No sellers found"
+        emptyDescription="No sellers match the selected filters."
+        onRowClick={(row) => setInspectSeller(row)}
+        showBulkActions={false}
+        showDensityToggle={true}
+        showColumnToggle={true}
+        pageSize={pageSize}
+      />
 
       {/* View Seller Details Modal */}
       {inspectSeller && (

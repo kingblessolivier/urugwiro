@@ -1,5 +1,5 @@
 import logging
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.db.models import Q, Sum, Count, Avg
 from django.contrib.auth import authenticate, login, logout
 from django.utils.text import slugify
@@ -48,7 +48,7 @@ class StandardResultsSetPagination(PageNumberPagination):
 def check_admin_permission(request):
     if not request.user or not request.user.is_authenticated:
         return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-    if request.user.role not in ['admin', 'owner', 'finance']:
+    if request.user.role not in ['admin', 'owner', 'finance', 'staff']:
         if not request.user.is_superuser:
             return Response({'error': 'Admin permissions required'}, status=status.HTTP_403_FORBIDDEN)
     return None
@@ -62,66 +62,446 @@ def check_seller_permission(request):
     return None
 
 def get_seller_profile(request):
-    if hasattr(request.user, 'seller_profile'):
-        return request.user.seller_profile
-    return None
+    user = request.user
+    if not user or not user.is_authenticated:
+        return None
+    profile = getattr(user, 'seller_profile', None)
+    if profile:
+        return profile
+    # Auto-provision a profile for permitted users so they can list and manage
+    # immediately instead of hitting "No seller profile found" on every endpoint.
+    if user.role not in ['seller', 'admin', 'owner', 'staff'] and not user.is_superuser:
+        return None
+    profile, _ = SellerProfile.objects.get_or_create(
+        user=user,
+        defaults={
+            'name': user.get_full_name() or user.username,
+            'email': user.email or f'{user.username}@urugwiro.rw',
+            'phone_number': getattr(user, 'phone_number', None) or 'Not provided',
+            'status': 'approved',
+            'is_verified': True,
+        },
+    )
+    return profile
+
+def parse_decimal(val):
+    if val is None or val == '':
+        return None
+    try:
+        return Decimal(str(val))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+def parse_int(val, default=None):
+    if val is None or val == '':
+        return default
+    try:
+        return int(float(val))
+    except (TypeError, ValueError):
+        return default
+
+def parse_bool(val):
+    if isinstance(val, bool):
+        return val
+    return str(val).strip().lower() in ['true', '1', 'yes']
 
 def create_listing_asset(data, category, title):
     asset_type = 'LAND' if category == 'land' else 'VEHICLE' if category in ['car', 'motorbike'] else 'BUILDING'
+    raw_area = data.get('total_area') or data.get('area_sqm') or data.get('builtAreaSqm') or data.get('plotSizeSqm')
     asset = Asset.objects.create(
-        asset_type=asset_type,
-        name=title or 'Property asset',
+        asset_type=data.get('asset_type') or asset_type,
+        name=data.get('asset_name') or title or 'Property asset',
         province=data.get('province') or '',
         district=data.get('district') or '',
         sector=data.get('sector') or '',
         cell=data.get('cell') or '',
         village=data.get('village') or '',
-        total_area=data.get('area_sqm') or data.get('builtAreaSqm') or data.get('plotSizeSqm') or None,
-        latitude=data.get('latitude') or None,
-        longitude=data.get('longitude') or None,
+        total_area=parse_decimal(raw_area),
+        latitude=parse_decimal(data.get('latitude')),
+        longitude=parse_decimal(data.get('longitude')),
+        boundary_geojson=data.get('boundary_geojson') or '',
     )
     if category == 'land':
+        land_data = data.get('land_spec') if isinstance(data.get('land_spec'), dict) else data
         LandSpec.objects.create(
             asset=asset,
-            upi_number=data.get('upi_number') or data.get('upiNumber') or None,
-            terrain=data.get('terrain') or None,
-            zoning_code=data.get('zoningCode') or None,
-            road_type=data.get('landRoadType') or None,
-            water_onsite=str(data.get('waterOnsite', '')).lower() == 'true',
-            electricity_onsite=str(data.get('electricityOnsite', '')).lower() == 'true',
+            upi_number=land_data.get('upi_number') or land_data.get('upiNumber') or None,
+            title_deed_number=land_data.get('title_deed_number') or None,
+            terrain=land_data.get('terrain') or None,
+            zoning_code=land_data.get('zoningCode') or land_data.get('zoning_code') or None,
+            road_type=land_data.get('landRoadType') or land_data.get('road_type') or None,
+            water_onsite=parse_bool(land_data.get('waterOnsite', land_data.get('water_onsite', False))),
+            electricity_onsite=parse_bool(land_data.get('electricityOnsite', land_data.get('electricity_onsite', False))),
         )
     elif category in ['car', 'motorbike']:
+        veh_data = data.get('vehicle_spec') if isinstance(data.get('vehicle_spec'), dict) else data
         VehicleSpec.objects.create(
             asset=asset,
-            vehicle_type='Motorcycle' if category == 'motorbike' else 'Car',
-            make=data.get('make') or 'Not specified',
-            model=data.get('model') or 'Not specified',
-            year=int(data.get('year') or 2000),
-            mileage=int(float(data.get('mileage') or 0)),
-            fuel_type=data.get('fuelType') or 'Petrol',
-            transmission=data.get('transmission') or 'Automatic',
+            vehicle_type='Motorcycle' if category == 'motorbike' else (veh_data.get('vehicle_type') or 'Car'),
+            make=veh_data.get('make') or 'Not specified',
+            model=veh_data.get('model') or 'Not specified',
+            year=parse_int(veh_data.get('year'), default=2000),
+            mileage=parse_int(veh_data.get('mileage'), default=0),
+            fuel_type=veh_data.get('fuelType') or veh_data.get('fuel_type') or 'Petrol',
+            transmission=veh_data.get('transmission') or 'Automatic',
         )
     elif category == 'hotel':
+        hotel_data = data.get('hotel_spec') if isinstance(data.get('hotel_spec'), dict) else data
         HotelSpec.objects.create(
             asset=asset,
-            star_rating=int(data.get('starRating') or 1),
-            total_rooms=int(data.get('totalRooms') or 0),
-            management_type=data.get('managementType') or 'Owner-Managed',
+            star_rating=parse_int(hotel_data.get('starRating') or hotel_data.get('star_rating'), default=1),
+            total_rooms=parse_int(hotel_data.get('totalRooms') or hotel_data.get('total_rooms'), default=0),
+            management_type=hotel_data.get('managementType') or hotel_data.get('management_type') or 'Owner-Managed',
         )
     else:
+        res_data = data.get('residential_spec') if isinstance(data.get('residential_spec'), dict) else data
+        raw_res_area = res_data.get('builtAreaSqm') or res_data.get('built_up_area_sqm') or raw_area
         ResidentialSpec.objects.create(
             asset=asset,
-            sub_type=data.get('sub_type') or 'SingleFamily',
-            bedrooms=int(data.get('bedrooms') or 0),
-            bathrooms=int(data.get('bathrooms') or 0),
-            built_up_area_sqm=data.get('builtAreaSqm') or None,
-            is_furnished=str(data.get('isFurnished', '')).lower() == 'true',
-            year_built=int(data.get('yearBuilt') or 0) or None,
-            parking_spaces=int(data.get('parkingSpaces') or 0),
-            has_garden=str(data.get('hasGarden', '')).lower() == 'true',
-            has_water_tank=str(data.get('hasWaterTank', '')).lower() == 'true',
+            sub_type=res_data.get('sub_type') or 'SingleFamily',
+            bedrooms=parse_int(res_data.get('bedrooms'), default=0),
+            bathrooms=parse_int(res_data.get('bathrooms'), default=0),
+            built_up_area_sqm=parse_decimal(raw_res_area),
+            is_furnished=parse_bool(res_data.get('isFurnished', res_data.get('is_furnished', False))),
+            year_built=parse_int(res_data.get('yearBuilt') or res_data.get('year_built')),
+            parking_spaces=parse_int(res_data.get('parkingSpaces') or res_data.get('parking_spaces'), default=0),
+            has_garden=parse_bool(res_data.get('hasGarden', res_data.get('has_garden', False))),
+            has_water_tank=parse_bool(res_data.get('hasWaterTank', res_data.get('has_water_tank', False))),
         )
     return asset
+
+def update_listing_asset_and_specs(listing, data):
+    """Safely updates or creates the Asset, its category-specific Spec models,
+    and associated SellerProfile from incoming dictionary data.
+    Handles type conversions, null/empty strings, nested specs, and flat payload structures.
+    """
+    if not listing:
+        return None
+
+    category = data.get('category') or listing.category or 'house'
+    asset = listing.asset
+    if not asset:
+        default_asset_type = 'LAND' if category == 'land' else 'VEHICLE' if category in ['car', 'motorbike'] else 'BUILDING'
+        asset = Asset.objects.create(
+            asset_type=data.get('asset_type') or default_asset_type,
+            name=data.get('asset_name') or data.get('name') or listing.title or 'Property asset',
+        )
+        listing.asset = asset
+        listing.save(update_fields=['asset'])
+
+    asset_changed = False
+
+    # Location Hierarchy
+    for loc_field in ['province', 'district', 'sector', 'cell', 'village']:
+        if loc_field in data:
+            setattr(asset, loc_field, data[loc_field] or '')
+            asset_changed = True
+
+    # Area
+    if 'total_area' in data:
+        asset.total_area = parse_decimal(data.get('total_area'))
+        asset_changed = True
+    elif 'area_sqm' in data:
+        asset.total_area = parse_decimal(data.get('area_sqm'))
+        asset_changed = True
+
+    # Coordinates
+    if 'latitude' in data:
+        asset.latitude = parse_decimal(data.get('latitude'))
+        asset_changed = True
+    if 'longitude' in data:
+        asset.longitude = parse_decimal(data.get('longitude'))
+        asset_changed = True
+
+    # Asset name and type
+    if 'asset_name' in data and data.get('asset_name'):
+        asset.name = data['asset_name']
+        asset_changed = True
+    elif 'name' in data and data.get('name') and not any(k in data for k in ['owner_name', 'full_name', 'seller_name']):
+        asset.name = data['name']
+        asset_changed = True
+
+    if 'asset_type' in data and data.get('asset_type'):
+        asset.asset_type = data['asset_type']
+        asset_changed = True
+
+    if 'boundary_geojson' in data:
+        asset.boundary_geojson = data.get('boundary_geojson') or ''
+        asset_changed = True
+
+    if asset_changed:
+        asset.save()
+
+    # Spec Updates
+    # 1. Residential Spec
+    res_data = data.get('residential_spec')
+    has_res_fields = any(k in data for k in ['bedrooms', 'bathrooms', 'built_up_area_sqm', 'sub_type', 'is_furnished', 'parking_spaces'])
+    if isinstance(res_data, dict) or (listing.category in ['house', 'apartment'] and has_res_fields):
+        res_dict = res_data if isinstance(res_data, dict) else data
+        spec, _ = ResidentialSpec.objects.get_or_create(asset=asset)
+        for field in [
+            'sub_type', 'kitchen_type', 'master_plan_zoning', 'security_type',
+            'electricity_meter', 'road_access_type', 'apartment_selling_mode',
+            'unit_number', 'unit_orientation', 'parking_slot_number'
+        ]:
+            if field in res_dict:
+                setattr(spec, field, res_dict[field] or None)
+
+        for int_field in ['bedrooms', 'bathrooms', 'year_built', 'water_tank_capacity_liters', 'parking_spaces', 'floor_number', 'total_building_floors']:
+            if int_field in res_dict:
+                setattr(spec, int_field, parse_int(res_dict[int_field]))
+
+        for dec_field in ['built_up_area_sqm', 'compound_size_sqm', 'backup_generator_kva', 'monthly_service_charge', 'balcony_area_sqm']:
+            if dec_field in res_dict:
+                setattr(spec, dec_field, parse_decimal(res_dict[dec_field]))
+
+        for bool_field in [
+            'balcony', 'is_furnished', 'has_swimming_pool', 'has_staff_quarters',
+            'has_garden', 'has_water_tank', 'has_solar_water_heater', 'has_backup_generator',
+            'has_three_phase_power', 'has_fiber_internet', 'has_cctv', 'has_elevator'
+        ]:
+            if bool_field in res_dict:
+                setattr(spec, bool_field, parse_bool(res_dict[bool_field]))
+
+        if 'apartment_floor_plan' in res_dict:
+            spec.apartment_floor_plan = res_dict['apartment_floor_plan']
+
+        spec.save()
+
+    # 2. Land Spec
+    land_data = data.get('land_spec')
+    has_land_fields = any(k in data for k in ['upi_number', 'title_deed_number', 'terrain', 'zoning_code', 'land_use_category', 'tenure_type'])
+    if isinstance(land_data, dict) or (listing.category == 'land' and has_land_fields) or ('upi_number' in data or 'title_deed_number' in data):
+        land_dict = land_data if isinstance(land_data, dict) else {}
+        if 'upi_number' in data and 'upi_number' not in land_dict:
+            land_dict['upi_number'] = data['upi_number']
+        if 'title_deed_number' in data and 'title_deed_number' not in land_dict:
+            land_dict['title_deed_number'] = data['title_deed_number']
+
+        spec, _ = LandSpec.objects.get_or_create(asset=asset)
+        for field in [
+            'land_use_category', 'tenure_type', 'upi_number', 'zoning_code',
+            'max_permitted_floors', 'terrain', 'road_type', 'soil_type',
+            'topography', 'title_deed_number', 'drainage_system'
+        ]:
+            if field in land_dict:
+                setattr(spec, field, land_dict[field] or None)
+
+        for int_field in ['lease_years_remaining', 'water_line_distance_meters', 'power_pole_distance_meters']:
+            if int_field in land_dict:
+                setattr(spec, int_field, parse_int(land_dict[int_field]))
+
+        for dec_field in ['floor_area_ratio', 'building_coverage_ratio', 'slope_gradient_percent']:
+            if dec_field in land_dict:
+                setattr(spec, dec_field, parse_decimal(land_dict[dec_field]))
+
+        for bool_field in [
+            'road_access', 'is_encumbrance_free', 'water_onsite',
+            'electricity_onsite', 'has_fiber_conduit', 'is_in_wetland_buffer_zone'
+        ]:
+            if bool_field in land_dict:
+                setattr(spec, bool_field, parse_bool(land_dict[bool_field]))
+
+        spec.save()
+
+    # 3. Commercial Spec
+    comm_data = data.get('commercial_spec')
+    has_comm_fields = any(k in data for k in ['zoning_type', 'total_floors', 'power_capacity', 'loading_bays', 'foot_traffic_score'])
+    if isinstance(comm_data, dict) or (listing.category == 'commercial' and has_comm_fields):
+        comm_dict = comm_data if isinstance(comm_data, dict) else data
+        spec, _ = CommercialSpec.objects.get_or_create(asset=asset)
+        if 'zoning_type' in comm_dict:
+            spec.zoning_type = comm_dict['zoning_type'] or None
+        if 'power_capacity' in comm_dict:
+            spec.power_capacity = parse_decimal(comm_dict['power_capacity'])
+        for int_field in ['loading_bays', 'parking_spaces', 'foot_traffic_score', 'total_floors']:
+            if int_field in comm_dict:
+                setattr(spec, int_field, parse_int(comm_dict[int_field], default=0))
+        if 'has_backup_generator' in comm_dict:
+            spec.has_backup_generator = parse_bool(comm_dict['has_backup_generator'])
+        spec.save()
+
+    # 4. Hotel Spec
+    hotel_data = data.get('hotel_spec')
+    has_hotel_fields = any(k in data for k in ['star_rating', 'total_rooms', 'management_type', 'conference_halls', 'has_restaurant_bar'])
+    if isinstance(hotel_data, dict) or (listing.category == 'hotel' and has_hotel_fields):
+        hotel_dict = hotel_data if isinstance(hotel_data, dict) else data
+        spec, _ = HotelSpec.objects.get_or_create(asset=asset)
+        if 'star_rating' in hotel_dict:
+            spec.star_rating = parse_int(hotel_dict['star_rating'])
+        if 'total_rooms' in hotel_dict:
+            spec.total_rooms = parse_int(hotel_dict['total_rooms'])
+        if 'conference_halls' in hotel_dict:
+            spec.conference_halls = parse_int(hotel_dict['conference_halls'], default=0)
+        if 'has_restaurant_bar' in hotel_dict:
+            spec.has_restaurant_bar = parse_bool(hotel_dict['has_restaurant_bar'])
+        if 'has_commercial_license' in hotel_dict:
+            spec.has_commercial_license = parse_bool(hotel_dict['has_commercial_license'])
+        if 'amenities' in hotel_dict and isinstance(hotel_dict['amenities'], dict):
+            spec.amenities = hotel_dict['amenities']
+        if 'occupancy_rate' in hotel_dict:
+            spec.occupancy_rate = parse_decimal(hotel_dict['occupancy_rate'])
+        if 'management_type' in hotel_dict:
+            spec.management_type = hotel_dict['management_type'] or None
+        spec.save()
+
+    # 5. Vehicle Spec
+    veh_data = data.get('vehicle_spec')
+    has_veh_fields = any(k in data for k in ['make', 'model', 'year', 'mileage', 'plate_number', 'fuel_type'])
+    if isinstance(veh_data, dict) or (listing.category in ['car', 'motorbike'] and has_veh_fields):
+        veh_dict = veh_data if isinstance(veh_data, dict) else data
+        spec, _ = VehicleSpec.objects.get_or_create(asset=asset, defaults={
+            'make': veh_dict.get('make') or 'Not specified',
+            'model': veh_dict.get('model') or 'Not specified',
+            'year': parse_int(veh_dict.get('year'), default=2020),
+        })
+        for field in [
+            'vehicle_type', 'make', 'model', 'fuel_type', 'transmission',
+            'drivetrain', 'engine_capacity', 'condition', 'body_type',
+            'plate_number', 'plate_type', 'vin_chassis_number', 'rra_customs_status'
+        ]:
+            if field in veh_dict:
+                setattr(spec, field, veh_dict[field] or None)
+
+        for int_field in ['year', 'mileage', 'horsepower', 'seating_capacity']:
+            if int_field in veh_dict:
+                setattr(spec, int_field, parse_int(veh_dict[int_field]))
+
+        for bool_field in [
+            'has_air_conditioning', 'has_leather_seats', 'has_sunroof',
+            'has_reverse_camera', 'has_service_history', 'includes_driver',
+            'includes_helmet', 'has_delivery_rack'
+        ]:
+            if bool_field in veh_dict:
+                setattr(spec, bool_field, parse_bool(veh_dict[bool_field]))
+
+        for date_field in ['controle_technique_expiry', 'insurance_expiry']:
+            if date_field in veh_dict:
+                setattr(spec, date_field, veh_dict[date_field] or None)
+
+        spec.save()
+
+    # Seller Reassignment & Details
+    seller_id = data.get('seller_id') or data.get('owner_id')
+    if seller_id:
+        new_seller = SellerProfile.objects.filter(Q(id=seller_id) | Q(user_id=seller_id)).first()
+        if new_seller:
+            listing.seller = new_seller
+            listing.save(update_fields=['seller'])
+
+    if listing.seller:
+        seller = listing.seller
+        seller_changed = False
+        if 'owner_name' in data and data['owner_name']:
+            seller.name = data['owner_name']
+            seller_changed = True
+        elif 'full_name' in data and data['full_name'] and not any(k in data for k in ['title', 'category']):
+            seller.name = data['full_name']
+            seller_changed = True
+
+        if 'owner_email' in data:
+            seller.email = data['owner_email'] or seller.email
+            seller_changed = True
+        elif 'email' in data and not any(k in data for k in ['title', 'category']):
+            seller.email = data['email'] or seller.email
+            seller_changed = True
+
+        if 'owner_phone' in data:
+            seller.phone_number = data['owner_phone'] or seller.phone_number
+            seller_changed = True
+        elif 'phone' in data and not any(k in data for k in ['title', 'category']):
+            seller.phone_number = data['phone'] or seller.phone_number
+            seller_changed = True
+
+        if 'owner_id_number' in data:
+            seller.id_number = data['owner_id_number'] or ''
+            seller_changed = True
+        elif 'id_number' in data and not any(k in data for k in ['title', 'category']):
+            seller.id_number = data['id_number'] or ''
+            seller_changed = True
+
+        if 'owner_bio' in data:
+            seller.bio = data['owner_bio'] or ''
+            seller_changed = True
+        elif 'bio' in data and not any(k in data for k in ['title', 'category']):
+            seller.bio = data['bio'] or ''
+            seller_changed = True
+
+        if 'owner_verified' in data:
+            seller.is_verified = parse_bool(data['owner_verified'])
+            seller_changed = True
+
+        if seller_changed:
+            seller.save()
+
+    return asset
+
+def ensure_transaction_for_sold_listing(listing, agreed_price=None, customer=None):
+    """When a listing transitions to 'sold' or 'rented', create a completed Transaction
+    and a pending SellerPayment so the listing price shows up in seller earnings & payouts.
+
+    Idempotent: if a Transaction already exists for this listing (OneToOne), do nothing.
+    """
+    if listing.status not in ('sold', 'rented'):
+        return None
+    if getattr(listing, 'transaction', None):
+        return None
+    if not getattr(listing, 'seller', None):
+        return None
+
+    from django.utils import timezone
+
+    tx_type = 'rental' if listing.status == 'rented' else 'sale'
+    price = agreed_price or listing.price
+    if not price:
+        return None
+
+    try:
+        price_decimal = Decimal(price)
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+    if not customer:
+        customer = (
+            Offer.objects
+            .filter(listing=listing, status__in=('accepted',))
+            .order_by('-updated_at')
+            .values_list('customer', flat=True)
+            .first()
+        )
+
+    tx = Transaction.objects.create(
+        listing=listing,
+        seller=listing.seller,
+        customer_id=customer,
+        transaction_type=tx_type,
+        agreed_price=price_decimal,
+        currency=getattr(listing, 'currency', 'RWF') or 'RWF',
+        status='completed',
+        completed_at=timezone.now(),
+        notes=('Auto-generated when listing was marked as ' + listing.status),
+    )
+    # Transaction.save() already runs calculate_commission and sets seller_amount.
+    # Now create a pending SellerPayment so pending payouts reflect this immediately too:
+    try:
+        SellerPayment.objects.get_or_create(
+            transaction=tx,
+            seller=tx.seller,
+            listing=listing,
+            defaults={
+                'gross_amount': tx.agreed_price,
+                'commission_amount': tx.commission_amount,
+                'seller_entitlement': tx.seller_amount,
+                'amount_paid': Decimal('0'),
+                'remaining_balance': tx.seller_amount,
+                'status': 'pending',
+                'payment_method': 'bank_transfer',
+            },
+        )
+    except Exception:
+        pass
+    return tx
+
 
 def get_paginated_response(queryset, serializer_class, request, context=None):
     serializer_context = context or {'request': request}
@@ -570,13 +950,15 @@ def seller_create_listing(request):
     if serializer.is_valid():
         asset = create_listing_asset(data, data.get('category') or 'house', data.get('title'))
         listing = serializer.save(seller=profile, asset=asset)
+        update_listing_asset_and_specs(listing, data)
         # Create a default slug
         listing.slug = slugify(f"{listing.title}-{listing.id}")
         listing.save()
-        return Response(ListingSerializer(listing).data, status=status.HTTP_201_CREATED)
+        listing.refresh_from_db()
+        return Response(ListingSerializer(listing, context={'request': request}).data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 def seller_listing_detail_manage(request, pk):
     err = check_seller_permission(request)
     if err: return err
@@ -584,12 +966,14 @@ def seller_listing_detail_manage(request, pk):
     listing = get_object_or_404(Listing, pk=pk, seller=profile)
     
     if request.method == 'GET':
-        return Response(ListingSerializer(listing).data)
-    elif request.method == 'PUT':
+        return Response(ListingSerializer(listing, context={'request': request}).data)
+    elif request.method in ['PUT', 'PATCH']:
+        update_listing_asset_and_specs(listing, request.data)
         serializer = ListingCreateSerializer(listing, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(ListingSerializer(listing).data)
+            listing.refresh_from_db()
+            return Response(ListingSerializer(listing, context={'request': request}).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     elif request.method == 'DELETE':
         listing.delete()
@@ -662,13 +1046,29 @@ def seller_offer_respond(request, pk):
     if err: return err
     profile = get_seller_profile(request)
     offer = get_object_or_404(Offer, pk=pk, seller=profile)
-    
-    status_update = request.data.get('status')
-    if status_update in ['accepted', 'declined']:
-        offer.status = status_update
-        offer.save()
-        return Response(OfferSerializer(offer).data)
-    return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Frontend sends {action, amount}; also accept a raw {status} for API callers.
+    action = request.data.get('action') or request.data.get('status')
+    amount = request.data.get('amount', request.data.get('offered_amount'))
+
+    status_map = {
+        'accept': 'accepted', 'accepted': 'accepted',
+        'reject': 'declined', 'rejected': 'declined', 'declined': 'declined',
+        'counter': 'negotiating', 'countered': 'negotiating', 'negotiating': 'negotiating',
+    }
+    new_status = status_map.get(action)
+    if not new_status:
+        return Response({'error': 'Invalid action'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if new_status == 'negotiating':
+        try:
+            offer.offered_amount = Decimal(str(amount))
+        except (InvalidOperation, TypeError, ValueError):
+            return Response({'error': 'Counter requires a valid amount'}, status=status.HTTP_400_BAD_REQUEST)
+
+    offer.status = new_status
+    offer.save()
+    return Response(OfferSerializer(offer).data)
 
 @api_view(['GET'])
 def seller_inquiries_list(request):
@@ -1188,12 +1588,13 @@ def admin_properties_list_create(request):
                 )
             if not seller:
                 return Response({'error': 'Create a seller profile before adding a property.'}, status=status.HTTP_400_BAD_REQUEST)
-            # Create a default slug
             asset = create_listing_asset(data, data.get('category') or 'house', data.get('title'))
             listing = serializer.save(seller=seller, asset=asset)
+            update_listing_asset_and_specs(listing, data)
             listing.slug = slugify(f"{listing.title}-{listing.id}")
             listing.save()
-            return Response(ListingSerializer(listing).data, status=status.HTTP_201_CREATED)
+            listing.refresh_from_db()
+            return Response(ListingSerializer(listing, context={'request': request}).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
@@ -1203,12 +1604,14 @@ def admin_property_detail_manage(request, pk):
     listing = get_object_or_404(Listing, pk=pk)
     
     if request.method == 'GET':
-        return Response(ListingSerializer(listing).data)
+        return Response(ListingSerializer(listing, context={'request': request}).data)
     elif request.method in ['PUT', 'PATCH']:
+        update_listing_asset_and_specs(listing, request.data)
         serializer = ListingCreateSerializer(listing, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response(ListingSerializer(listing).data)
+            listing.refresh_from_db()
+            return Response(ListingSerializer(listing, context={'request': request}).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     elif request.method == 'DELETE':
         listing.delete()

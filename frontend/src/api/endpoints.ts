@@ -167,13 +167,13 @@ export const api = {
         updateSeller: (id: number | string, data: Record<string, unknown>) => apiClient.put(`/admin/sellers/${id}/`, data),
         deleteSeller: (id: number | string) => apiClient.delete(`/admin/sellers/${id}/`),
 
-        // Customers CRM
+        // Customers
         customers: (params?: Record<string, string>) => apiClient.get('/admin/customers/', { params }),
         customerDetail: (id: string) => apiClient.get(`/admin/customers/${id}/`),
         createCustomer: (data: Record<string, unknown>) => apiClient.post('/admin/customers/', data),
         updateCustomer: (id: string, data: Record<string, unknown>) => apiClient.put(`/admin/customers/${id}/`, data),
 
-        // Conversations CRM
+        // Conversations
         conversations: (params?: Record<string, string>) => apiClient.get('/admin/conversations/', { params }),
         conversationDetail: (id: string) => apiClient.get(`/admin/conversations/${id}/`),
         addConversationEvent: (id: string, data: Record<string, unknown>) => apiClient.post(`/admin/conversations/${id}/events/`, data),

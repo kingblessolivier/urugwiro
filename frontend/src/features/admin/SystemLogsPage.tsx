@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { cn } from '../../lib/utils';
-import { tableHead, tableTh, tableBody, tableTr } from '../../components/ui/Dashboard';
+import { DataTable } from '../../components/ui/DataTable';
+import { StatusBadge } from '../../components/ui/StatusBadge';
 
 interface LogEntry {
     pk: number;
@@ -41,6 +42,27 @@ const SystemLogsPage: React.FC = () => {
         const matchesCategory = !categoryFilter || log.category === categoryFilter;
         return matchesSearch && matchesLevel && matchesCategory;
     });
+
+    const columns = useMemo(() => [
+        { accessorKey: 'pk', id: 'pk', header: '#' },
+        { accessorKey: 'timestamp', id: 'timestamp', header: 'Timestamp', cell: ({ row }: any) => <span className="text-xs text-[var(--color-text-muted)] whitespace-nowrap">{row.original.timestamp}</span> },
+        { accessorKey: 'level', id: 'level', header: 'Level', cell: ({ row }: any) => {
+            const level = row.original.level;
+            const variant = level === 'CRITICAL' ? 'lost' : level === 'ERROR' ? 'declined' : level === 'WARNING' ? 'pending' : level === 'INFO' ? 'published' : 'draft';
+            return <StatusBadge status={variant} size="sm" />;
+        } },
+        { accessorKey: 'category', id: 'category', header: 'Category', cell: ({ row }: any) => <span className="px-2 py-0.5 text-[10px] font-bold bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] rounded border border-[var(--color-border)] uppercase">{row.original.category}</span> },
+        { accessorKey: 'message', id: 'message', header: 'Message', cell: ({ row }: any) => <span className="text-sm text-[var(--color-text-muted)] truncate max-w-xs block" title={row.original.message}>{row.original.message}</span> },
+        { accessorKey: 'user', id: 'user', header: 'User', cell: ({ row }: any) => <span className="text-sm text-[var(--color-text-muted)]">{row.original.user || '—'}</span> },
+        { accessorKey: 'path', id: 'path', header: 'Path', cell: ({ row }: any) => <span className="text-xs text-[var(--color-text-dim)] truncate max-w-[120px] block"><span className="font-bold text-[var(--color-brand-emerald)]">{row.original.method}</span> {row.original.path}</span> },
+        { id: 'details', header: '', cell: ({ row }: any) => (
+            row.original.details ? (
+                <button onClick={() => toggleExpand(row.original.pk)} className="text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] transition-colors text-xs">
+                    {expandedLogs.has(row.original.pk) ? 'Hide' : 'Show'}
+                </button>
+            ) : <span className="text-[var(--color-text-dim)]">—</span>
+        ) },
+    ], [expandedLogs, toggleExpand]);
 
     const stats: Stat[] = [
         { label: 'Total Entries', value: logs.length, color: 'text-[var(--color-text-main)]', icon: '📊' },
@@ -143,75 +165,18 @@ const SystemLogsPage: React.FC = () => {
                     </div>
 
                     {/* Logs Table */}
-                    <div className="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden shadow-[var(--shadow-depth-1)]">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className={tableHead}>
-                                    <tr>
-                                        <th className={tableTh}>#</th>
-                                        <th className={tableTh}>Timestamp</th>
-                                        <th className={tableTh}>Level</th>
-                                        <th className={tableTh}>Category</th>
-                                        <th className={tableTh}>Message</th>
-                                        <th className={tableTh}>User</th>
-                                        <th className={tableTh}>Path</th>
-                                        <th className={cn(tableTh, 'text-center')}>Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody className={tableBody}>
-                                    {filteredLogs.map(log => (
-                                        <React.Fragment key={log.pk}>
-                                            <tr className={cn(tableTr, 'group')}>
-                                                <td className="px-6 py-4 text-xs text-[var(--color-text-dim)]">{log.pk}</td>
-                                                <td className="px-6 py-4 text-xs text-[var(--color-text-muted)] whitespace-nowrap">
-                                                    {log.timestamp}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {getLevelBadge(log.level)}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className="px-2 py-0.5 text-[10px] font-bold bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] rounded border border-[var(--color-border)] uppercase">
-                                                        {log.category}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-[var(--color-text-muted)] truncate max-w-xs" title={log.message}>
-                                                    {log.message}
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-[var(--color-text-muted)]">
-                                                    {log.user || '—'}
-                                                </td>
-                                                <td className="px-6 py-4 text-xs text-[var(--color-text-dim)] truncate max-w-[120px]">
-                                                    <span className="font-bold text-[var(--color-brand-emerald)]">{log.method}</span> {log.path}
-                                                </td>
-                                                <td className="px-6 py-4 text-center">
-                                                    {log.details && (
-                                                        <button
-                                                            onClick={() => toggleExpand(log.pk)}
-                                                            className="text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] transition-colors"
-                                                        >
-                                                            {expandedLogs.has(log.pk) ? '🔼' : '🔽'}
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                            {expandedLogs.has(log.pk) && log.details && (
-                                                <tr className="bg-[var(--color-bg-elevated)]">
-                                                    <td colSpan={8} className="px-6 py-4">
-                                                        <div className="bg-[#09090b] p-4 rounded-xl font-mono text-xs text-[#4ade80] whitespace-pre-wrap border border-[#27272a]">
-                                                            {log.details}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </React.Fragment>
-                                    ))}
-                                </tbody>
-                            </table>
-                            {filteredLogs.length === 0 && (
-                                <div className="p-10 text-center text-[var(--color-text-dim)]">No logs match the current filters.</div>
-                            )}
-                        </div>
-                    </div>
+                    <DataTable
+                        data={filteredLogs}
+                        columns={columns}
+                        searchKeys={['message', 'user', 'path']}
+                        searchPlaceholder="Search logs..."
+                        emptyTitle="No logs found"
+                        emptyDescription="No logs match the current filters."
+                        showBulkActions={false}
+                        showDensityToggle={true}
+                        showColumnToggle={true}
+                        pageSize={10}
+                    />
                 </div>
 
                 {/* Right: Breakdowns */}

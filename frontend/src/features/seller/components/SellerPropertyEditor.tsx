@@ -167,8 +167,18 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
               category: listing.category || 'house',
               address: listing.address || '',
               rental_frequency: listing.rental_frequency || '',
+              security_deposit: (listing as any).security_deposit ?? '',
+              negotiable: !!(listing as any).negotiable,
             }}
-            onSave={async (d) => { await updateMutation.mutateAsync(d); }}
+            onSave={async (d: any) => {
+              const payload: any = { ...d };
+              if (payload.security_deposit === '' || payload.security_deposit === null) {
+                payload.security_deposit = null;
+              } else if (payload.security_deposit !== undefined) {
+                payload.security_deposit = Number(payload.security_deposit);
+              }
+              await updateMutation.mutateAsync(payload);
+            }}
           >
             {(isEditing, data, setData) => (
               <div className="space-y-4">
@@ -219,22 +229,42 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
                       </select>
                     </div>
                     {data.purpose === 'rent' && (
-                      <div className="flex flex-col gap-1.5">
-                        <label className={labelCls}>Rental Frequency</label>
-                        <select value={data.rental_frequency} onChange={(e) => setData({ ...data, rental_frequency: e.target.value })} className={inputCls}>
-                          <option value="">—</option>
-                          <option value="monthly">Monthly</option>
-                          <option value="yearly">Yearly</option>
-                        </select>
-                      </div>
+                      <>
+                        <div className="flex flex-col gap-1.5">
+                          <label className={labelCls}>Rental Frequency</label>
+                          <select value={(data as any).rental_frequency} onChange={(e) => setData({ ...data, rental_frequency: e.target.value })} className={inputCls}>
+                            <option value="">—</option>
+                            <option value="per_day">Per Day</option>
+                            <option value="per_month">Per Month</option>
+                            <option value="per_year">Per Year</option>
+                          </select>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className={labelCls}>Security Deposit</label>
+                          <input type="number" value={(data as any).security_deposit} onChange={(e) => setData({ ...data, security_deposit: e.target.value === '' ? '' : Number(e.target.value) } as any)} className={inputCls} placeholder="e.g. 500000" />
+                        </div>
+                      </>
                     )}
                     <div className="flex flex-col gap-1.5 md:col-span-2">
                       <label className={labelCls}>Address</label>
                       <input value={data.address} onChange={(e) => setData({ ...data, address: e.target.value })} className={inputCls} />
                     </div>
+                    <div className="flex items-center justify-between gap-4 px-3 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] md:col-span-2">
+                      <div>
+                        <p className="text-xs font-bold text-[var(--color-text-main)]">Price Negotiable</p>
+                        <p className="text-[10px] text-[var(--color-text-dim)] uppercase tracking-wider mt-0.5">Show "Negotiable" on listing</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setData({ ...data, negotiable: !(data as any).negotiable } as any)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors ${(data as any).negotiable ? 'bg-emerald-500' : 'bg-[var(--color-border)]'}`}
+                      >
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${(data as any).negotiable ? 'translate-x-5' : 'translate-x-0.5'} mt-[1px]`} />
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-y-4 gap-x-8">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-8">
                     <div className="flex flex-col gap-1">
                       <span className={labelCls}>Title</span>
                       <span className="text-sm font-medium text-[var(--color-text-main)]">{listing.title}</span>
@@ -250,6 +280,36 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
                       <span className="text-sm text-[var(--color-text-main)] capitalize">{listing.purpose}</span>
                     </div>
                     <div className="flex flex-col gap-1">
+                      <span className={labelCls}>Status</span>
+                      <span className="text-sm text-[var(--color-text-main)] capitalize">{listing.status}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className={labelCls}>Category</span>
+                      <span className="text-sm text-[var(--color-text-main)] capitalize">{listing.category}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className={labelCls}>Negotiable</span>
+                      <span className={`text-sm font-bold ${(listing as any).negotiable ? 'text-[var(--color-brand-emerald)]' : 'text-[var(--color-text-dim)]'}`}>
+                        {(listing as any).negotiable ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                    {listing.purpose === 'rent' && (
+                      <>
+                        <div className="flex flex-col gap-1">
+                          <span className={labelCls}>Rent Freq.</span>
+                          <span className="text-sm text-[var(--color-text-main)]">{(listing as any).rental_frequency || '—'}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className={labelCls}>Security Deposit</span>
+                          <span className="text-sm font-mono text-[var(--color-text-main)]">
+                            {(listing as any).security_deposit !== undefined && (listing as any).security_deposit !== null
+                              ? Number((listing as any).security_deposit).toLocaleString()
+                              : '—'}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    <div className="flex flex-col gap-1 sm:col-span-3">
                       <span className={labelCls}>Address</span>
                       <span className="text-sm text-[var(--color-text-muted)]">{listing.address || '—'}</span>
                     </div>

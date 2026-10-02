@@ -788,7 +788,6 @@ class Command(BaseCommand):
             defaults={
                 'agent': agent_habimana,
                 'amount': 200000000.0,
-                'financing_type': 'installment',
                 'status': 'accepted',
                 'message': 'Commercial offer submitted upon deed review.',
                 'proposed_closing_date': (datetime.now() + timedelta(days=30)).date(),
@@ -801,137 +800,9 @@ class Command(BaseCommand):
             defaults={
                 'agent': agent_habimana,
                 'amount': 640000000.0,
-                'financing_type': 'bank_mortgage',
                 'status': 'accepted',
                 'message': 'Settlement guaranteed via bank financing.',
                 'proposed_closing_date': (datetime.now() - timedelta(days=30)).date(),
-            }
-        )
-
-        # 6. Transaction Deals across the 6 Sovereign Conveyance Stages
-        self.stdout.write('[6/10] Generating end-to-end deal conveyance pipeline & sovereign notary deeds...')
-
-        # Deal 1: Gahanga Plot (In-flight: irembo_filing stage)
-        deal1, _ = TransactionDeal.objects.get_or_create(
-            listing=listing4,
-            offer=offer2,
-            defaults={
-                'deal_type': 'sale',
-                'buyer_or_tenant': buyer_user,
-                'seller_or_landlord': owner_uwase,
-                'assigned_agent': agent_habimana,
-                'agreed_price': 200000000.0,
-                'currency': 'RWF',
-                'escrow_deposit_amount': 20000000.0,
-                'escrow_status': 'held_in_escrow',
-                'current_stage': 'irembo_filing',
-                'progress_percentage': 65,
-                'irembo_bill_id': 'IREMBO-2026-GH-99120',
-                'land_upi': '1/03/05/02/8821',
-                'notary_office': 'Kicukiro District Land Notary',
-                'target_closing_date': (datetime.now() + timedelta(days=21)).date(),
-                'notes': 'Cadastral search completed with zero caveat recorded. Irembo transfer tax bill generated and awaiting notary appointment.',
-            }
-        )
-
-        # Deal 2: Kiyovu Residence (Closed conveyance: settled_closed)
-        deal2, _ = TransactionDeal.objects.get_or_create(
-            listing=listing5,
-            offer=offer3,
-            defaults={
-                'deal_type': 'sale',
-                'buyer_or_tenant': buyer_user,
-                'seller_or_landlord': owner_nkurunziza,
-                'assigned_agent': agent_habimana,
-                'agreed_price': 640000000.0,
-                'currency': 'RWF',
-                'escrow_deposit_amount': 64000000.0,
-                'escrow_status': 'released_to_seller',
-                'current_stage': 'settled_closed',
-                'progress_percentage': 100,
-                'irembo_bill_id': 'IREMBO-2026-KY-44819',
-                'land_upi': '1/01/03/08/3304',
-                'notary_office': 'Nyarugenge District Land Registry',
-                'target_closing_date': (datetime.now() - timedelta(days=25)).date(),
-                'notes': 'Title fully transferred at RLMUA. Escrow deposit released to seller account at Bank of Kigali.',
-            }
-        )
-
-        # Deal 3: Nyarutarama Villa (Early stage: escrow_funded)
-        deal3, _ = TransactionDeal.objects.get_or_create(
-            listing=listing1,
-            offer=offer1,
-            defaults={
-                'deal_type': 'sale',
-                'buyer_or_tenant': buyer_user,
-                'seller_or_landlord': owner_gasana,
-                'assigned_agent': agent_mukamana,
-                'agreed_price': 470000000.0,
-                'currency': 'RWF',
-                'escrow_deposit_amount': 47000000.0,
-                'escrow_status': 'held_in_escrow',
-                'current_stage': 'escrow_funded',
-                'progress_percentage': 30,
-                'irembo_bill_id': 'IREMBO-2026-NY-11209',
-                'land_upi': '1/02/11/04/1820',
-                'notary_office': 'Gasabo District Land Notary',
-                'target_closing_date': (datetime.now() + timedelta(days=45)).date(),
-                'notes': 'Earnest 10% escrow confirmed by depository partner. Initiating official title search at RLMUA.',
-            }
-        )
-
-        # Attach Deal Documents
-        DealDocument.objects.get_or_create(
-            deal=deal1,
-            document_type='title_deed',
-            defaults={
-                'title': 'Official Land UPI Certificate 1/03/05/02/8821',
-                'uploaded_by': seller_user2,
-                'is_verified': True,
-                'verified_by': admin_user,
-                'ai_validation_notes': 'Verified clean title with no registered mortgages or caveats at RLMUA.',
-            }
-        )
-        DealDocument.objects.get_or_create(
-            deal=deal1,
-            document_type='sales_contract',
-            defaults={
-                'title': 'Bilateral Land Purchase Agreement',
-                'uploaded_by': agent_user2,
-                'is_verified': True,
-                'verified_by': admin_user,
-            }
-        )
-        DealDocument.objects.get_or_create(
-            deal=deal1,
-            document_type='irembo_receipt',
-            defaults={
-                'title': 'IremboGov Notary Filing Slip #IREMBO-2026-GH-99120',
-                'uploaded_by': agent_user2,
-                'is_verified': True,
-                'verified_by': admin_user,
-            }
-        )
-
-        DealDocument.objects.get_or_create(
-            deal=deal2,
-            document_type='title_deed',
-            defaults={
-                'title': 'Conveyed e-Title Deed - UPI 1/01/03/08/3304',
-                'uploaded_by': agent_user2,
-                'is_verified': True,
-                'verified_by': admin_user,
-                'ai_validation_notes': 'Title transfer fully ratified by Chief Registrar of Land Titles.',
-            }
-        )
-        DealDocument.objects.get_or_create(
-            deal=deal2,
-            document_type='tax_clearance',
-            defaults={
-                'title': 'RRA Property Tax & Transfer Clearance Certificate',
-                'uploaded_by': owner_user3,
-                'is_verified': True,
-                'verified_by': admin_user,
             }
         )
 
@@ -1088,8 +959,6 @@ class Command(BaseCommand):
         self.stdout.write('=====================================================')
         self.stdout.write(f"  - Total Users: {User.objects.count()}")
         self.stdout.write(f"  - Active Listings: {Listing.objects.count()}")
-        self.stdout.write(f"  - Transaction Deals: {TransactionDeal.objects.count()}")
-        self.stdout.write(f"  - Deal Documents: {DealDocument.objects.count()}")
         self.stdout.write(f"  - Offers: {Offer.objects.count()}")
         self.stdout.write(f"  - Site Visits: {SiteVisit.objects.count()}")
         self.stdout.write(f"  - Leases: {Lease.objects.count()}")

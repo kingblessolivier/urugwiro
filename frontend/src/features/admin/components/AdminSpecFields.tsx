@@ -156,12 +156,19 @@ export const VehicleSpecsForm = ({ data, isEditing, onChange }: { data: any; isE
 export const CommercialSpecsForm = ({ data, isEditing, onChange }: { data: any; isEditing: boolean; onChange: (n: string, v: any) => void }) => (
   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
     <SpecField label="Zoning Type" value={data.zoning_type} name="zoning_type" isEditing={isEditing} onChange={onChange} />
-    <SpecField label="Power Capacity (kVA)" value={data.power_capacity_kva} name="power_capacity_kva" isEditing={isEditing} onChange={onChange} type="number" />
-    <SpecField label="Loading Bays" value={data.loading_bays_count} name="loading_bays_count" isEditing={isEditing} onChange={onChange} type="number" />
-    <SpecField label="Parking Capacity" value={data.parking_capacity} name="parking_capacity" isEditing={isEditing} onChange={onChange} type="number" />
-    <SpecField label="Avg Foot Traffic" value={data.avg_daily_foot_traffic} name="avg_daily_foot_traffic" isEditing={isEditing} onChange={onChange} type="text" />
+    <SpecField label="Power Capacity (kVA)" value={data.power_capacity_kva ?? data.power_capacity} name="power_capacity_kva" isEditing={isEditing} onChange={onChange} type="number" />
+    <SpecField label="Loading Bays" value={data.loading_bays_count ?? data.loading_bays} name="loading_bays_count" isEditing={isEditing} onChange={onChange} type="number" />
+    <SpecField label="Parking Capacity" value={data.parking_capacity ?? data.parking_spaces} name="parking_capacity" isEditing={isEditing} onChange={onChange} type="number" />
+    <SpecField label="Foot Traffic Score (1-10)" value={data.avg_daily_foot_traffic ?? data.foot_traffic_score} name="avg_daily_foot_traffic" isEditing={isEditing} onChange={onChange} type="number" />
     <SpecField label="Total Floors" value={data.total_floors} name="total_floors" isEditing={isEditing} onChange={onChange} type="number" />
-    <SpecField label="Backup Generator" value={data.has_generator} name="has_generator" isEditing={isEditing} onChange={onChange} type="boolean" />
+    <SpecField label="Backup Generator" value={data.has_generator ?? data.has_backup_generator} name="has_generator" isEditing={isEditing} onChange={onChange} type="boolean" />
+    <SpecField label="Building Use" value={data.building_use} name="building_use" isEditing={isEditing} onChange={onChange} />
+    <SpecField label="Ceiling Height (m)" value={data.ceiling_height_meters} name="ceiling_height_meters" isEditing={isEditing} onChange={onChange} type="number" />
+    <SpecField label="Has Showroom" value={data.has_showroom} name="has_showroom" isEditing={isEditing} onChange={onChange} type="boolean" />
+    <SpecField label="Has Warehouse" value={data.has_warehouse} name="has_warehouse" isEditing={isEditing} onChange={onChange} type="boolean" />
+    <SpecField label="Has Office Space" value={data.has_office_space} name="has_office_space" isEditing={isEditing} onChange={onChange} type="boolean" />
+    <SpecField label="Gross Area (m²)" value={data.gross_leasable_area_sqm} name="gross_leasable_area_sqm" isEditing={isEditing} onChange={onChange} type="number" />
+    <SpecField label="Net Area (m²)" value={data.net_area_sqm} name="net_area_sqm" isEditing={isEditing} onChange={onChange} type="number" />
   </div>
 );
 
@@ -169,9 +176,18 @@ export const HotelSpecsForm = ({ data, isEditing, onChange }: { data: any; isEdi
   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
     <SpecField label="Star Rating" value={data.star_rating} name="star_rating" isEditing={isEditing} onChange={onChange} type="number" />
     <SpecField label="Total Rooms" value={data.total_rooms} name="total_rooms" isEditing={isEditing} onChange={onChange} type="number" />
-    <SpecField label="Conference Halls" value={data.conference_halls_count} name="conference_halls_count" isEditing={isEditing} onChange={onChange} type="number" />
-    <SpecField label="Restaurant/Bar" value={data.has_restaurant_bar} name="has_restaurant_bar" isEditing={isEditing} onChange={onChange} type="boolean" />
-    <SpecField label="Commercial License" value={data.commercial_license_number} name="commercial_license_number" isEditing={isEditing} onChange={onChange} />
+    <SpecField label="Conference Halls" value={data.conference_halls_count ?? data.conference_halls} name="conference_halls_count" isEditing={isEditing} onChange={onChange} type="number" />
+    <SpecField label="Restaurant / Bar" value={data.has_restaurant_bar} name="has_restaurant_bar" isEditing={isEditing} onChange={onChange} type="boolean" />
+    <SpecField label="Commercial License #" value={data.commercial_license_number} name="commercial_license_number" isEditing={isEditing} onChange={onChange} />
     <SpecField label="Management Type" value={data.management_type} name="management_type" isEditing={isEditing} onChange={onChange} type="select" options={[{label: 'Independent', value: 'Independent'}, {label: 'Franchise', value: 'Franchise'}, {label: 'Corporate', value: 'Corporate'}]} />
+    <SpecField label="Has Commercial License" value={data.has_commercial_license} name="has_commercial_license" isEditing={isEditing} onChange={onChange} type="boolean" />
+    <SpecField label="Occupancy Rate (%)" value={data.occupancy_rate} name="occupancy_rate" isEditing={isEditing} onChange={onChange} type="number" />
+    <SpecField label="Has Pool" value={data.has_swimming_pool} name="has_swimming_pool" isEditing={isEditing} onChange={onChange} type="boolean" />
+    <SpecField label="Has Spa" value={data.has_spa} name="has_spa" isEditing={isEditing} onChange={onChange} type="boolean" />
+    <SpecField label="Has Gym" value={data.has_gym} name="has_gym" isEditing={isEditing} onChange={onChange} type="boolean" />
+    <SpecField label="Breakfast Included" value={data.includes_breakfast} name="includes_breakfast" isEditing={isEditing} onChange={onChange} type="boolean" />
+    <SpecField label="Avg Daily Rate" value={data.average_daily_rate} name="average_daily_rate" isEditing={isEditing} onChange={onChange} type="number" />
+    <SpecField label="RevPAR" value={data.revpar} name="revpar" isEditing={isEditing} onChange={onChange} type="number" />
+    <SpecField label="Total Keys" value={data.total_keys} name="total_keys" isEditing={isEditing} onChange={onChange} type="number" />
   </div>
 );

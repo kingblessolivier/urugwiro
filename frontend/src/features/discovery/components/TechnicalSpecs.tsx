@@ -1,6 +1,84 @@
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Info, ArrowUpRight } from 'lucide-react';
+import { cn } from '../../../lib/utils';
+
+export interface AtAGlanceFact {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  accent?: 'emerald' | 'gold' | 'neutral';
+}
+
+export const AtAGlanceCard: React.FC<AtAGlanceFact> = ({ icon: Icon, label, value, accent = 'emerald' }) => {
+  const accentClasses = {
+    emerald:
+      'group-hover:border-emerald-500/40 group-hover:shadow-[0_4px_16px_-4px_rgba(5,150,105,0.18)] group-hover:text-[var(--color-brand-emerald)]',
+    gold:
+      'group-hover:border-amber-500/40 group-hover:shadow-[0_4px_16px_-4px_rgba(212,175,55,0.25)] group-hover:text-[var(--color-accent-gold)]',
+    neutral:
+      'group-hover:border-[var(--color-border-hover)] group-hover:shadow-[var(--shadow-depth-2)] group-hover:text-[var(--color-text-main)]',
+  }[accent];
+
+  return (
+    <div
+      className={cn(
+        'group relative overflow-hidden rounded-2xl border p-4 sm:p-5 transition-all duration-300 oneui-card',
+        accentClasses,
+      )}
+      style={{
+        borderColor: 'var(--color-border)',
+        background: 'var(--color-bg-surface)',
+      }}
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        style={{
+          background:
+            'radial-gradient(circle at 0% 0%, rgba(5,150,105,0.06), transparent 55%)',
+        }}
+      />
+      <div className="relative flex flex-col gap-3">
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all duration-300 group-hover:scale-105"
+          style={{
+            borderColor: 'var(--color-border)',
+            background: 'var(--color-input-bg)',
+            color: 'var(--color-text-dim)',
+          }}
+        >
+          <Icon size={19} strokeWidth={1.8} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-1">
+          <span
+            className="text-[10px] font-semibold uppercase tracking-[0.16em]"
+            style={{ color: 'var(--color-text-dim)' }}
+          >
+            {label}
+          </span>
+          <span
+            className="font-mono text-lg font-bold tabular-nums tracking-tight transition-colors duration-300 break-words"
+            style={{ color: 'var(--color-text-main)' }}
+          >
+            {value}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const AtAGlanceGrid: React.FC<{ facts: AtAGlanceFact[] }> = ({ facts }) => {
+  if (facts.length === 0) return null;
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+      {facts.map((f, i) => (
+        <AtAGlanceCard key={i} {...f} />
+      ))}
+    </div>
+  );
+};
 
 interface TechnicalMetricProps {
   icon: LucideIcon;

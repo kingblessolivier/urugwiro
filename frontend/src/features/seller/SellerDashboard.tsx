@@ -21,6 +21,8 @@ import SellerListingsTable from './SellerListingsTable';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/endpoints';
 import { Pagination } from '../../components/ui/Pagination';
+import { DataTable } from '../../components/ui/DataTable';
+import { StatusBadge } from '../../components/ui/StatusBadge';
 
 export type SellerTab = 'overview' | 'listings' | 'leads' | 'visits' | 'inquiries' | 'offers' | 'messages' | 'new-listing' | 'ratings' | 'earnings';
 
@@ -158,7 +160,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
   const totalInquiries = listings.reduce((acc, curr) => acc + curr.inquiries, 0);
   const totalOffers = rawOffers.length;
 
-  // 4. Live database showing visits for seller
+  // 4. Live booked property visits for seller
   const { data: rawVisits = [] } = useQuery({
     queryKey: ['seller-database-visits'],
     queryFn: async () => {
@@ -709,7 +711,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                   className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 hover:border-emerald-500/30 transition-all group cursor-pointer"
                 >
                   <div className="flex items-center justify-between text-[var(--color-text-dim)] mb-3">
-                    <span className="text-xs uppercase tracking-wider font-semibold">Customer Leads CRM</span>
+                    <span className="text-xs uppercase tracking-wider font-semibold">Customer Interest</span>
                     <span className="p-2 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] group-hover:bg-emerald-600 group-hover:text-[#fff] transition-colors">
                       <Users size={16} />
                     </span>
@@ -728,7 +730,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                   className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 hover:border-emerald-500/30 transition-all group cursor-pointer"
                 >
                   <div className="flex items-center justify-between text-[var(--color-text-dim)] mb-3">
-                    <span className="text-xs uppercase tracking-wider font-semibold">Showing Visits</span>
+                    <span className="text-xs uppercase tracking-wider font-semibold">Booked Visits</span>
                     <span className="p-2 rounded-lg bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-[#fff] transition-colors">
                       <Calendar size={16} />
                     </span>
@@ -927,7 +929,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                               <div className="flex items-center gap-2">
                                 <h4 className="font-semibold text-sm text-[var(--color-text-main)] line-clamp-1">{item.title}</h4>
                                 {item.verified && (
-                                  <Badge variant="success" className="text-[9px] py-0 px-1.5 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/30">
+                                  <Badge variant="text" tone="emerald" className="text-[9px] py-0 px-1.5 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/30">
                                     RLMUA
                                   </Badge>
                                 )}
@@ -1031,7 +1033,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
             </div>
           )}
 
-          {/* TAB: CUSTOMER LEADS & VISITS CRM */}
+          {/* TAB: CUSTOMERS, VISITS & INQUIRIES */}
           {(activeTab === 'leads' || activeTab === 'visits' || activeTab === 'inquiries') && (
             <div className="max-w-7xl mx-auto animate-fadeIn">
               <CustomerLeadsManager
@@ -1136,38 +1138,26 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                     <p className="text-xs text-[var(--color-text-dim)] mt-1">When deals are finalized and payments are recorded, your statements will appear here.</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                      <thead>
-                        <tr className="border-b border-[var(--color-border)] text-xs text-[var(--color-text-dim)] uppercase">
-                          <th className="pb-3 font-semibold">Reference</th>
-                          <th className="pb-3 font-semibold">Listing</th>
-                          <th className="pb-3 font-semibold">Method</th>
-                          <th className="pb-3 font-semibold">Entitlement</th>
-                          <th className="pb-3 font-semibold">Paid</th>
-                          <th className="pb-3 font-semibold">Status</th>
-                          <th className="pb-3 font-semibold">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--color-border)]">
-                        {earningsData.payments.map((p: any) => (
-                          <tr key={p.id} className="hover:bg-[var(--color-bg-elevated)] transition-colors">
-                            <td className="py-3 font-mono text-xs font-semibold">{p.payment_reference || p.id?.slice(0, 8)}</td>
-                            <td className="py-3 font-medium text-[var(--color-text-main)]">{p.listing?.title || 'Property'}</td>
-                            <td className="py-3 capitalize text-[var(--color-text-muted)]">{p.payment_method?.replace(/_/g, ' ') || 'Bank Transfer'}</td>
-                            <td className="py-3 font-mono font-medium">{Number(p.seller_entitlement || 0).toLocaleString()} RWF</td>
-                            <td className="py-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">{Number(p.amount_paid || 0).toLocaleString()} RWF</td>
-                            <td className="py-3">
-                              <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider', p.status === 'paid' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border border-amber-500/30')}>
-                                {p.status}
-                              </span>
-                            </td>
-                            <td className="py-3 text-xs text-[var(--color-text-dim)]">{p.payment_date || new Date(p.created_at).toLocaleDateString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <DataTable
+                    data={earningsData.payments}
+                    columns={[
+                      { accessorKey: 'payment_reference', id: 'reference', header: 'Reference', cell: ({ row }: any) => <span className="font-mono text-xs font-semibold">{row.original.payment_reference || row.original.id?.slice(0, 8)}</span> },
+                      { accessorKey: 'listing', id: 'listing', header: 'Listing', cell: ({ row }: any) => <span className="font-medium text-[var(--color-text-main)]">{row.original.listing?.title || 'Property'}</span> },
+                      { accessorKey: 'payment_method', id: 'method', header: 'Method', cell: ({ row }: any) => <span className="capitalize text-[var(--color-text-muted)]">{row.original.payment_method?.replace(/_/g, ' ') || 'Bank Transfer'}</span> },
+                      { accessorKey: 'seller_entitlement', id: 'entitlement', header: 'Entitlement', cell: ({ row }: any) => <span className="font-mono font-medium">{Number(row.original.seller_entitlement || 0).toLocaleString()} RWF</span> },
+                      { accessorKey: 'amount_paid', id: 'paid', header: 'Paid', cell: ({ row }: any) => <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{Number(row.original.amount_paid || 0).toLocaleString()} RWF</span> },
+                      { accessorKey: 'status', id: 'status', header: 'Status', cell: ({ row }: any) => <StatusBadge status={row.original.status === 'paid' ? 'paid' : 'pending'} size="sm" /> },
+                      { accessorKey: 'payment_date', id: 'date', header: 'Date', cell: ({ row }: any) => <span className="text-xs text-[var(--color-text-dim)]">{row.original.payment_date || new Date(row.original.created_at).toLocaleDateString()}</span> },
+                    ]}
+                    searchKeys={['payment_reference', 'listing']}
+                    searchPlaceholder="Search payouts..."
+                    emptyTitle="No payout statements yet"
+                    emptyDescription="When deals are finalized and payments are recorded, your statements will appear here."
+                    showBulkActions={false}
+                    showDensityToggle={true}
+                    showColumnToggle={true}
+                    pageSize={10}
+                  />
                 )}
               </div>
             </div>
