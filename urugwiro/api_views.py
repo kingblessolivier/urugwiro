@@ -2475,3 +2475,13 @@ def visual_search(request):
     if keywords:
         queryset = queryset.filter(Q(title__icontains=keywords) | Q(description__icontains=keywords))
     return Response({'listings': ListingSerializer(queryset[:20], many=True, context={'request': request}).data, 'analysis': descriptor})
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    """Container / platform health check endpoint"""
+    return Response({
+        'status': 'ok',
+        'service': 'urugwiro-backend',
+        'healthy': True
+    }, status=status.HTTP_200_OK)

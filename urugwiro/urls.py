@@ -3,6 +3,10 @@ from . import api_views
 from . import views
 
 urlpatterns = [
+    # ─── Health check ───
+    path('api/health/', api_views.health_check, name='api_health'),
+    path('health/', api_views.health_check, name='health'),
+
     # ─── Auth & Profile ───
     path('api/auth/login/', api_views.api_login, name='api_login'),
     path('api/auth/register/', api_views.api_register, name='api_register'),

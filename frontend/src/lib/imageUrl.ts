@@ -1,6 +1,8 @@
 import type { Listing } from '../types/listing';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.DEV ? 'http://localhost:8000' : 'https://urugwiro-api-production.up.railway.app');
 
 export function resolveImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
