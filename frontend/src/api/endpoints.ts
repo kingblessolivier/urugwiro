@@ -145,7 +145,7 @@ export const api = {
 
         // Properties / Listings
         properties: (params?: Record<string, string>) => apiClient.get('/admin/properties/', { params }),
-        createProperty: (data: Record<string, unknown> | FormData) => apiClient.post('/admin/properties/', data),
+        createProperty: (data: Record<string, unknown> | FormData, config?: any) => apiClient.post('/admin/properties/', data, config),
         propertyDetail: (id: number | string) => apiClient.get(`/admin/properties/${id}/`),
         updateProperty: (id: number | string, data: Record<string, unknown>) => apiClient.patch(`/admin/properties/${id}/`, data),
         deleteProperty: (id: number | string) => apiClient.delete(`/admin/listings/${id}/`),

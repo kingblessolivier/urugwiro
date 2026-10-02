@@ -1,3 +1,4 @@
+import json
 import logging
 from decimal import Decimal, InvalidOperation
 from django.db.models import Q, Sum, Count, Avg
@@ -107,7 +108,13 @@ def parse_bool(val):
 
 def create_listing_asset(data, category, title):
     asset_type = 'LAND' if category == 'land' else 'VEHICLE' if category in ['car', 'motorbike'] else 'BUILDING'
-    raw_area = data.get('total_area') or data.get('area_sqm') or data.get('builtAreaSqm') or data.get('plotSizeSqm')
+    raw_area = (
+        data.get('total_area') or data.get('area_sqm') or
+        data.get('plotSizeSqm') or data.get('plot_size_sqm') or
+        data.get('builtAreaSqm') or data.get('built_up_area_sqm') or
+        data.get('grossArea') or data.get('gross_area') or
+        data.get('netArea') or data.get('net_area_sqm')
+    )
     asset = Asset.objects.create(
         asset_type=data.get('asset_type') or asset_type,
         name=data.get('asset_name') or title or 'Property asset',
@@ -126,24 +133,66 @@ def create_listing_asset(data, category, title):
         LandSpec.objects.create(
             asset=asset,
             upi_number=land_data.get('upi_number') or land_data.get('upiNumber') or None,
-            title_deed_number=land_data.get('title_deed_number') or None,
+            title_deed_number=land_data.get('title_deed_number') or land_data.get('titleDeedNumber') or None,
             terrain=land_data.get('terrain') or None,
             zoning_code=land_data.get('zoningCode') or land_data.get('zoning_code') or None,
-            road_type=land_data.get('landRoadType') or land_data.get('road_type') or None,
+            road_type=land_data.get('landRoadType') or land_data.get('road_type') or land_data.get('roadType') or None,
             water_onsite=parse_bool(land_data.get('waterOnsite', land_data.get('water_onsite', False))),
             electricity_onsite=parse_bool(land_data.get('electricityOnsite', land_data.get('electricity_onsite', False))),
+            is_encumbrance_free=parse_bool(land_data.get('isEncumbranceFree', land_data.get('is_encumbrance_free', True))),
+            has_fiber_conduit=parse_bool(land_data.get('hasFiberConduit', land_data.get('has_fiber_conduit', False))),
+            is_in_wetland_buffer_zone=parse_bool(land_data.get('wetlandBuffer', land_data.get('is_in_wetland_buffer_zone', False))),
+            soil_type=land_data.get('soilType') or land_data.get('soil_type') or None,
+            drainage_system=land_data.get('drainageSystem') or land_data.get('drainage_system') or None,
+            land_use_category=land_data.get('landUse') or land_data.get('land_use_category') or 'Residential',
+            tenure_type=land_data.get('tenure') or land_data.get('tenure_type') or 'EmphyteuticLease',
+            lease_years_remaining=parse_int(land_data.get('leaseYears') or land_data.get('lease_years_remaining')),
+            floor_area_ratio=parse_decimal(land_data.get('far') or land_data.get('floor_area_ratio')),
+            building_coverage_ratio=parse_decimal(land_data.get('bcr') or land_data.get('building_coverage_ratio')),
+            slope_gradient_percent=parse_decimal(land_data.get('slopePercent') or land_data.get('slope_gradient_percent')),
+            max_permitted_floors=land_data.get('maxFloors') or land_data.get('max_permitted_floors') or None,
         )
     elif category in ['car', 'motorbike']:
         veh_data = data.get('vehicle_spec') if isinstance(data.get('vehicle_spec'), dict) else data
         VehicleSpec.objects.create(
             asset=asset,
-            vehicle_type='Motorcycle' if category == 'motorbike' else (veh_data.get('vehicle_type') or 'Car'),
+            vehicle_type='Motorcycle' if category == 'motorbike' else (veh_data.get('vehicle_type') or veh_data.get('vehicleType') or 'Car'),
             make=veh_data.get('make') or 'Not specified',
             model=veh_data.get('model') or 'Not specified',
-            year=parse_int(veh_data.get('year'), default=2000),
+            year=parse_int(veh_data.get('year'), default=2020),
             mileage=parse_int(veh_data.get('mileage'), default=0),
             fuel_type=veh_data.get('fuelType') or veh_data.get('fuel_type') or 'Petrol',
             transmission=veh_data.get('transmission') or 'Automatic',
+            drivetrain=veh_data.get('drivetrain') or 'FWD',
+            engine_capacity=veh_data.get('engineCc') or veh_data.get('engine_capacity') or None,
+            horsepower=parse_int(veh_data.get('horsepower')),
+            condition=veh_data.get('condition') or None,
+            body_type=veh_data.get('bodyType') or veh_data.get('body_type') or None,
+            seating_capacity=parse_int(veh_data.get('seats') or veh_data.get('seating_capacity')),
+            plate_number=veh_data.get('plateNumber') or veh_data.get('plate_number') or None,
+            plate_type=veh_data.get('plateType') or veh_data.get('plate_type') or 'Private',
+            vin_chassis_number=veh_data.get('vinChassis') or veh_data.get('vin_chassis_number') or None,
+            rra_customs_status=veh_data.get('rraCustoms') or veh_data.get('rra_customs_status') or 'DutyPaid',
+            has_air_conditioning=parse_bool(veh_data.get('hasAc', veh_data.get('has_air_conditioning', True))),
+            has_leather_seats=parse_bool(veh_data.get('hasLeather', veh_data.get('has_leather_seats', False))),
+            has_sunroof=parse_bool(veh_data.get('hasSunroof', veh_data.get('has_sunroof', False))),
+            has_reverse_camera=parse_bool(veh_data.get('hasReverseCamera', veh_data.get('has_reverse_camera', False))),
+            has_service_history=parse_bool(veh_data.get('hasServiceHistory', veh_data.get('has_service_history', False))),
+            includes_driver=parse_bool(veh_data.get('includesDriver', veh_data.get('includes_driver', False))),
+            includes_helmet=parse_bool(veh_data.get('includesHelmet', veh_data.get('includes_helmet', False))),
+            has_delivery_rack=parse_bool(veh_data.get('hasDeliveryRack', veh_data.get('has_delivery_rack', False))),
+        )
+    elif category == 'commercial':
+        comm_data = data.get('commercial_spec') if isinstance(data.get('commercial_spec'), dict) else data
+        CommercialSpec.objects.create(
+            asset=asset,
+            zoning_type=comm_data.get('commercialZoning') or comm_data.get('zoning_type') or 'Office',
+            power_capacity=parse_decimal(comm_data.get('powerCapacity') or comm_data.get('power_capacity') or comm_data.get('power_capacity_kva')),
+            loading_bays=parse_int(comm_data.get('loadingBays') or comm_data.get('loading_bays') or comm_data.get('loading_bays_count') or (1 if parse_bool(comm_data.get('hasLoadingBay')) else 0), default=0),
+            parking_spaces=parse_int(comm_data.get('parkingSpaces') or comm_data.get('parkingSpacesCommercial') or comm_data.get('parking_spaces') or comm_data.get('parking_capacity'), default=0),
+            foot_traffic_score=parse_int(comm_data.get('footTrafficScore') or comm_data.get('foot_traffic_score') or comm_data.get('avg_daily_foot_traffic'), default=0),
+            total_floors=parse_int(comm_data.get('commercialFloors') or comm_data.get('total_floors')),
+            has_backup_generator=parse_bool(comm_data.get('hasCommercialGenerator', comm_data.get('hasGenerator', comm_data.get('has_backup_generator', comm_data.get('has_generator', False))))),
         )
     elif category == 'hotel':
         hotel_data = data.get('hotel_spec') if isinstance(data.get('hotel_spec'), dict) else data
@@ -151,22 +200,43 @@ def create_listing_asset(data, category, title):
             asset=asset,
             star_rating=parse_int(hotel_data.get('starRating') or hotel_data.get('star_rating'), default=1),
             total_rooms=parse_int(hotel_data.get('totalRooms') or hotel_data.get('total_rooms'), default=0),
-            management_type=hotel_data.get('managementType') or hotel_data.get('management_type') or 'Owner-Managed',
+            conference_halls=parse_int(hotel_data.get('conferenceHallsCount') or hotel_data.get('conference_halls') or hotel_data.get('conference_halls_count'), default=0),
+            has_restaurant_bar=parse_bool(hotel_data.get('hasRestaurantBar', hotel_data.get('has_restaurant_bar', False))),
+            has_commercial_license=parse_bool(hotel_data.get('hasCommercialLicense', hotel_data.get('has_commercial_license', True))),
+            occupancy_rate=parse_decimal(hotel_data.get('occupancyRate') or hotel_data.get('occupancy_rate')),
+            management_type=hotel_data.get('managementType') or hotel_data.get('management_type') or 'Independent',
         )
     else:
         res_data = data.get('residential_spec') if isinstance(data.get('residential_spec'), dict) else data
         raw_res_area = res_data.get('builtAreaSqm') or res_data.get('built_up_area_sqm') or raw_area
         ResidentialSpec.objects.create(
             asset=asset,
-            sub_type=res_data.get('sub_type') or 'SingleFamily',
+            sub_type=res_data.get('sub_type') or res_data.get('subType') or 'SingleFamily',
             bedrooms=parse_int(res_data.get('bedrooms'), default=0),
             bathrooms=parse_int(res_data.get('bathrooms'), default=0),
             built_up_area_sqm=parse_decimal(raw_res_area),
+            compound_size_sqm=parse_decimal(res_data.get('compoundSizeSqm') or res_data.get('compound_size_sqm')),
             is_furnished=parse_bool(res_data.get('isFurnished', res_data.get('is_furnished', False))),
             year_built=parse_int(res_data.get('yearBuilt') or res_data.get('year_built')),
             parking_spaces=parse_int(res_data.get('parkingSpaces') or res_data.get('parking_spaces'), default=0),
             has_garden=parse_bool(res_data.get('hasGarden', res_data.get('has_garden', False))),
             has_water_tank=parse_bool(res_data.get('hasWaterTank', res_data.get('has_water_tank', False))),
+            water_tank_capacity_liters=parse_int(res_data.get('waterTankLiters') or res_data.get('water_tank_capacity_liters')),
+            has_swimming_pool=parse_bool(res_data.get('hasSwimmingPool', res_data.get('has_swimming_pool', False))),
+            has_staff_quarters=parse_bool(res_data.get('hasStaffQuarters', res_data.get('has_staff_quarters', False))),
+            has_backup_generator=parse_bool(res_data.get('hasGenerator', res_data.get('has_backup_generator', False))),
+            backup_generator_kva=parse_decimal(res_data.get('generatorKva') or res_data.get('backup_generator_kva')),
+            has_solar_water_heater=parse_bool(res_data.get('hasSolarWater', res_data.get('has_solar_water_heater', False))),
+            has_three_phase_power=parse_bool(res_data.get('hasThreePhase', res_data.get('has_three_phase_power', False))),
+            has_fiber_internet=parse_bool(res_data.get('hasFiber', res_data.get('has_fiber_internet', False))),
+            has_cctv=parse_bool(res_data.get('hasCctv', res_data.get('has_cctv', False))),
+            has_elevator=parse_bool(res_data.get('hasElevator', res_data.get('has_elevator', False))),
+            kitchen_type=res_data.get('kitchenType') or res_data.get('kitchen_type') or None,
+            balcony=parse_bool(res_data.get('balcony', False)),
+            master_plan_zoning=res_data.get('masterPlanZoning') or res_data.get('master_plan_zoning') or None,
+            security_type=res_data.get('securityType') or res_data.get('security_type') or None,
+            electricity_meter=res_data.get('electricityMeter') or res_data.get('electricity_meter') or None,
+            road_access_type=res_data.get('roadAccess') or res_data.get('road_access_type') or None,
         )
     return asset
 
@@ -174,6 +244,7 @@ def update_listing_asset_and_specs(listing, data):
     """Safely updates or creates the Asset, its category-specific Spec models,
     and associated SellerProfile from incoming dictionary data.
     Handles type conversions, null/empty strings, nested specs, and flat payload structures.
+    Supports both camelCase and snake_case field names from wizard and admin edit interfaces.
     """
     if not listing:
         return None
@@ -198,11 +269,15 @@ def update_listing_asset_and_specs(listing, data):
             asset_changed = True
 
     # Area
-    if 'total_area' in data:
-        asset.total_area = parse_decimal(data.get('total_area'))
-        asset_changed = True
-    elif 'area_sqm' in data:
-        asset.total_area = parse_decimal(data.get('area_sqm'))
+    raw_area = (
+        data.get('total_area') or data.get('area_sqm') or
+        data.get('plotSizeSqm') or data.get('plot_size_sqm') or
+        data.get('builtAreaSqm') or data.get('built_up_area_sqm') or
+        data.get('grossArea') or data.get('gross_area') or
+        data.get('netArea') or data.get('net_area_sqm')
+    )
+    if raw_area is not None:
+        asset.total_area = parse_decimal(raw_area)
         asset_changed = True
 
     # Coordinates
@@ -235,149 +310,376 @@ def update_listing_asset_and_specs(listing, data):
     # Spec Updates
     # 1. Residential Spec
     res_data = data.get('residential_spec')
-    has_res_fields = any(k in data for k in ['bedrooms', 'bathrooms', 'built_up_area_sqm', 'sub_type', 'is_furnished', 'parking_spaces'])
-    if isinstance(res_data, dict) or (listing.category in ['house', 'apartment'] and has_res_fields):
+    has_res_fields = any(k in data for k in [
+        'bedrooms', 'bathrooms', 'built_up_area_sqm', 'builtAreaSqm', 'sub_type', 'subType',
+        'is_furnished', 'isFurnished', 'parking_spaces', 'parkingSpaces', 'yearBuilt', 'year_built',
+        'kitchenType', 'kitchen_type', 'masterPlanZoning', 'master_plan_zoning', 'balcony',
+        'floorNumber', 'floor_number', 'unitNumber', 'unit_number', 'balconySqm', 'balcony_area_sqm'
+    ])
+    if isinstance(res_data, dict) or (listing.category in ['house', 'apartment']) or has_res_fields:
         res_dict = res_data if isinstance(res_data, dict) else data
         spec, _ = ResidentialSpec.objects.get_or_create(asset=asset)
-        for field in [
-            'sub_type', 'kitchen_type', 'master_plan_zoning', 'security_type',
-            'electricity_meter', 'road_access_type', 'apartment_selling_mode',
-            'unit_number', 'unit_orientation', 'parking_slot_number'
-        ]:
-            if field in res_dict:
-                setattr(spec, field, res_dict[field] or None)
+        
+        string_mappings = [
+            ('sub_type', ['sub_type', 'subType']),
+            ('kitchen_type', ['kitchen_type', 'kitchenType']),
+            ('master_plan_zoning', ['master_plan_zoning', 'masterPlanZoning', 'zoning']),
+            ('security_type', ['security_type', 'securityType']),
+            ('electricity_meter', ['electricity_meter', 'electricityMeter']),
+            ('road_access_type', ['road_access_type', 'roadAccess', 'road_access']),
+            ('apartment_selling_mode', ['apartment_selling_mode', 'sellingMode', 'selling_mode']),
+            ('unit_number', ['unit_number', 'unitNumber']),
+            ('unit_orientation', ['unit_orientation', 'unitOrientation']),
+            ('parking_slot_number', ['parking_slot_number', 'parkingSlot', 'parking_slot']),
+        ]
+        for field, keys in string_mappings:
+            for k in keys:
+                if k in res_dict:
+                    setattr(spec, field, res_dict[k] or None)
+                    break
 
-        for int_field in ['bedrooms', 'bathrooms', 'year_built', 'water_tank_capacity_liters', 'parking_spaces', 'floor_number', 'total_building_floors']:
-            if int_field in res_dict:
-                setattr(spec, int_field, parse_int(res_dict[int_field]))
+        int_mappings = [
+            ('bedrooms', ['bedrooms']),
+            ('bathrooms', ['bathrooms']),
+            ('year_built', ['year_built', 'yearBuilt']),
+            ('water_tank_capacity_liters', ['water_tank_capacity_liters', 'waterTankLiters']),
+            ('parking_spaces', ['parking_spaces', 'parkingSpaces']),
+            ('floor_number', ['floor_number', 'floorNumber']),
+            ('total_building_floors', ['total_building_floors', 'totalBuildingFloors']),
+        ]
+        for field, keys in int_mappings:
+            for k in keys:
+                if k in res_dict:
+                    setattr(spec, field, parse_int(res_dict[k]))
+                    break
 
-        for dec_field in ['built_up_area_sqm', 'compound_size_sqm', 'backup_generator_kva', 'monthly_service_charge', 'balcony_area_sqm']:
-            if dec_field in res_dict:
-                setattr(spec, dec_field, parse_decimal(res_dict[dec_field]))
+        dec_mappings = [
+            ('built_up_area_sqm', ['built_up_area_sqm', 'builtAreaSqm', 'built_area_sqm']),
+            ('compound_size_sqm', ['compound_size_sqm', 'compoundSizeSqm']),
+            ('backup_generator_kva', ['backup_generator_kva', 'generatorKva', 'generator_kva']),
+            ('monthly_service_charge', ['monthly_service_charge', 'serviceCharge', 'service_charge']),
+            ('balcony_area_sqm', ['balcony_area_sqm', 'balconySqm', 'balcony_sqm']),
+        ]
+        for field, keys in dec_mappings:
+            for k in keys:
+                if k in res_dict:
+                    setattr(spec, field, parse_decimal(res_dict[k]))
+                    break
 
-        for bool_field in [
-            'balcony', 'is_furnished', 'has_swimming_pool', 'has_staff_quarters',
-            'has_garden', 'has_water_tank', 'has_solar_water_heater', 'has_backup_generator',
-            'has_three_phase_power', 'has_fiber_internet', 'has_cctv', 'has_elevator'
-        ]:
-            if bool_field in res_dict:
-                setattr(spec, bool_field, parse_bool(res_dict[bool_field]))
+        bool_mappings = [
+            ('balcony', ['balcony']),
+            ('is_furnished', ['is_furnished', 'isFurnished']),
+            ('has_swimming_pool', ['has_swimming_pool', 'hasSwimmingPool']),
+            ('has_staff_quarters', ['has_staff_quarters', 'hasStaffQuarters']),
+            ('has_garden', ['has_garden', 'hasGarden']),
+            ('has_water_tank', ['has_water_tank', 'hasWaterTank']),
+            ('has_solar_water_heater', ['has_solar_water_heater', 'hasSolarWater']),
+            ('has_backup_generator', ['has_backup_generator', 'hasGenerator']),
+            ('has_three_phase_power', ['has_three_phase_power', 'hasThreePhase']),
+            ('has_fiber_internet', ['has_fiber_internet', 'hasFiber']),
+            ('has_cctv', ['has_cctv', 'hasCctv']),
+            ('has_elevator', ['has_elevator', 'hasElevator']),
+        ]
+        for field, keys in bool_mappings:
+            for k in keys:
+                if k in res_dict:
+                    setattr(spec, field, parse_bool(res_dict[k]))
+                    break
 
-        if 'apartment_floor_plan' in res_dict:
-            spec.apartment_floor_plan = res_dict['apartment_floor_plan']
+        floor_plan_val = res_dict.get('apartment_floor_plan') or res_dict.get('floorPlan')
+        if floor_plan_val is not None:
+            if isinstance(floor_plan_val, str):
+                try:
+                    spec.apartment_floor_plan = json.loads(floor_plan_val)
+                except Exception:
+                    spec.apartment_floor_plan = floor_plan_val
+            else:
+                spec.apartment_floor_plan = floor_plan_val
 
         spec.save()
 
     # 2. Land Spec
     land_data = data.get('land_spec')
-    has_land_fields = any(k in data for k in ['upi_number', 'title_deed_number', 'terrain', 'zoning_code', 'land_use_category', 'tenure_type'])
-    if isinstance(land_data, dict) or (listing.category == 'land' and has_land_fields) or ('upi_number' in data or 'title_deed_number' in data):
-        land_dict = land_data if isinstance(land_data, dict) else {}
-        if 'upi_number' in data and 'upi_number' not in land_dict:
-            land_dict['upi_number'] = data['upi_number']
-        if 'title_deed_number' in data and 'title_deed_number' not in land_dict:
-            land_dict['title_deed_number'] = data['title_deed_number']
-
+    has_land_fields = any(k in data for k in [
+        'upi_number', 'upiNumber', 'title_deed_number', 'titleDeedNumber', 'terrain',
+        'zoning_code', 'zoningCode', 'land_use_category', 'landUse', 'tenure_type', 'tenure',
+        'plotSizeSqm', 'plot_size_sqm', 'maxFloors', 'max_permitted_floors', 'slopePercent', 'slope_gradient_percent',
+        'landRoadType', 'roadType', 'road_type', 'waterOnsite', 'water_onsite', 'electricityOnsite', 'electricity_onsite',
+        'wetlandBuffer', 'is_in_wetland_buffer_zone', 'soilType', 'soil_type', 'drainageSystem', 'drainage_system',
+        'isEncumbranceFree', 'is_encumbrance_free', 'waterLineDistance', 'water_line_distance_meters',
+        'powerPoleDistance', 'power_pole_distance_meters', 'hasFiberConduit', 'has_fiber_conduit', 'far', 'floor_area_ratio',
+        'bcr', 'building_coverage_ratio', 'leaseYears', 'lease_years_remaining'
+    ])
+    if isinstance(land_data, dict) or (listing.category == 'land') or has_land_fields:
+        land_dict = land_data if isinstance(land_data, dict) else data
         spec, _ = LandSpec.objects.get_or_create(asset=asset)
-        for field in [
-            'land_use_category', 'tenure_type', 'upi_number', 'zoning_code',
-            'max_permitted_floors', 'terrain', 'road_type', 'soil_type',
-            'topography', 'title_deed_number', 'drainage_system'
-        ]:
-            if field in land_dict:
-                setattr(spec, field, land_dict[field] or None)
+        
+        string_mappings = [
+            ('land_use_category', ['land_use_category', 'landUse']),
+            ('tenure_type', ['tenure_type', 'tenure']),
+            ('upi_number', ['upi_number', 'upiNumber']),
+            ('zoning_code', ['zoning_code', 'zoningCode']),
+            ('max_permitted_floors', ['max_permitted_floors', 'maxFloors']),
+            ('terrain', ['terrain']),
+            ('road_type', ['road_type', 'landRoadType', 'roadType']),
+            ('soil_type', ['soil_type', 'soilType']),
+            ('topography', ['topography']),
+            ('title_deed_number', ['title_deed_number', 'titleDeedNumber']),
+            ('drainage_system', ['drainage_system', 'drainageSystem']),
+        ]
+        for field, keys in string_mappings:
+            for k in keys:
+                if k in land_dict:
+                    setattr(spec, field, land_dict[k] or None)
+                    break
 
-        for int_field in ['lease_years_remaining', 'water_line_distance_meters', 'power_pole_distance_meters']:
-            if int_field in land_dict:
-                setattr(spec, int_field, parse_int(land_dict[int_field]))
+        int_mappings = [
+            ('lease_years_remaining', ['lease_years_remaining', 'leaseYears']),
+            ('water_line_distance_meters', ['water_line_distance_meters', 'waterLineDistance']),
+            ('power_pole_distance_meters', ['power_pole_distance_meters', 'powerPoleDistance']),
+        ]
+        for field, keys in int_mappings:
+            for k in keys:
+                if k in land_dict:
+                    setattr(spec, field, parse_int(land_dict[k]))
+                    break
 
-        for dec_field in ['floor_area_ratio', 'building_coverage_ratio', 'slope_gradient_percent']:
-            if dec_field in land_dict:
-                setattr(spec, dec_field, parse_decimal(land_dict[dec_field]))
+        dec_mappings = [
+            ('floor_area_ratio', ['floor_area_ratio', 'far']),
+            ('building_coverage_ratio', ['building_coverage_ratio', 'bcr']),
+            ('slope_gradient_percent', ['slope_gradient_percent', 'slopePercent']),
+        ]
+        for field, keys in dec_mappings:
+            for k in keys:
+                if k in land_dict:
+                    setattr(spec, field, parse_decimal(land_dict[k]))
+                    break
 
-        for bool_field in [
-            'road_access', 'is_encumbrance_free', 'water_onsite',
-            'electricity_onsite', 'has_fiber_conduit', 'is_in_wetland_buffer_zone'
-        ]:
-            if bool_field in land_dict:
-                setattr(spec, bool_field, parse_bool(land_dict[bool_field]))
+        bool_mappings = [
+            ('road_access', ['road_access', 'roadAccess']),
+            ('is_encumbrance_free', ['is_encumbrance_free', 'isEncumbranceFree']),
+            ('water_onsite', ['water_onsite', 'waterOnsite']),
+            ('electricity_onsite', ['electricity_onsite', 'electricityOnsite']),
+            ('has_fiber_conduit', ['has_fiber_conduit', 'hasFiberConduit']),
+            ('is_in_wetland_buffer_zone', ['is_in_wetland_buffer_zone', 'wetlandBuffer']),
+        ]
+        for field, keys in bool_mappings:
+            for k in keys:
+                if k in land_dict:
+                    setattr(spec, field, parse_bool(land_dict[k]))
+                    break
 
         spec.save()
 
     # 3. Commercial Spec
     comm_data = data.get('commercial_spec')
-    has_comm_fields = any(k in data for k in ['zoning_type', 'total_floors', 'power_capacity', 'loading_bays', 'foot_traffic_score'])
-    if isinstance(comm_data, dict) or (listing.category == 'commercial' and has_comm_fields):
+    has_comm_fields = any(k in data for k in [
+        'zoning_type', 'commercialZoning', 'total_floors', 'commercialFloors',
+        'power_capacity', 'power_capacity_kva', 'powerCapacity', 'loading_bays',
+        'loading_bays_count', 'loadingBays', 'hasLoadingBay', 'parking_spaces',
+        'parking_capacity', 'parkingSpaces', 'parkingSpacesCommercial', 'foot_traffic_score',
+        'avg_daily_foot_traffic', 'footTrafficScore', 'has_backup_generator', 'has_generator',
+        'hasGenerator', 'hasCommercialGenerator', 'building_use', 'buildingUse',
+        'ceiling_height_meters', 'ceilingHeight', 'has_showroom', 'hasShowroom',
+        'has_warehouse', 'hasWarehouse', 'has_office_space', 'hasOfficeSpace',
+        'gross_leasable_area_sqm', 'grossArea', 'net_area_sqm', 'netArea'
+    ])
+    if isinstance(comm_data, dict) or (listing.category == 'commercial') or has_comm_fields:
         comm_dict = comm_data if isinstance(comm_data, dict) else data
         spec, _ = CommercialSpec.objects.get_or_create(asset=asset)
-        if 'zoning_type' in comm_dict:
-            spec.zoning_type = comm_dict['zoning_type'] or None
-        if 'power_capacity' in comm_dict:
-            spec.power_capacity = parse_decimal(comm_dict['power_capacity'])
-        for int_field in ['loading_bays', 'parking_spaces', 'foot_traffic_score', 'total_floors']:
-            if int_field in comm_dict:
-                setattr(spec, int_field, parse_int(comm_dict[int_field], default=0))
-        if 'has_backup_generator' in comm_dict:
-            spec.has_backup_generator = parse_bool(comm_dict['has_backup_generator'])
+        
+        for k in ['zoning_type', 'commercialZoning']:
+            if k in comm_dict:
+                spec.zoning_type = comm_dict[k] or None
+                break
+
+        for k in ['power_capacity', 'power_capacity_kva', 'powerCapacity']:
+            if k in comm_dict:
+                spec.power_capacity = parse_decimal(comm_dict[k])
+                break
+
+        for k in ['loading_bays', 'loading_bays_count', 'loadingBays']:
+            if k in comm_dict:
+                spec.loading_bays = parse_int(comm_dict[k], default=0)
+                break
+        else:
+            if 'hasLoadingBay' in comm_dict:
+                spec.loading_bays = 1 if parse_bool(comm_dict['hasLoadingBay']) else 0
+
+        for k in ['parking_spaces', 'parking_capacity', 'parkingSpaces', 'parkingSpacesCommercial']:
+            if k in comm_dict:
+                spec.parking_spaces = parse_int(comm_dict[k], default=0)
+                break
+
+        for k in ['foot_traffic_score', 'avg_daily_foot_traffic', 'footTrafficScore']:
+            if k in comm_dict:
+                spec.foot_traffic_score = parse_int(comm_dict[k], default=0)
+                break
+
+        for k in ['total_floors', 'commercialFloors']:
+            if k in comm_dict:
+                spec.total_floors = parse_int(comm_dict[k])
+                break
+
+        for k in ['has_backup_generator', 'has_generator', 'hasGenerator', 'hasCommercialGenerator']:
+            if k in comm_dict:
+                spec.has_backup_generator = parse_bool(comm_dict[k])
+                break
+
         spec.save()
 
     # 4. Hotel Spec
     hotel_data = data.get('hotel_spec')
-    has_hotel_fields = any(k in data for k in ['star_rating', 'total_rooms', 'management_type', 'conference_halls', 'has_restaurant_bar'])
-    if isinstance(hotel_data, dict) or (listing.category == 'hotel' and has_hotel_fields):
+    has_hotel_fields = any(k in data for k in [
+        'star_rating', 'starRating', 'total_rooms', 'totalRooms', 'management_type', 'managementType',
+        'conference_halls', 'conference_halls_count', 'conferenceHallsCount', 'has_restaurant_bar', 'hasRestaurantBar',
+        'occupancy_rate', 'occupancyRate', 'commercial_license_number', 'commercialLicenseNumber',
+        'has_commercial_license', 'hasCommercialLicense', 'hasHotelPool', 'hasPool', 'hasSpa', 'hasGym',
+        'includesBreakfast', 'averageDailyRate', 'totalKeys'
+    ])
+    if isinstance(hotel_data, dict) or (listing.category == 'hotel') or has_hotel_fields:
         hotel_dict = hotel_data if isinstance(hotel_data, dict) else data
         spec, _ = HotelSpec.objects.get_or_create(asset=asset)
-        if 'star_rating' in hotel_dict:
-            spec.star_rating = parse_int(hotel_dict['star_rating'])
-        if 'total_rooms' in hotel_dict:
-            spec.total_rooms = parse_int(hotel_dict['total_rooms'])
-        if 'conference_halls' in hotel_dict:
-            spec.conference_halls = parse_int(hotel_dict['conference_halls'], default=0)
-        if 'has_restaurant_bar' in hotel_dict:
-            spec.has_restaurant_bar = parse_bool(hotel_dict['has_restaurant_bar'])
-        if 'has_commercial_license' in hotel_dict:
-            spec.has_commercial_license = parse_bool(hotel_dict['has_commercial_license'])
+        
+        for k in ['star_rating', 'starRating']:
+            if k in hotel_dict:
+                spec.star_rating = parse_int(hotel_dict[k])
+                break
+
+        for k in ['total_rooms', 'totalRooms']:
+            if k in hotel_dict:
+                spec.total_rooms = parse_int(hotel_dict[k])
+                break
+
+        for k in ['conference_halls', 'conference_halls_count', 'conferenceHallsCount']:
+            if k in hotel_dict:
+                spec.conference_halls = parse_int(hotel_dict[k], default=0)
+                break
+
+        for k in ['has_restaurant_bar', 'hasRestaurantBar']:
+            if k in hotel_dict:
+                spec.has_restaurant_bar = parse_bool(hotel_dict[k])
+                break
+
+        for k in ['has_commercial_license', 'hasCommercialLicense']:
+            if k in hotel_dict:
+                spec.has_commercial_license = parse_bool(hotel_dict[k])
+                break
+
+        for k in ['occupancy_rate', 'occupancyRate']:
+            if k in hotel_dict:
+                spec.occupancy_rate = parse_decimal(hotel_dict[k])
+                break
+
+        for k in ['management_type', 'managementType']:
+            if k in hotel_dict:
+                spec.management_type = hotel_dict[k] or None
+                break
+
+        amenities = spec.amenities if isinstance(spec.amenities, dict) else {}
         if 'amenities' in hotel_dict and isinstance(hotel_dict['amenities'], dict):
-            spec.amenities = hotel_dict['amenities']
-        if 'occupancy_rate' in hotel_dict:
-            spec.occupancy_rate = parse_decimal(hotel_dict['occupancy_rate'])
-        if 'management_type' in hotel_dict:
-            spec.management_type = hotel_dict['management_type'] or None
+            amenities.update(hotel_dict['amenities'])
+        for k in ['commercial_license_number', 'commercialLicenseNumber']:
+            if k in hotel_dict:
+                amenities['commercial_license_number'] = hotel_dict[k]
+        for k in ['hasHotelPool', 'hasPool']:
+            if k in hotel_dict:
+                amenities['has_swimming_pool'] = parse_bool(hotel_dict[k])
+        for k in ['hasSpa']:
+            if k in hotel_dict:
+                amenities['has_spa'] = parse_bool(hotel_dict[k])
+        for k in ['hasGym']:
+            if k in hotel_dict:
+                amenities['has_gym'] = parse_bool(hotel_dict[k])
+        for k in ['includesBreakfast']:
+            if k in hotel_dict:
+                amenities['includes_breakfast'] = parse_bool(hotel_dict[k])
+        for k in ['averageDailyRate', 'average_daily_rate']:
+            if k in hotel_dict:
+                amenities['average_daily_rate'] = str(hotel_dict[k])
+        for k in ['totalKeys', 'total_keys']:
+            if k in hotel_dict:
+                amenities['total_keys'] = parse_int(hotel_dict[k])
+        spec.amenities = amenities
         spec.save()
 
     # 5. Vehicle Spec
     veh_data = data.get('vehicle_spec')
-    has_veh_fields = any(k in data for k in ['make', 'model', 'year', 'mileage', 'plate_number', 'fuel_type'])
-    if isinstance(veh_data, dict) or (listing.category in ['car', 'motorbike'] and has_veh_fields):
+    has_veh_fields = any(k in data for k in [
+        'make', 'model', 'year', 'mileage', 'plate_number', 'plateNumber', 'fuel_type', 'fuelType',
+        'transmission', 'drivetrain', 'engine_capacity', 'engineCc', 'horsepower', 'seats',
+        'seating_capacity', 'body_type', 'bodyType', 'condition', 'plate_type', 'plateType',
+        'vin_chassis_number', 'vinChassis', 'rra_customs_status', 'rraCustoms', 'hasAc', 'has_air_conditioning',
+        'hasLeather', 'has_leather_seats', 'hasSunroof', 'has_sunroof', 'hasReverseCamera', 'has_reverse_camera',
+        'hasServiceHistory', 'has_service_history', 'includesDriver', 'includes_driver', 'includesHelmet',
+        'includes_helmet', 'hasDeliveryRack', 'has_delivery_rack', 'controleTechniqueExpiry', 'controle_technique_expiry',
+        'insuranceExpiry', 'insurance_expiry'
+    ])
+    if isinstance(veh_data, dict) or (listing.category in ['car', 'motorbike']) or has_veh_fields:
         veh_dict = veh_data if isinstance(veh_data, dict) else data
         spec, _ = VehicleSpec.objects.get_or_create(asset=asset, defaults={
             'make': veh_dict.get('make') or 'Not specified',
             'model': veh_dict.get('model') or 'Not specified',
             'year': parse_int(veh_dict.get('year'), default=2020),
         })
-        for field in [
-            'vehicle_type', 'make', 'model', 'fuel_type', 'transmission',
-            'drivetrain', 'engine_capacity', 'condition', 'body_type',
-            'plate_number', 'plate_type', 'vin_chassis_number', 'rra_customs_status'
+        string_mappings = [
+            ('vehicle_type', ['vehicle_type', 'vehicleType']),
+            ('make', ['make']),
+            ('model', ['model']),
+            ('fuel_type', ['fuel_type', 'fuelType']),
+            ('transmission', ['transmission']),
+            ('drivetrain', ['drivetrain']),
+            ('engine_capacity', ['engine_capacity', 'engineCc']),
+            ('condition', ['condition']),
+            ('body_type', ['body_type', 'bodyType']),
+            ('plate_number', ['plate_number', 'plateNumber']),
+            ('plate_type', ['plate_type', 'plateType']),
+            ('vin_chassis_number', ['vin_chassis_number', 'vinChassis']),
+            ('rra_customs_status', ['rra_customs_status', 'rraCustoms']),
+        ]
+        for field, keys in string_mappings:
+            for k in keys:
+                if k in veh_dict:
+                    setattr(spec, field, veh_dict[k] or None)
+                    break
+
+        int_mappings = [
+            ('year', ['year']),
+            ('mileage', ['mileage']),
+            ('horsepower', ['horsepower']),
+            ('seating_capacity', ['seating_capacity', 'seats']),
+        ]
+        for field, keys in int_mappings:
+            for k in keys:
+                if k in veh_dict:
+                    setattr(spec, field, parse_int(veh_dict[k]))
+                    break
+
+        bool_mappings = [
+            ('has_air_conditioning', ['has_air_conditioning', 'hasAc']),
+            ('has_leather_seats', ['has_leather_seats', 'hasLeather']),
+            ('has_sunroof', ['has_sunroof', 'hasSunroof']),
+            ('has_reverse_camera', ['has_reverse_camera', 'hasReverseCamera']),
+            ('has_service_history', ['has_service_history', 'hasServiceHistory']),
+            ('includes_driver', ['includes_driver', 'includesDriver']),
+            ('includes_helmet', ['includes_helmet', 'includesHelmet']),
+            ('has_delivery_rack', ['has_delivery_rack', 'hasDeliveryRack']),
+        ]
+        for field, keys in bool_mappings:
+            for k in keys:
+                if k in veh_dict:
+                    setattr(spec, field, parse_bool(veh_dict[k]))
+                    break
+
+        for date_field, keys in [
+            ('controle_technique_expiry', ['controle_technique_expiry', 'controleTechniqueExpiry']),
+            ('insurance_expiry', ['insurance_expiry', 'insuranceExpiry']),
         ]:
-            if field in veh_dict:
-                setattr(spec, field, veh_dict[field] or None)
-
-        for int_field in ['year', 'mileage', 'horsepower', 'seating_capacity']:
-            if int_field in veh_dict:
-                setattr(spec, int_field, parse_int(veh_dict[int_field]))
-
-        for bool_field in [
-            'has_air_conditioning', 'has_leather_seats', 'has_sunroof',
-            'has_reverse_camera', 'has_service_history', 'includes_driver',
-            'includes_helmet', 'has_delivery_rack'
-        ]:
-            if bool_field in veh_dict:
-                setattr(spec, bool_field, parse_bool(veh_dict[bool_field]))
-
-        for date_field in ['controle_technique_expiry', 'insurance_expiry']:
-            if date_field in veh_dict:
-                setattr(spec, date_field, veh_dict[date_field] or None)
+            for k in keys:
+                if k in veh_dict:
+                    val = veh_dict[k]
+                    setattr(spec, date_field, val if val else None)
+                    break
 
         spec.save()
 
@@ -946,11 +1248,33 @@ def seller_create_listing(request):
         return Response({'error': 'No seller profile found'}, status=status.HTTP_404_NOT_FOUND)
         
     data = request.data.copy()
+    if not data.get('description'):
+        data['description'] = f"{data.get('title') or 'Property'} in {data.get('district') or 'Rwanda'}. Contact Urugwiro to arrange a viewing and verify the property details."
+    if not data.get('address'):
+        data['address'] = ', '.join(filter(None, [data.get('sector'), data.get('district'), data.get('province')])) or 'Rwanda'
     serializer = ListingCreateSerializer(data=data)
     if serializer.is_valid():
         asset = create_listing_asset(data, data.get('category') or 'house', data.get('title'))
         listing = serializer.save(seller=profile, asset=asset)
         update_listing_asset_and_specs(listing, data)
+        # Handle verification documents
+        has_docs = False
+        for field_name, doc_type in [
+            ('title_deed', 'Title Deed / UPI Certificate'),
+            ('id_document', 'National ID / Passport'),
+            ('proof_of_ownership', 'Proof of Ownership'),
+        ]:
+            doc_file = request.FILES.get(field_name)
+            if doc_file:
+                VerificationDocument.objects.create(
+                    listing=listing,
+                    file=doc_file,
+                    document_type=doc_type,
+                    is_verified=False
+                )
+                has_docs = True
+        if has_docs:
+            listing.verification_level = 'submitted'
         # Create a default slug
         listing.slug = slugify(f"{listing.title}-{listing.id}")
         listing.save()
@@ -1591,6 +1915,24 @@ def admin_properties_list_create(request):
             asset = create_listing_asset(data, data.get('category') or 'house', data.get('title'))
             listing = serializer.save(seller=seller, asset=asset)
             update_listing_asset_and_specs(listing, data)
+            # Handle verification documents
+            has_docs = False
+            for field_name, doc_type in [
+                ('title_deed', 'Title Deed / UPI Certificate'),
+                ('id_document', 'National ID / Passport'),
+                ('proof_of_ownership', 'Proof of Ownership'),
+            ]:
+                doc_file = request.FILES.get(field_name)
+                if doc_file:
+                    VerificationDocument.objects.create(
+                        listing=listing,
+                        file=doc_file,
+                        document_type=doc_type,
+                        is_verified=False
+                    )
+                    has_docs = True
+            if has_docs:
+                listing.verification_level = 'submitted'
             listing.slug = slugify(f"{listing.title}-{listing.id}")
             listing.save()
             listing.refresh_from_db()
