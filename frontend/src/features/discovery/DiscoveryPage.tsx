@@ -335,8 +335,10 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                     mappedCat = 'house';
                 } else if (rawCat.includes('land') || rawCat.includes('plot')) {
                     mappedCat = 'land';
-                } else if (rawCat.includes('hotel') || rawCat.includes('commercial')) {
+                } else if (rawCat.includes('hotel')) {
                     mappedCat = 'hotel';
+                } else if (rawCat.includes('commercial')) {
+                    mappedCat = 'commercial';
                 } else if (rawCat.includes('car') || rawCat.includes('vehicle')) {
                     mappedCat = 'car';
                 }
@@ -350,11 +352,16 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
 
                 return {
                     ...prev,
-                    search: aiFilters.keywords ? (Array.isArray(aiFilters.keywords) ? aiFilters.keywords.join(' ') : String(aiFilters.keywords)) : prev.search,
+                    search: aiFilters.search !== undefined ? String(aiFilters.search) : '',
                     category: mappedCat,
                     purpose: mappedPurp,
                     minPrice: aiFilters.min_price !== undefined ? String(aiFilters.min_price) : prev.minPrice,
                     maxPrice: aiFilters.max_price !== undefined ? String(aiFilters.max_price) : prev.maxPrice,
+                    bedrooms: aiFilters.bedrooms !== undefined ? String(aiFilters.bedrooms) : prev.bedrooms,
+                    bathrooms: aiFilters.bathrooms !== undefined ? String(aiFilters.bathrooms) : prev.bathrooms,
+                    furnished: aiFilters.furnished !== undefined ? String(aiFilters.furnished) : prev.furnished,
+                    verification: aiFilters.verification_level !== undefined ? String(aiFilters.verification_level) : prev.verification,
+                    province: aiFilters.province !== undefined ? String(aiFilters.province) : prev.province,
                     city: aiFilters.city !== undefined ? String(aiFilters.city) : prev.city,
                     district: aiFilters.district !== undefined ? String(aiFilters.district) : prev.district,
                     sector: aiFilters.sector !== undefined ? String(aiFilters.sector) : prev.sector,

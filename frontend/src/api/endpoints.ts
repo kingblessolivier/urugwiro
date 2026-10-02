@@ -29,7 +29,7 @@ export const api = {
             apiClient.post<Review>(`/listings/${id}/reviews/`, data),
         deleteReview: (reviewId: string | number) => apiClient.delete(`/reviews/${reviewId}/`),
         audit: (id: string | number) => apiClient.get(`/listings/${id}/audit/`),
-        searchIntent: (intent: string) => apiClient.get<{ filters: Record<string, string | string[] | number | undefined> }>('/listings/', { params: { search: intent } }),
+        searchIntent: (intent: string) => apiClient.get<{ filters: Record<string, string | string[] | number | boolean | undefined> }>('/listings/search-intent/', { params: { q: intent } }),
         visualSearch: (image: File) => apiClient.post<{ listings: Listing[] }>('/listings/visual-search/', { image }, { headers: { 'Content-Type': 'multipart/form-data' } }),
     },
 

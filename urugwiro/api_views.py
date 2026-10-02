@@ -40,7 +40,7 @@ from .serializers import (
 
 # Services
 from .services import ValuationService, generate_listing_narrative, analyze_offer, describe_listing_image
-from .catalog import ListingFilters, PublicListingSerializer, public_listings
+from .catalog import ListingFilters, PublicListingSerializer, parse_listing_intent, public_listings
 
 logger = logging.getLogger(__name__)
 
@@ -887,6 +887,15 @@ class ListingDetailView(generics.RetrieveAPIView):
         Listing.objects.filter(pk=obj.pk).update(views_count=F('views_count') + 1)
         obj.views_count += 1
         return obj
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def listing_search_intent(request):
+    intent = request.query_params.get('q', '').strip()
+    if not intent:
+        return Response({'error': 'Search intent is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({'filters': parse_listing_intent(intent)})
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

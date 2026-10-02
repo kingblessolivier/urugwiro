@@ -21,6 +21,7 @@ urlpatterns = [
 
     # ─── Public Listings ───
     path('api/listings/', api_views.ListingListView.as_view(), name='api_listings'),
+    path('api/listings/search-intent/', api_views.listing_search_intent, name='api_listing_search_intent'),
     path('api/listings/visual-search/', api_views.visual_search, name='api_visual_search'),
     path('api/listings/<int:pk>/', api_views.ListingDetailView.as_view(), name='api_listing_detail'),
     path('api/listings/<slug:slug>/', api_views.ListingDetailView.as_view(), name='api_listing_detail_slug'),

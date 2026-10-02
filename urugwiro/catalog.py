@@ -1,3 +1,5 @@
+import re
+
 from django.db.models import Count, Exists, OuterRef, Q
 from rest_framework import serializers
 
@@ -58,6 +60,76 @@ def public_listings(user=None):
             SavedProperty.objects.filter(listing=OuterRef('pk'), user=user)
         ))
     return queryset
+
+
+def _intent_amount(raw_value, unit=''):
+    value = float(raw_value.replace(',', ''))
+    multiplier = {'k': 1_000, 'm': 1_000_000, 'million': 1_000_000, 'billion': 1_000_000_000}.get(unit, 1)
+    return int(value * multiplier)
+
+
+def parse_listing_intent(intent):
+    text = ' '.join(intent.lower().split())[:500]
+    filters = {}
+
+    categories = [
+        ('apartment', ('apartment', 'flat', 'condo')),
+        ('land', ('land', 'plot', 'parcel')),
+        ('commercial', ('commercial', 'office', 'warehouse', 'shop')),
+        ('hotel', ('hotel', 'guest house', 'lodge')),
+        ('motorbike', ('motorbike', 'motorcycle', 'moto')),
+        ('car', ('car', 'vehicle', 'suv', 'sedan')),
+        ('house', ('house', 'home', 'villa', 'residential')),
+    ]
+    for category, keywords in categories:
+        if any(keyword in text for keyword in keywords):
+            filters['category'] = category
+            break
+
+    if any(keyword in text for keyword in ('for rent', 'to rent', 'rental', 'lease')):
+        filters['purpose'] = 'rent'
+    elif any(keyword in text for keyword in ('for sale', 'to buy', 'buying', 'purchase')):
+        filters['purpose'] = 'sale'
+
+    bedroom_match = re.search(r'\b(\d+)\s*(?:bed|bedroom)s?\b', text)
+    bathroom_match = re.search(r'\b(\d+)\s*(?:bath|bathroom)s?\b', text)
+    if bedroom_match:
+        filters['bedrooms'] = int(bedroom_match.group(1))
+    if bathroom_match:
+        filters['bathrooms'] = int(bathroom_match.group(1))
+    if 'unfurnished' in text:
+        filters['furnished'] = False
+    elif 'furnished' in text:
+        filters['furnished'] = True
+    if 'professionally verified' in text:
+        filters['verification_level'] = 'professional'
+    elif 'verified' in text:
+        filters['verification_level'] = 'verified'
+
+    amount_pattern = r'([\d,.]+)\s*(billion|million|m|k)?'
+    between = re.search(rf'\bbetween\s+{amount_pattern}\s+(?:and|to)\s+{amount_pattern}', text)
+    if between:
+        filters['min_price'] = _intent_amount(between.group(1), between.group(2) or '')
+        filters['max_price'] = _intent_amount(between.group(3), between.group(4) or '')
+    else:
+        maximum = re.search(rf'\b(?:under|below|up to|max(?:imum)?)\s+{amount_pattern}', text)
+        minimum = re.search(rf'\b(?:over|above|from|min(?:imum)?)\s+{amount_pattern}', text)
+        if maximum:
+            filters['max_price'] = _intent_amount(maximum.group(1), maximum.group(2) or '')
+        if minimum:
+            filters['min_price'] = _intent_amount(minimum.group(1), minimum.group(2) or '')
+
+    location_rows = Listing.objects.filter(status='published').values_list(
+        'asset__province', 'asset__district', 'asset__sector',
+    ).distinct()
+    for province, district, sector in location_rows:
+        for field, value in (('sector', sector), ('district', district), ('province', province)):
+            if value and re.search(rf'\b{re.escape(value.lower())}\b', text):
+                filters[field] = value
+
+    if not filters:
+        filters['search'] = intent.strip()[:200]
+    return filters
 
 
 class ListingFilters(serializers.Serializer):

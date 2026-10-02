@@ -3,7 +3,9 @@ from unittest.mock import AsyncMock
 from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
 from django.test import TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import resolve
 from rest_framework.test import APIClient
 
@@ -136,6 +138,32 @@ class ApiSecurityTests(TestCase):
                 response = self.client.get(f'/api/listings/?{query}')
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.data['count'], expected, response.data)
+
+    def test_listing_intent_returns_validated_filter_contract(self):
+        response = self.client.get(
+            '/api/listings/search-intent/',
+            {'q': 'furnished 3 bedroom house for rent in Gasabo under 1 million'},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['filters'], {
+            'category': 'house', 'purpose': 'rent', 'bedrooms': 3,
+            'furnished': True, 'max_price': 1_000_000, 'district': 'Gasabo',
+        })
+
+    def test_public_listing_query_budget_is_constant_for_twenty_results(self):
+        Listing.objects.bulk_create([
+            Listing(
+                asset=self.asset, seller=self.seller, title=f'Query budget {index}',
+                description='Performance fixture', price=1_000_000 + index,
+                address='Remera', status='published', slug=f'query-budget-{index}',
+            )
+            for index in range(19)
+        ])
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.get('/api/listings/?page_size=20')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 20)
+        self.assertLessEqual(len(queries), 10)
 
     def test_seller_cannot_publish_or_self_verify(self):
         self.authenticate(self.seller_user)
