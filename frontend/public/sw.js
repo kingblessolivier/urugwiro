@@ -1,4 +1,4 @@
-const CACHE_NAME = 'urugwiro-v2';
+const CACHE_NAME = 'urugwiro-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -77,6 +77,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (canCache(request, response)) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
@@ -93,12 +108,7 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => {
-          if (request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-          return Response.error();
-        });
+        .catch(() => Response.error());
     })
   );
 });

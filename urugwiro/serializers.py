@@ -532,6 +532,25 @@ class ListingProposalSerializer(serializers.ModelSerializer):
         read_only_fields = ['proposal_code', 'created_at', 'updated_at']
 
 
+class PublicListingProposalSerializer(serializers.ModelSerializer):
+    """Fields accepted from the unauthenticated property intake form."""
+
+    class Meta:
+        model = ListingProposal
+        fields = [
+            'id', 'proposal_code', 'full_name', 'phone_number', 'email',
+            'id_number', 'owner_relationship', 'title', 'asset_type', 'purpose',
+            'district', 'sector', 'cell', 'address', 'land_upi',
+            'proposed_price', 'currency', 'size_sqm', 'bedrooms', 'bathrooms',
+            'sub_type', 'specifications', 'description', 'preferred_visit_date',
+            'preferred_time_slot', 'site_contact_name', 'site_contact_phone',
+            'site_access_notes', 'status', 'created_at', 'updated_at',
+        ]
+        read_only_fields = [
+            'id', 'proposal_code', 'status', 'created_at', 'updated_at',
+        ]
+
+
 # ─── Audit ───
 
 class ListingAuditLogSerializer(serializers.ModelSerializer):
@@ -588,9 +607,26 @@ class PropertyInquirySerializer(serializers.ModelSerializer):
 # ─── System ───
 
 class SystemSettingSerializer(serializers.ModelSerializer):
+    is_secret = serializers.SerializerMethodField()
+
     class Meta:
         model = SystemSetting
-        fields = ['id', 'key', 'value', 'description', 'updated_at']
+        fields = ['id', 'key', 'value', 'description', 'is_secret', 'updated_at']
+        extra_kwargs = {'key': {'validators': []}}
+
+    @staticmethod
+    def _is_secret_key(key):
+        key = key.upper()
+        return any(marker in key for marker in ('KEY', 'SECRET', 'TOKEN', 'PASSWORD', 'CREDENTIAL'))
+
+    def get_is_secret(self, obj):
+        return self._is_secret_key(obj.key)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self._is_secret_key(instance.key):
+            data['value'] = ''
+        return data
 
 
 class SystemLogSerializer(serializers.ModelSerializer):

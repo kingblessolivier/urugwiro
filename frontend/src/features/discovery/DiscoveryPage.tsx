@@ -143,7 +143,7 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
         queryKey: ['consumer-saved-properties'],
         queryFn: async () => {
             const res = await api.consumer.savedProperties();
-            return Array.isArray(res.data) ? res.data : [];
+            return Array.isArray(res.data) ? res.data : res.data?.results || [];
         },
         enabled: !!user,
     });

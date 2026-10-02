@@ -21,6 +21,38 @@ const apiClient = axios.create({
     xsrfHeaderName: 'X-CSRFToken',
 });
 
+let refreshPromise: Promise<string> | null = null;
+
+function clearStoredSession() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('urugwiro_user');
+    localStorage.removeItem('user_role');
+    window.dispatchEvent(new Event('urugwiro:auth-expired'));
+}
+
+async function refreshAccessToken(): Promise<string> {
+    if (!refreshPromise) {
+        refreshPromise = (async () => {
+            const refreshToken = localStorage.getItem('refresh_token');
+            if (!refreshToken || refreshToken === 'undefined' || refreshToken === 'null') {
+                throw new Error('No refresh token available');
+            }
+            const response = await axios.post(`${API_BASE_URL}/token/refresh/`, { refresh: refreshToken });
+            const access = response.data?.access;
+            if (!access) throw new Error('Token refresh returned no access token');
+            localStorage.setItem('access_token', access);
+            if (response.data?.refresh) {
+                localStorage.setItem('refresh_token', response.data.refresh);
+            }
+            return access;
+        })().finally(() => {
+            refreshPromise = null;
+        });
+    }
+    return refreshPromise;
+}
+
 // Request interceptor to add JWT token + CSRF header
 apiClient.interceptors.request.use(
     (config) => {
@@ -54,25 +86,11 @@ apiClient.interceptors.response.use(
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
             try {
-                const refreshToken = localStorage.getItem('refresh_token');
-                if (!refreshToken || refreshToken === 'undefined' || refreshToken === 'null') {
-                    throw new Error('No refresh token available');
-                }
-
-                const response = await axios.post(`${API_BASE_URL}/token/refresh/`, {
-                    refresh: refreshToken,
-                });
-
-                const { access } = response.data;
-                localStorage.setItem('access_token', access);
-
+                const access = await refreshAccessToken();
                 originalRequest.headers.Authorization = `Bearer ${access}`;
                 return apiClient(originalRequest);
             } catch (refreshError) {
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('refresh_token');
-                localStorage.removeItem('urugwiro_user');
-                localStorage.removeItem('user_role');
+                clearStoredSession();
                 return Promise.reject(refreshError);
             }
         }

@@ -1,6 +1,7 @@
 import json
 import logging
 from decimal import Decimal, InvalidOperation
+from django.db import transaction
 from django.db.models import Q, Sum, Count, Avg, F, Exists, OuterRef
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -32,7 +33,7 @@ from .serializers import (
     ListingAuditLogSerializer, ListingCreateSerializer, ListingMediaSerializer, OfferSerializer, VisitSerializer,
     PropertyInquirySerializer, CustomerSerializer, ConversationSerializer, FollowUpSerializer, VisitCreateSerializer,
     TransactionSerializer, SellerPaymentSerializer, CommissionRuleSerializer, BusinessExpenseSerializer,
-    ListingProposalSerializer, SystemSettingSerializer, SavedPropertySerializer, ConversationEventSerializer,
+    ListingProposalSerializer, PublicListingProposalSerializer, SystemSettingSerializer, SavedPropertySerializer, ConversationEventSerializer,
     AdminUserCreateSerializer, RegistrationSerializer, SelfProfileSerializer, SellerListingWriteSerializer
 )
 
@@ -112,6 +113,30 @@ def parse_bool(val):
     if isinstance(val, bool):
         return val
     return str(val).strip().lower() in ['true', '1', 'yes']
+
+
+def create_customer_for_intake(request, name, phone='', email=''):
+    """Resolve an account's customer profile without claiming guest CRM records."""
+    name = (name or '').strip() or 'Customer'
+    phone = (phone or '').strip()
+    email = (email or '').strip()
+    if request.user.is_authenticated:
+        customer = getattr(request.user, 'customer_profile', None)
+        if customer:
+            return customer
+        return Customer.objects.create(
+            user=request.user,
+            full_name=name,
+            phone=phone,
+            email=email or request.user.email,
+            source='website',
+        )
+    return Customer.objects.create(
+        full_name=name,
+        phone=phone,
+        email=email,
+        source='website',
+    )
 
 def create_listing_asset(data, category, title):
     asset_type = 'LAND' if category == 'land' else 'VEHICLE' if category in ['car', 'motorbike'] else 'BUILDING'
@@ -832,7 +857,9 @@ class ListingListView(generics.ListAPIView):
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        filters = ListingFilters(data=self.request.query_params)
+        # QueryDict is treated as an HTML form by DRF, which injects False for
+        # absent BooleanFields. A plain dict preserves truly optional filters.
+        filters = ListingFilters(data=self.request.query_params.dict())
         filters.is_valid(raise_exception=True)
         return filters.apply(public_listings(self.request.user))
 
@@ -1022,24 +1049,7 @@ def api_contact_submit(request):
         message = request.data.get('message') or ''
         listing_id = request.data.get('listing_id') or request.data.get('listing') or getattr(inquiry.listing, 'id', None)
         
-        customer = None
-        if request.user.is_authenticated:
-            customer = getattr(request.user, 'customer_profile', None)
-        if not customer and phone:
-            customer = Customer.objects.filter(phone=phone).first()
-        if not customer and email:
-            customer = Customer.objects.filter(email=email).first()
-        if not customer:
-            customer = Customer.objects.create(
-                user=request.user if request.user.is_authenticated else None,
-                full_name=name,
-                phone=phone or 'Unknown',
-                email=email,
-                source='website'
-            )
-        elif request.user.is_authenticated and not customer.user:
-            customer.user = request.user
-            customer.save()
+        customer = create_customer_for_intake(request, name, phone, email)
             
         if listing_id:
             listing = Listing.objects.filter(pk=listing_id).first()
@@ -1515,27 +1525,10 @@ def consumer_visit_book(request):
     listing = get_object_or_404(Listing, pk=listing_id)
     
     name = request.data.get('name') or request.data.get('full_name') or (request.user.get_full_name() if request.user.is_authenticated else '') or 'Customer'
-    phone = request.data.get('phone') or getattr(request.user, 'phone_number', '') or '0780000000'
+    phone = request.data.get('phone') or getattr(request.user, 'phone_number', '')
     email = request.data.get('email') or (request.user.email if request.user.is_authenticated else '')
     
-    customer = None
-    if request.user.is_authenticated:
-        customer = getattr(request.user, 'customer_profile', None)
-    if not customer and phone:
-        customer = Customer.objects.filter(phone=phone).first()
-    if not customer and email:
-        customer = Customer.objects.filter(email=email).first()
-    if not customer:
-        customer = Customer.objects.create(
-            user=request.user if request.user.is_authenticated else None,
-            full_name=name,
-            phone=phone,
-            email=email,
-            source='website'
-        )
-    elif request.user.is_authenticated and not customer.user:
-        customer.user = request.user
-        customer.save()
+    customer = create_customer_for_intake(request, name, phone, email)
         
     conversation = None
     if listing.seller:
@@ -1621,8 +1614,10 @@ def consumer_visit_cancel(request, pk):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def consumer_saved_properties(request):
-    saved = SavedProperty.objects.filter(user=request.user).order_by('-saved_at')
-    return get_paginated_response(saved, SavedPropertySerializer, request)
+    listings = public_listings(request.user).filter(
+        saved_by__user=request.user,
+    ).order_by('-saved_by__saved_at')
+    return get_paginated_response(listings, PublicListingSerializer, request)
 
 # ==========================================
 # Admin CRM Endpoints
@@ -1776,27 +1771,10 @@ def list_create_offers(request):
             
         message = request.data.get('notes') or request.data.get('message', '')
         name = request.data.get('name') or (request.user.get_full_name() if request.user.is_authenticated else '') or 'Customer'
-        phone = request.data.get('phone') or getattr(request.user, 'phone_number', '') or '0780000000'
+        phone = request.data.get('phone') or getattr(request.user, 'phone_number', '')
         email = request.data.get('email') or (request.user.email if request.user.is_authenticated else '')
         
-        customer = None
-        if request.user.is_authenticated:
-            customer = getattr(request.user, 'customer_profile', None)
-        if not customer and phone:
-            customer = Customer.objects.filter(phone=phone).first()
-        if not customer and email:
-            customer = Customer.objects.filter(email=email).first()
-        if not customer:
-            customer = Customer.objects.create(
-                user=request.user if request.user.is_authenticated else None,
-                full_name=name,
-                phone=phone,
-                email=email,
-                source='website'
-            )
-        elif request.user.is_authenticated and not customer.user:
-            customer.user = request.user
-            customer.save()
+        customer = create_customer_for_intake(request, name, phone, email)
             
         conversation = None
         if listing.seller:
@@ -2213,20 +2191,21 @@ def admin_expense_detail(request, pk):
 # ==========================================
 
 @api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
 def api_proposals_view(request):
-    err = check_admin_permission(request)
-    if err: return err
     if request.method == 'GET':
+        err = check_admin_permission(request)
+        if err: return err
         proposals = ListingProposal.objects.all().order_by('-created_at')
         return get_paginated_response(proposals, ListingProposalSerializer, request)
     elif request.method == 'POST':
-        serializer = ListingProposalSerializer(data=request.data)
+        serializer = PublicListingProposalSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET', 'PUT'])
+@api_view(['GET', 'PUT', 'PATCH'])
 def api_proposal_detail_view(request, pk):
     err = check_admin_permission(request)
     if err: return err
@@ -2247,26 +2226,40 @@ def api_convert_proposal_to_listing(request, pk):
     if err: return err
     proposal = get_object_or_404(ListingProposal, pk=pk)
     
-    if proposal.status == 'converted':
+    if proposal.converted_listing_id:
         return Response({'error': 'Already converted'}, status=status.HTTP_400_BAD_REQUEST)
-        
-    seller = get_object_or_404(SellerProfile, user=request.user)
-    
-    listing = Listing.objects.create(
-        seller=seller,
-        title=proposal.property_title,
-        description=proposal.property_description,
-        price=proposal.asking_price,
-        category='house' if proposal.asset_type == 'BUILDING' else proposal.asset_type.lower(),
-        purpose=proposal.purpose,
-        address=proposal.address,
-        status='draft'
-    )
-    listing.slug = slugify(f"{listing.title}-{listing.id}")
-    listing.save()
-    
-    proposal.status = 'converted'
-    proposal.save()
+
+    seller = get_seller_profile(request)
+    category = {
+        'apartment': 'house', 'vehicle': 'car', 'commercial': 'commercial',
+    }.get(proposal.asset_type, proposal.asset_type)
+    asset_data = {
+        'province': '', 'district': proposal.district, 'sector': proposal.sector,
+        'cell': proposal.cell, 'total_area': proposal.size_sqm,
+        'bedrooms': proposal.bedrooms, 'bathrooms': proposal.bathrooms,
+        'sub_type': proposal.sub_type or ('Apartment' if proposal.asset_type == 'apartment' else None),
+        **proposal.specifications,
+    }
+    with transaction.atomic():
+        asset = create_listing_asset(asset_data, category, proposal.title)
+        listing = Listing.objects.create(
+            asset=asset,
+            seller=seller,
+            title=proposal.title,
+            description=proposal.description or proposal.title,
+            price=proposal.proposed_price,
+            currency=proposal.currency,
+            category=category,
+            purpose=proposal.purpose,
+            address=proposal.address,
+            status='draft',
+            listed_by_role=request.user.role if request.user.role in {'admin', 'staff'} else 'admin',
+        )
+        listing.slug = slugify(f"{listing.title}-{listing.id}")
+        listing.save(update_fields=['slug'])
+        proposal.status = 'approved'
+        proposal.converted_listing = listing
+        proposal.save(update_fields=['status', 'converted_listing', 'updated_at'])
     
     return Response(ListingSerializer(listing).data, status=status.HTTP_201_CREATED)
 
@@ -2383,8 +2376,17 @@ def manage_system_settings(request):
     elif request.method == 'POST':
         serializer = SystemSettingSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            setting, created = SystemSetting.objects.update_or_create(
+                key=serializer.validated_data['key'],
+                defaults={
+                    'value': serializer.validated_data['value'],
+                    'description': serializer.validated_data.get('description', ''),
+                },
+            )
+            return Response(
+                SystemSettingSerializer(setting).data,
+                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # ==========================================

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/endpoints';
 import { logWarn } from '../lib/utils';
 
@@ -26,6 +27,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const queryClient = useQueryClient();
     const [user, setUser] = useState<AuthUser | null>(() => {
         try {
             const cached = localStorage.getItem('urugwiro_user');
@@ -36,6 +38,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     const [token, setToken] = useState<string | null>(() => localStorage.getItem('access_token'));
     const [isLoading, setIsLoading] = useState<boolean>(true);
+
+    useEffect(() => {
+        const handleExpiredSession = () => {
+            setUser(null);
+            setToken(null);
+            queryClient.clear();
+        };
+        window.addEventListener('urugwiro:auth-expired', handleExpiredSession);
+        return () => window.removeEventListener('urugwiro:auth-expired', handleExpiredSession);
+    }, [queryClient]);
 
     useEffect(() => {
         const verifySession = async () => {
@@ -77,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const login = async (credentials: { username?: string; email?: string; password: string }): Promise<AuthUser> => {
+        queryClient.clear();
         const response = await api.auth.login(credentials);
         const loggedUser = response.data?.user || response.data;
         const access = response.data?.access || '';
@@ -100,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const register = async (data: { username?: string; email: string; password: string; role: string; full_name?: string }): Promise<AuthUser> => {
+        queryClient.clear();
         const response = await api.auth.register(data);
         const registeredUser = response.data?.user || response.data;
         const access = response.data?.access || '';
@@ -137,6 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.removeItem('user_role');
             setUser(null);
             setToken(null);
+            queryClient.clear();
         }
     };
 

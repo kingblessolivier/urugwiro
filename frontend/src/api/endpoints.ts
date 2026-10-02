@@ -62,7 +62,7 @@ export const api = {
         bookVisit: (data: { listing_id: number | string; scheduled_date?: string; preferred_date?: string; notes?: string }) =>
             apiClient.post('/consumer/visits/book/', data),
         cancelVisit: (id: number | string) => apiClient.post(`/consumer/visits/${id}/cancel/`),
-        savedProperties: () => apiClient.get<Listing[]>('/consumer/saved-properties/'),
+        savedProperties: () => apiClient.get<PaginatedResponse<Listing>>('/consumer/saved-properties/'),
     },
 
     // Offers (Convenience alias)

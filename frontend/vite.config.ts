@@ -9,7 +9,7 @@ function rwandaLocationsSyncPlugin() {
   return {
     name: 'rwanda-locations-sync-plugin',
     configureServer() {
-      const publicDataDir = path.resolve(__dirname, 'public', 'data');
+      const publicDataDir = path.resolve(import.meta.dirname, 'public', 'data');
       const targetPath = path.join(publicDataDir, 'rwandaLocations.json');
       try {
         if (!fs.existsSync(publicDataDir)) {

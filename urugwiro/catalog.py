@@ -52,7 +52,7 @@ def public_listings(user=None):
     queryset = Listing.objects.filter(status='published').select_related(
         'seller', 'asset', 'asset__residential_spec', 'asset__commercial_spec',
         'asset__land_spec', 'asset__hotel_spec', 'asset__vehicle_spec',
-    ).prefetch_related('media').annotate(like_total=Count('saved_by'))
+    ).prefetch_related('media').annotate(like_total=Count('saved_by', distinct=True))
     if user and user.is_authenticated:
         queryset = queryset.annotate(liked_by_user=Exists(
             SavedProperty.objects.filter(listing=OuterRef('pk'), user=user)

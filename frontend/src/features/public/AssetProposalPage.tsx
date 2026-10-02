@@ -152,7 +152,7 @@ export const AssetProposalPage: React.FC<AssetProposalPageProps> = ({ onNavigate
       };
 
       const response = await api.proposals.create(payload);
-      setSubmittedProposal(response.data?.proposal || { proposal_code: 'PROP-' + Math.floor(1000 + Math.random() * 9000) });
+      setSubmittedProposal(response.data?.proposal || response.data);
       setStep(3);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {

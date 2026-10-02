@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
 
 /* Make Tailwind's `dark:` variant follow the in-app theme class (html.dark),
    not the OS preference. Without this, `dark:` utilities ignore the toggle. */
