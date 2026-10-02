@@ -11,3 +11,16 @@ media
 staticfiles
 db.sqlite3
 .env
+.env.*
+!.env.example
+.git-corrupt-backup
+.agents
+.claude
+.cursor
+.codex
+.gemini
+.trae
+.vscode
+.todo
+logs
+*.log

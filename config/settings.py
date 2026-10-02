@@ -16,10 +16,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-only-change-me')
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', 'true').lower() == 'true'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', '')
+if not SECRET_KEY or SECRET_KEY.startswith(('dev-only', 'build-only')):
+    if DEBUG:
+        SECRET_KEY = 'dev-only-django-insecure-secret-key-for-local-development-only'
+    else:
+        from django.core.management.utils import get_random_secret_key
+        SECRET_KEY = os.getenv('SECRET_KEY') or get_random_secret_key()
 
 # Hosts configuration — default includes Railway, Vercel, and local development
 DEFAULT_ALLOWED_HOSTS = [
@@ -27,6 +32,7 @@ DEFAULT_ALLOWED_HOSTS = [
     '127.0.0.1',
     'testserver',
     'urugwiro-api-production.up.railway.app',
+    'urugwiro-api-production-b6d5.up.railway.app',
     '.railway.app',
     '.up.railway.app',
     'urugwiro-frontend.vercel.app',
@@ -51,6 +57,7 @@ INSTALLED_APPS = [
     'channels',
     'urugwiro',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
 ]
 
@@ -191,28 +198,26 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
     ),
 
     # token authentication
 
 
-    'DEFAULT_PERMISSION_CLASSES': (
-        # 'rest_framework.authentication.BasicAuthentication',
-        # 'rest_framework.authentication.SessionAuthentication',
-        # 'rest_framework.permissions.IsAuthenticated',
-        # 'rest_framework.permissions.AllowAny',
-        #
-        #
-
-
-    ),
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
+    'DEFAULT_THROTTLE_CLASSES': ('urugwiro.throttles.EndpointThrottle',),
+    'DEFAULT_THROTTLE_RATES': {
+        'authentication': '10/min', 'public_write': '20/hour',
+        'authenticated_write': '120/min', 'public_read': '120/min',
+        'authenticated_read': '600/min',
+    },
+    'NUM_PROXIES': int(os.getenv('DJANGO_TRUSTED_PROXY_COUNT', '0')),
 }
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Property Management API',
     'DESCRIPTION': 'API for Property Management System',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'SERVE_PERMISSIONS': ['urugwiro.permissions.CanManagePlatform'],
     # OTHER SETTINGS
 }
 
@@ -251,6 +256,7 @@ DEFAULT_CORS_ORIGINS = [
     'http://localhost:3000',
     'https://urugwiro-frontend.vercel.app',
     'https://urugwiro-api-production.up.railway.app',
+    'https://urugwiro-api-production-b6d5.up.railway.app',
 ]
 _env_cors = [o.strip() for o in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if o.strip()]
 CORS_ALLOWED_ORIGINS = list(dict.fromkeys(DEFAULT_CORS_ORIGINS + _env_cors))
@@ -276,10 +282,8 @@ CORS_ALLOW_HEADERS = [
 
 DEFAULT_CSRF_TRUSTED_ORIGINS = [
     'https://urugwiro-frontend.vercel.app',
-    'https://*.vercel.app',
     'https://urugwiro-api-production.up.railway.app',
-    'https://*.railway.app',
-    'https://*.up.railway.app',
+    'https://urugwiro-api-production-b6d5.up.railway.app',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:5174',
@@ -321,6 +325,13 @@ CACHES = {
         'LOCATION': 'urugwiro-cache',
     }
 }
+if REDIS_URL:
+    CACHES['default'] = {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': REDIS_URL,
+    }
+
+DATABASES['default']['ATOMIC_REQUESTS'] = True
 
 # ── System Logging ────────────────────────────────────────────────────────────
 LOGS_DIR = BASE_DIR / 'logs'

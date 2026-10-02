@@ -323,6 +323,7 @@ class Listing(models.Model):
         ('car', 'Car'),
         ('motorbike', 'Motorbike'),
         ('hotel', 'Hotel / Commercial'),
+        ('commercial', 'Commercial'),
         ('service', 'Service'),
     )
     RENTAL_FREQUENCY_CHOICES = (

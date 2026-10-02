@@ -55,16 +55,26 @@ def push_notification(recipient, actor, notification_type, message, link=''):
 class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
+        self.joined = False
         self.room_id = self.scope['url_route']['kwargs']['room_id']
         self.group_name = f'chat_{self.room_id}'
         self.user = self.scope['user']
 
         # Reject unauthenticated connections
-        if not self.user.is_authenticated:
-            await self.close()
+        try:
+            members = tuple(int(part) for part in self.room_id.split('_'))
+        except (TypeError, ValueError):
+            members = ()
+        if (
+            not self.user.is_authenticated or not self.user.is_active
+            or len(members) != 2 or members[0] >= members[1]
+            or self.user.id not in members
+        ):
+            await self.close(code=4403)
             return
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
+        self.joined = True
         await self.accept()
 
         # Send last 50 messages as history
@@ -79,6 +89,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def disconnect(self, close_code):
+        if not self.joined:
+            return
         await self.channel_layer.group_send(
             self.group_name,
             {'type': 'user_status', 'user_id': self.user.id, 'status': 'offline'}
@@ -86,7 +98,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive(self, text_data):
-        data = json.loads(text_data)
+        if not self.joined:
+            return
+        if len(text_data) > 16000:
+            await self.close(code=1009)
+            return
+        try:
+            data = json.loads(text_data)
+        except (TypeError, ValueError):
+            await self.close(code=1007)
+            return
+        if not isinstance(data, dict):
+            await self.close(code=1007)
+            return
         action = data.get('action', 'send')
 
         if action == 'typing':
@@ -119,9 +143,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         # Default: send a message
-        content = data.get('message', '').strip()
-        if not content:
+        content = data.get('message', '')
+        if not isinstance(content, str) or not content.strip() or len(content) > 4000:
             return
+        content = content.strip()
 
         # Parse room_id to get recipient
         parts = self.room_id.split('_')
@@ -260,7 +285,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def delete_message(self, message_id):
         from .models import Message
         try:
-            msg = Message.objects.get(id=message_id, sender=self.user)
+            members = [int(part) for part in self.room_id.split('_')]
+            recipient_id = next(member for member in members if member != self.user.id)
+            msg = Message.objects.get(id=message_id, sender=self.user, recipient_id=recipient_id)
             msg.delete()
             return True
         except Message.DoesNotExist:

@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from .models import (
     Listing, ListingMedia, Asset, ResidentialSpec, CommercialSpec, LandSpec,
     HotelSpec, VehicleSpec, SellerProfile, Customer, Conversation,
@@ -196,6 +198,23 @@ class ListingCreateSerializer(serializers.ModelSerializer):
 
 
 # ─── Customer ───
+
+class SellerListingWriteSerializer(ListingCreateSerializer):
+    def validate(self, attrs):
+        forbidden = {
+            'asset', 'seller_id', 'owner_id', 'verification_level', 'is_featured',
+            'listed_by_role', 'views_count', 'slug', 'owner_verified',
+        }.intersection(self.initial_data)
+        if forbidden:
+            raise serializers.ValidationError({key: 'Only platform staff can change this field.' for key in forbidden})
+        if 'status' in attrs and attrs['status'] not in {'draft', 'submitted', 'archived'}:
+            raise serializers.ValidationError({'status': 'Sellers can save drafts, submit for review, or archive.'})
+        if self.instance and self.instance.status in {'sold', 'rented', 'completed'}:
+            raise serializers.ValidationError('Completed listings cannot be edited by sellers.')
+        if attrs.get('price', 1) <= 0:
+            raise serializers.ValidationError({'price': 'Price must be positive.'})
+        return attrs
+
 
 class CustomerSerializer(serializers.ModelSerializer):
     conversations_count = serializers.SerializerMethodField()
@@ -430,12 +449,14 @@ class VerificationDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = VerificationDocument
         fields = ['id', 'listing', 'file', 'document_type', 'uploaded_at', 'is_verified']
+        read_only_fields = ['id', 'uploaded_at', 'is_verified']
 
 
 class VerificationReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = VerificationReview
         fields = ['id', 'document', 'reviewer', 'status', 'notes', 'reviewed_at']
+        read_only_fields = ['id', 'reviewer', 'reviewed_at']
 
 
 # ─── Content ───
@@ -618,6 +639,60 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+    def validate(self, attrs):
+        try:
+            validate_password(attrs['password'], User(**{
+                key: value for key, value in attrs.items() if key != 'password'
+            }))
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({'password': exc.messages})
+        return attrs
+
+
+class SelfProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name']
+
+    def validate(self, attrs):
+        forbidden = set(self.initial_data) - set(self.fields)
+        if forbidden:
+            raise serializers.ValidationError({key: 'This field cannot be changed here.' for key in forbidden})
+        return attrs
+
+
+class RegistrationSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+    full_name = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    role = serializers.CharField(required=False, default='customer')
+
+    def validate(self, attrs):
+        role = attrs.pop('role').lower()
+        if role not in {'customer', 'buyer', 'tenant'}:
+            raise serializers.ValidationError({'role': 'Public registration creates customer accounts only.'})
+        for field in ('is_staff', 'is_superuser', 'is_active'):
+            if field in self.initial_data:
+                raise serializers.ValidationError({field: 'This field is managed by administrators.'})
+        attrs['username'] = attrs.get('username') or attrs['email'].split('@')[0]
+        for field in ('username', 'email'):
+            if User.objects.filter(**{f'{field}__iexact': attrs[field]}).exists():
+                raise serializers.ValidationError({field: 'Already registered.'})
+        User._meta.get_field('username').run_validators(attrs['username'])
+        try:
+            validate_password(attrs['password'], User(username=attrs['username'], email=attrs['email']))
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({'password': exc.messages})
+        return attrs
+
+    def create(self, validated_data):
+        full_name = validated_data.pop('full_name', '').split(' ', 1)
+        return User.objects.create_user(
+            **validated_data, role='customer', first_name=full_name[0],
+            last_name=full_name[1] if len(full_name) > 1 else '',
+        )
 
 
 class UpdatesSerializer(serializers.ModelSerializer):

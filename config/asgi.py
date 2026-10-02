@@ -12,11 +12,12 @@ django.setup()
 
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
+from channels.security.websocket import AllowedHostsOriginValidator
 import urugwiro.routing
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": AuthMiddlewareStack(
-        URLRouter(urugwiro.routing.websocket_urlpatterns)
+    "websocket": AllowedHostsOriginValidator(
+        AuthMiddlewareStack(URLRouter(urugwiro.routing.websocket_urlpatterns))
     ),
 })

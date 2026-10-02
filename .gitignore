@@ -38,6 +38,7 @@ pnpm-debug.log*
 
 # Editors and operating-system files
 .vscode/
+.codex/
 .idea/
 .trae/
 .DS_Store

@@ -3,7 +3,7 @@ import axios from 'axios';
 const rawBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
 const API_BASE_URL = rawBaseUrl
   ? (rawBaseUrl.endsWith('/api') ? rawBaseUrl : `${rawBaseUrl.replace(/\/+$/, '')}/api`)
-  : (import.meta.env.DEV ? '/api' : 'https://urugwiro-api-production.up.railway.app/api');
+  : (import.meta.env.DEV ? '/api' : 'https://urugwiro-api-production-b6d5.up.railway.app/api');
 
 // CSRF token extraction from cookies (Django's csrf_token cookie)
 function getCsrfToken(): string | null {

@@ -1,7 +1,11 @@
 import json
 import logging
 from decimal import Decimal, InvalidOperation
-from django.db.models import Q, Sum, Count, Avg
+from django.db.models import Q, Sum, Count, Avg, F, Exists, OuterRef
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.exceptions import ValidationError
+from .permissions import has_capability
 from django.contrib.auth import authenticate, login, logout
 from django.utils.text import slugify
 from django.shortcuts import get_object_or_404
@@ -29,11 +33,12 @@ from .serializers import (
     PropertyInquirySerializer, CustomerSerializer, ConversationSerializer, FollowUpSerializer, VisitCreateSerializer,
     TransactionSerializer, SellerPaymentSerializer, CommissionRuleSerializer, BusinessExpenseSerializer,
     ListingProposalSerializer, SystemSettingSerializer, SavedPropertySerializer, ConversationEventSerializer,
-    AdminUserCreateSerializer
+    AdminUserCreateSerializer, RegistrationSerializer, SelfProfileSerializer, SellerListingWriteSerializer
 )
 
 # Services
 from .services import ValuationService, generate_listing_narrative, analyze_offer, describe_listing_image
+from .catalog import ListingFilters, PublicListingSerializer, public_listings
 
 logger = logging.getLogger(__name__)
 
@@ -46,12 +51,11 @@ class StandardResultsSetPagination(PageNumberPagination):
 # Permission Helpers
 # ==========================================
 
-def check_admin_permission(request):
+def check_admin_permission(request, capability='operations'):
     if not request.user or not request.user.is_authenticated:
         return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-    if request.user.role not in ['admin', 'owner', 'finance', 'staff']:
-        if not request.user.is_superuser:
-            return Response({'error': 'Admin permissions required'}, status=status.HTTP_403_FORBIDDEN)
+    if not has_capability(request.user, capability):
+        return Response({'error': 'You do not have permission for this operation.'}, status=status.HTTP_403_FORBIDDEN)
     return None
 
 def check_seller_permission(request):
@@ -60,6 +64,9 @@ def check_seller_permission(request):
     if request.user.role not in ['seller', 'admin', 'owner', 'staff']:
         if not request.user.is_superuser:
             return Response({'error': 'Seller permissions required'}, status=status.HTTP_403_FORBIDDEN)
+    profile = getattr(request.user, 'seller_profile', None)
+    if profile and profile.status in {'suspended', 'archived'}:
+        return Response({'error': 'Seller account is not active.'}, status=status.HTTP_403_FORBIDDEN)
     return None
 
 def get_seller_profile(request):
@@ -79,8 +86,8 @@ def get_seller_profile(request):
             'name': user.get_full_name() or user.username,
             'email': user.email or f'{user.username}@urugwiro.rw',
             'phone_number': getattr(user, 'phone_number', None) or 'Not provided',
-            'status': 'approved',
-            'is_verified': True,
+            'status': 'pending',
+            'is_verified': False,
         },
     )
     return profile
@@ -820,74 +827,42 @@ def get_paginated_response(queryset, serializer_class, request, context=None):
 # ==========================================
 
 class ListingListView(generics.ListAPIView):
-    serializer_class = ListingSerializer
+    serializer_class = PublicListingSerializer
     pagination_class = StandardResultsSetPagination
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        queryset = Listing.objects.filter(status='published').select_related('asset', 'seller').prefetch_related('media')
-        
-        search = self.request.query_params.get('search', None)
-        if search:
-            queryset = queryset.filter(Q(title__icontains=search) | Q(description__icontains=search))
-            
-        category = self.request.query_params.get('category', None)
-        if category:
-            queryset = queryset.filter(category=category)
-            
-        purpose = self.request.query_params.get('purpose', None)
-        if purpose:
-            queryset = queryset.filter(purpose=purpose)
-            
-        min_price = self.request.query_params.get('min_price', None)
-        if min_price:
-            queryset = queryset.filter(price__gte=min_price)
-            
-        max_price = self.request.query_params.get('max_price', None)
-        if max_price:
-            queryset = queryset.filter(price__lte=max_price)
-            
-        district = self.request.query_params.get('district', None)
-        if district:
-            queryset = queryset.filter(asset__district__icontains=district)
-            
-        is_featured = self.request.query_params.get('is_featured', None)
-        if is_featured and is_featured.lower() == 'true':
-            queryset = queryset.filter(is_featured=True)
-            
-        return queryset
+        filters = ListingFilters(data=self.request.query_params)
+        filters.is_valid(raise_exception=True)
+        return filters.apply(public_listings(self.request.user))
 
 class ListingDetailView(generics.RetrieveAPIView):
-    queryset = Listing.objects.select_related('asset', 'seller').prefetch_related('media')
-    serializer_class = ListingSerializer
+    queryset = Listing.objects.none()
+    serializer_class = PublicListingSerializer
     permission_classes = [AllowAny]
 
     def get_object(self):
-        pk = self.kwargs.get('pk')
-        if str(pk).isdigit():
-            obj = get_object_or_404(self.queryset, pk=pk)
-        else:
-            obj = get_object_or_404(self.queryset, slug=pk)
-        
-        # Increment views count
+        lookup = {'pk': self.kwargs['pk']} if 'pk' in self.kwargs else {'slug': self.kwargs['slug']}
+        obj = get_object_or_404(public_listings(self.request.user), **lookup)
+        Listing.objects.filter(pk=obj.pk).update(views_count=F('views_count') + 1)
         obj.views_count += 1
-        obj.save(update_fields=['views_count'])
         return obj
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def toggle_like(request, pk):
-    listing = get_object_or_404(Listing, pk=pk)
+    listing = get_object_or_404(Listing, pk=pk, status='published')
     saved_prop, created = SavedProperty.objects.get_or_create(user=request.user, listing=listing)
     
     if not created:
         saved_prop.delete()
-        return Response({'status': 'unliked'}, status=status.HTTP_200_OK)
-    return Response({'status': 'liked'}, status=status.HTTP_201_CREATED)
+        return Response({'status': 'unliked', 'liked': False, 'total_likes': listing.saved_by.count()}, status=status.HTTP_200_OK)
+    return Response({'status': 'liked', 'liked': True, 'total_likes': listing.saved_by.count()}, status=status.HTTP_201_CREATED)
 
 @api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
 def listing_reviews(request, pk):
-    listing = get_object_or_404(Listing, pk=pk)
+    listing = get_object_or_404(Listing, pk=pk, status='published')
     if request.method == 'GET':
         reviews = ListingReview.objects.filter(listing=listing).order_by('-created_at')
         return get_paginated_response(reviews, ListingReviewSerializer, request)
@@ -946,35 +921,9 @@ def api_login(request):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def api_register(request):
-    username = (request.data.get('username') or '').strip()
-    email = (request.data.get('email') or '').strip()
-    password = request.data.get('password')
-    full_name = request.data.get('full_name') or ''
-    role = request.data.get('role') or 'customer'
-    
-    if not username and email:
-        username = email.split('@')[0]
-        
-    if not username or not password:
-        return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-    if User.objects.filter(username__iexact=username).exists():
-        return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
-    if email and User.objects.filter(email__iexact=email).exists():
-        return Response({'error': 'Email already registered'}, status=status.HTTP_400_BAD_REQUEST)
-        
-    user = User.objects.create_user(
-        username=username,
-        email=email,
-        password=password,
-        role=role.lower()
-    )
-    if full_name:
-        parts = full_name.split(' ', 1)
-        user.first_name = parts[0]
-        if len(parts) > 1:
-            user.last_name = parts[1]
-        user.save(update_fields=['first_name', 'last_name'])
+    serializer = RegistrationSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user = serializer.save()
         
     login(request, user)
     refresh = RefreshToken.for_user(user)
@@ -997,10 +946,10 @@ def api_me(request):
             **user_data
         })
     elif request.method == 'PUT':
-        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        serializer = SelfProfileSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            user_data = serializer.data
+            user_data = UserSerializer(request.user).data
             return Response({
                 'user': user_data,
                 **user_data
@@ -1010,6 +959,13 @@ def api_me(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def api_logout(request):
+    token = request.data.get('refresh')
+    if token:
+        from rest_framework_simplejwt.exceptions import TokenError
+        try:
+            RefreshToken(token).blacklist()
+        except TokenError:
+            pass
     logout(request)
     return Response({'message': 'Logged out'}, status=status.HTTP_200_OK)
 
@@ -1252,7 +1208,7 @@ def seller_create_listing(request):
         data['description'] = f"{data.get('title') or 'Property'} in {data.get('district') or 'Rwanda'}. Contact Urugwiro to arrange a viewing and verify the property details."
     if not data.get('address'):
         data['address'] = ', '.join(filter(None, [data.get('sector'), data.get('district'), data.get('province')])) or 'Rwanda'
-    serializer = ListingCreateSerializer(data=data)
+    serializer = SellerListingWriteSerializer(data=data)
     if serializer.is_valid():
         asset = create_listing_asset(data, data.get('category') or 'house', data.get('title'))
         listing = serializer.save(seller=profile, asset=asset)
@@ -1292,15 +1248,20 @@ def seller_listing_detail_manage(request, pk):
     if request.method == 'GET':
         return Response(ListingSerializer(listing, context={'request': request}).data)
     elif request.method in ['PUT', 'PATCH']:
-        update_listing_asset_and_specs(listing, request.data)
-        serializer = ListingCreateSerializer(listing, data=request.data, partial=True)
+        serializer = SellerListingWriteSerializer(listing, data=request.data, partial=True)
         if serializer.is_valid():
+            update_listing_asset_and_specs(listing, request.data)
             serializer.save()
+            if listing.status == 'published':
+                listing.status = 'submitted'
+                listing.verification_level = 'submitted' if listing.verification_docs.exists() else 'none'
+                listing.save(update_fields=['status', 'verification_level'])
             listing.refresh_from_db()
             return Response(ListingSerializer(listing, context={'request': request}).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     elif request.method == 'DELETE':
-        listing.delete()
+        listing.status = 'archived'
+        listing.save(update_fields=['status'])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 @api_view(['POST'])
@@ -1309,12 +1270,12 @@ def seller_listing_toggle_status(request, pk):
     if err: return err
     profile = get_seller_profile(request)
     listing = get_object_or_404(Listing, pk=pk, seller=profile)
-    new_status = request.data.get('status')
-    if new_status:
-        listing.status = new_status
-        listing.save()
-        return Response(ListingSerializer(listing).data)
-    return Response({'error': 'No status provided'}, status=status.HTTP_400_BAD_REQUEST)
+    serializer = SellerListingWriteSerializer(listing, data=request.data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    if 'status' not in serializer.validated_data:
+        raise ValidationError({'status': 'Required.'})
+    serializer.save()
+    return Response(ListingSerializer(listing).data)
 
 @api_view(['POST'])
 def seller_upload_listing_media(request, pk):
@@ -1948,9 +1909,9 @@ def admin_property_detail_manage(request, pk):
     if request.method == 'GET':
         return Response(ListingSerializer(listing, context={'request': request}).data)
     elif request.method in ['PUT', 'PATCH']:
-        update_listing_asset_and_specs(listing, request.data)
         serializer = ListingCreateSerializer(listing, data=request.data, partial=True)
         if serializer.is_valid():
+            update_listing_asset_and_specs(listing, request.data)
             serializer.save()
             listing.refresh_from_db()
             return Response(ListingSerializer(listing, context={'request': request}).data)
@@ -2038,7 +1999,7 @@ def admin_seller_detail_manage(request, pk):
 
 @api_view(['GET', 'POST'])
 def admin_users_list_create(request):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'accounts')
     if err: return err
     if request.method == 'GET':
         users = User.objects.all().order_by('-date_joined')
@@ -2068,7 +2029,7 @@ def admin_users_list_create(request):
 
 @api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 def admin_user_detail_update_delete(request, pk):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'accounts')
     if err: return err
     user = get_object_or_404(User, pk=pk)
     
@@ -2086,11 +2047,11 @@ def admin_user_detail_update_delete(request, pk):
 
 @api_view(['POST'])
 def admin_user_set_role(request, pk):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'accounts')
     if err: return err
     user = get_object_or_404(User, pk=pk)
     role = request.data.get('role')
-    if role:
+    if role in dict(User._meta.get_field('role').choices):
         user.role = role
         user.save()
         return Response(UserSerializer(user).data)
@@ -2098,7 +2059,7 @@ def admin_user_set_role(request, pk):
 
 @api_view(['POST'])
 def admin_user_toggle_status(request, pk):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'accounts')
     if err: return err
     user = get_object_or_404(User, pk=pk)
     user.is_active = not user.is_active
@@ -2107,11 +2068,15 @@ def admin_user_toggle_status(request, pk):
 
 @api_view(['POST'])
 def admin_user_reset_password(request, pk):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'accounts')
     if err: return err
     user = get_object_or_404(User, pk=pk)
     new_password = request.data.get('password') or request.data.get('new_password')
     if new_password:
+        try:
+            validate_password(new_password, user)
+        except DjangoValidationError as exc:
+            raise ValidationError({'password': exc.messages})
         user.set_password(new_password)
         user.save()
         return Response({'message': 'Password reset successful'})
@@ -2123,7 +2088,7 @@ def admin_user_reset_password(request, pk):
 
 @api_view(['GET', 'POST'])
 def admin_transactions_list(request):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'finance')
     if err: return err
     if request.method == 'GET':
         transactions = Transaction.objects.all().order_by('-created_at')
@@ -2137,7 +2102,7 @@ def admin_transactions_list(request):
 
 @api_view(['GET', 'PUT'])
 def admin_transaction_detail(request, pk):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'finance')
     if err: return err
     transaction = get_object_or_404(Transaction, pk=pk)
     
@@ -2152,7 +2117,7 @@ def admin_transaction_detail(request, pk):
 
 @api_view(['GET', 'POST'])
 def admin_seller_payments_list(request):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'finance')
     if err: return err
     if request.method == 'GET':
         payments = SellerPayment.objects.all().order_by('-created_at')
@@ -2166,7 +2131,7 @@ def admin_seller_payments_list(request):
 
 @api_view(['GET', 'PUT'])
 def admin_seller_payment_detail(request, pk):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'finance')
     if err: return err
     payment = get_object_or_404(SellerPayment, pk=pk)
     
@@ -2181,7 +2146,7 @@ def admin_seller_payment_detail(request, pk):
 
 @api_view(['GET', 'POST'])
 def admin_commission_rules_list(request):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'finance')
     if err: return err
     if request.method == 'GET':
         rules = CommissionRule.objects.all().order_by('name')
@@ -2195,7 +2160,7 @@ def admin_commission_rules_list(request):
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def admin_commission_rule_detail(request, pk):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'finance')
     if err: return err
     rule = get_object_or_404(CommissionRule, pk=pk)
     
@@ -2213,7 +2178,7 @@ def admin_commission_rule_detail(request, pk):
 
 @api_view(['GET', 'POST'])
 def admin_expenses_list(request):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'finance')
     if err: return err
     if request.method == 'GET':
         expenses = BusinessExpense.objects.all().order_by('-date')
@@ -2227,7 +2192,7 @@ def admin_expenses_list(request):
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def admin_expense_detail(request, pk):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'finance')
     if err: return err
     expense = get_object_or_404(BusinessExpense, pk=pk)
     
@@ -2337,7 +2302,7 @@ def admin_enquiry_detail_update(request, pk):
 
 @api_view(['GET'])
 def owner_dashboard_metrics(request):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'finance')
     if err: return err
     
     total_listings = Listing.objects.count()
@@ -2410,7 +2375,7 @@ def owner_dashboard_metrics(request):
 
 @api_view(['GET', 'POST'])
 def manage_system_settings(request):
-    err = check_admin_permission(request)
+    err = check_admin_permission(request, 'settings')
     if err: return err
     if request.method == 'GET':
         settings = SystemSetting.objects.all()

@@ -3,7 +3,9 @@ from . import api_views
 from . import views
 
 urlpatterns = [
-    # ─── Health check ───
+    # ─── Health check & Root ───
+    path('', api_views.health_check, name='root_health'),
+    path('api/', api_views.health_check, name='api_root_health'),
     path('api/health/', api_views.health_check, name='api_health'),
     path('health/', api_views.health_check, name='health'),
 
@@ -18,6 +20,7 @@ urlpatterns = [
 
     # ─── Public Listings ───
     path('api/listings/', api_views.ListingListView.as_view(), name='api_listings'),
+    path('api/listings/visual-search/', api_views.visual_search, name='api_visual_search'),
     path('api/listings/<int:pk>/', api_views.ListingDetailView.as_view(), name='api_listing_detail'),
     path('api/listings/<slug:slug>/', api_views.ListingDetailView.as_view(), name='api_listing_detail_slug'),
     path('api/listings/<int:pk>/like/', api_views.toggle_like, name='api_listing_like'),
@@ -36,7 +39,6 @@ urlpatterns = [
     path('api/valuation/estimate/', api_views.valuation_estimate, name='api_valuation'),
     path('api/ai/listing-narrative/', api_views.ai_listing_narrative, name='api_ai_listing_narrative'),
     path('api/ai/offer-analysis/', api_views.ai_offer_analysis, name='api_ai_offer_analysis'),
-    path('api/listings/visual-search/', api_views.visual_search, name='api_visual_search'),
 
     # ─── Proposals (Public Intake) ───
     path('api/proposals/', api_views.api_proposals_view, name='api_proposals'),

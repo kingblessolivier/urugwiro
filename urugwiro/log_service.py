@@ -12,7 +12,7 @@ Usage anywhere in the project:
 
 import logging
 
-_file_logger = logging.getLogger('propertyhub.system')
+_file_logger = logging.getLogger('urugwiro.system')
 
 
 # ── Public helper ──────────────────────────────────────────────────────────────

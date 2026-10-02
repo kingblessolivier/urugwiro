@@ -2,7 +2,7 @@ import type { Listing } from '../types/listing';
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? 'http://localhost:8000' : 'https://urugwiro-api-production.up.railway.app');
+  (import.meta.env.DEV ? 'http://localhost:8000' : 'https://urugwiro-api-production-b6d5.up.railway.app');
 
 export function resolveImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
