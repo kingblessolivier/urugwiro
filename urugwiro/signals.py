@@ -4,34 +4,24 @@ from .models import VerificationReview, VerificationDocument, Listing, ListingAu
 
 @receiver(post_save, sender=VerificationReview)
 def handle_verification_review(sender, instance, created, **kwargs):
-    if created:
-        doc = instance.document
-        listing = doc.listing
+    if not created:
+        return
 
-        # 1. Update document status
-        if instance.status == 'approved':
-            doc.is_verified = True
-            doc.save()
+    doc = instance.document
+    listing = doc.listing
+    doc.is_verified = instance.status == 'approved'
+    doc.save(update_fields=['is_verified'])
 
-            # 2. Evaluate Listing Verification Level
-            # If at least one document is verified, we move to 'verified'
-            # In a more complex system, we might require specific types of docs
-            old_level = listing.verification_level
-            new_level = 'verified'
-
-            if old_level != new_level:
-                listing.verification_level = new_level
-                listing.save()
-
-                # 3. Audit the change
-                ListingAuditLog.objects.create(
-                    listing=listing,
-                    field_changed='verification_level',
-                    old_value=old_level,
-                    new_value=new_level,
-                    changed_by=instance.reviewer
-                )
-        else:
-            # If rejected, ensure it's not verified
-            doc.is_verified = False
-            doc.save()
+    documents = listing.verification_docs.all()
+    new_level = 'verified' if documents.exists() and not documents.filter(is_verified=False).exists() else 'submitted'
+    old_level = listing.verification_level
+    if old_level != new_level:
+        listing.verification_level = new_level
+        listing.save(update_fields=['verification_level'])
+        ListingAuditLog.objects.create(
+            listing=listing,
+            field_changed='verification_level',
+            old_value=old_level,
+            new_value=new_level,
+            changed_by=instance.reviewer,
+        )

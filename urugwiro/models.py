@@ -704,7 +704,18 @@ class Transaction(models.Model):
         self.seller_amount = self.agreed_price - self.commission_amount
 
     def save(self, *args, **kwargs):
-        if not self.commission_amount and not self.seller_amount:
+        recalculate = self._state.adding
+        if self.pk and not self._state.adding:
+            previous = type(self).objects.filter(pk=self.pk).values(
+                'agreed_price', 'commission_rule_id', 'seller_id', 'listing_id',
+            ).first()
+            recalculate = previous is None or any((
+                previous['agreed_price'] != self.agreed_price,
+                previous['commission_rule_id'] != self.commission_rule_id,
+                previous['seller_id'] != self.seller_id,
+                previous['listing_id'] != self.listing_id,
+            ))
+        if recalculate:
             self.calculate_commission()
         super().save(*args, **kwargs)
 
@@ -749,6 +760,8 @@ class SellerPayment(models.Model):
         ordering = ['-created_at']
 
     def save(self, *args, **kwargs):
+        if self.amount_paid < 0 or self.amount_paid > self.seller_entitlement:
+            raise ValueError('Paid amount must be between zero and the seller entitlement.')
         self.remaining_balance = self.seller_entitlement - self.amount_paid
         super().save(*args, **kwargs)
 
@@ -1028,9 +1041,8 @@ class ListingProposal(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.proposal_code:
-            import random
             from django.utils import timezone
-            self.proposal_code = f"PROP-{timezone.now().year}-{random.randint(1000, 9999)}"
+            self.proposal_code = f"PROP-{timezone.now().year}-{uuid.uuid4().hex[:8].upper()}"
         super().save(*args, **kwargs)
 
     def __str__(self):

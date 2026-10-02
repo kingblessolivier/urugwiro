@@ -34,7 +34,7 @@ from .serializers import (
     PropertyInquirySerializer, CustomerSerializer, ConversationSerializer, FollowUpSerializer, VisitCreateSerializer,
     TransactionSerializer, SellerPaymentSerializer, CommissionRuleSerializer, BusinessExpenseSerializer,
     ListingProposalSerializer, PublicListingProposalSerializer, SystemSettingSerializer, SavedPropertySerializer, ConversationEventSerializer,
-    AdminUserCreateSerializer, RegistrationSerializer, SelfProfileSerializer, SellerListingWriteSerializer
+    AdminUserCreateSerializer, AdminUserUpdateSerializer, RegistrationSerializer, SelfProfileSerializer, SellerListingWriteSerializer
 )
 
 # Services
@@ -68,6 +68,24 @@ def check_seller_permission(request):
     profile = getattr(request.user, 'seller_profile', None)
     if profile and profile.status in {'suspended', 'archived'}:
         return Response({'error': 'Seller account is not active.'}, status=status.HTTP_403_FORBIDDEN)
+    return None
+
+
+PROTECTED_ACCOUNT_ROLES = {'owner', 'admin', 'finance'}
+
+
+def check_account_management_permission(request, target=None, requested_role=None):
+    actor_is_owner = request.user.is_superuser or request.user.role == 'owner'
+    if target and target.pk == request.user.pk and (
+        requested_role and requested_role != target.role
+    ):
+        return Response({'error': 'You cannot change your own role.'}, status=status.HTTP_400_BAD_REQUEST)
+    if target and target.pk == request.user.pk and request.data.get('is_active') is False:
+        return Response({'error': 'You cannot deactivate your own account.'}, status=status.HTTP_400_BAD_REQUEST)
+    if target and target.role in PROTECTED_ACCOUNT_ROLES and not actor_is_owner:
+        return Response({'error': 'Only an owner can manage protected accounts.'}, status=status.HTTP_403_FORBIDDEN)
+    if requested_role in PROTECTED_ACCOUNT_ROLES and not actor_is_owner:
+        return Response({'error': 'Only an owner can assign this role.'}, status=status.HTTP_403_FORBIDDEN)
     return None
 
 def get_seller_profile(request):
@@ -778,8 +796,6 @@ def ensure_transaction_for_sold_listing(listing, agreed_price=None, customer=Non
     """
     if listing.status not in ('sold', 'rented'):
         return None
-    if getattr(listing, 'transaction', None):
-        return None
     if not getattr(listing, 'seller', None):
         return None
 
@@ -795,8 +811,9 @@ def ensure_transaction_for_sold_listing(listing, agreed_price=None, customer=Non
     except (InvalidOperation, TypeError, ValueError):
         return None
 
-    if not customer:
-        customer = (
+    customer_id = getattr(customer, 'pk', customer)
+    if not customer_id:
+        customer_id = (
             Offer.objects
             .filter(listing=listing, status__in=('accepted',))
             .order_by('-updated_at')
@@ -804,36 +821,31 @@ def ensure_transaction_for_sold_listing(listing, agreed_price=None, customer=Non
             .first()
         )
 
-    tx = Transaction.objects.create(
+    tx, created = Transaction.objects.get_or_create(
         listing=listing,
-        seller=listing.seller,
-        customer_id=customer,
-        transaction_type=tx_type,
-        agreed_price=price_decimal,
-        currency=getattr(listing, 'currency', 'RWF') or 'RWF',
-        status='completed',
-        completed_at=timezone.now(),
-        notes=('Auto-generated when listing was marked as ' + listing.status),
+        defaults={
+            'seller': listing.seller,
+            'customer_id': customer_id,
+            'transaction_type': tx_type,
+            'agreed_price': price_decimal,
+            'currency': getattr(listing, 'currency', 'RWF') or 'RWF',
+            'status': 'completed',
+            'completed_at': timezone.now(),
+            'notes': 'Auto-generated when listing was marked as ' + listing.status,
+        },
     )
-    # Transaction.save() already runs calculate_commission and sets seller_amount.
-    # Now create a pending SellerPayment so pending payouts reflect this immediately too:
-    try:
-        SellerPayment.objects.get_or_create(
+    if created:
+        SellerPayment.objects.create(
             transaction=tx,
             seller=tx.seller,
             listing=listing,
-            defaults={
-                'gross_amount': tx.agreed_price,
-                'commission_amount': tx.commission_amount,
-                'seller_entitlement': tx.seller_amount,
-                'amount_paid': Decimal('0'),
-                'remaining_balance': tx.seller_amount,
-                'status': 'pending',
-                'payment_method': 'bank_transfer',
-            },
+            gross_amount=tx.agreed_price,
+            commission_amount=tx.commission_amount,
+            seller_entitlement=tx.seller_amount,
+            amount_paid=Decimal('0'),
+            status='pending',
+            payment_method='bank_transfer',
         )
-    except Exception:
-        pass
     return tx
 
 
@@ -1172,13 +1184,6 @@ def admin_review_document(request, doc_id):
     serializer = VerificationReviewSerializer(data=data)
     if serializer.is_valid():
         serializer.save(reviewer=request.user)
-        # update document status based on request
-        if data.get('status') == 'approved':
-            doc.is_verified = True
-            doc.save()
-            listing = doc.listing
-            listing.verification_level = 'verified'
-            listing.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1889,8 +1894,18 @@ def admin_property_detail_manage(request, pk):
     elif request.method in ['PUT', 'PATCH']:
         serializer = ListingCreateSerializer(listing, data=request.data, partial=True)
         if serializer.is_valid():
-            update_listing_asset_and_specs(listing, request.data)
-            serializer.save()
+            if listing.status in {'sold', 'rented'}:
+                changed_fields = {
+                    key for key, value in serializer.validated_data.items()
+                    if key != 'status' or value != listing.status
+                }
+                changed_fields.update(set(request.data) - {'status'})
+                if changed_fields:
+                    raise ValidationError({'status': 'Completed listings are immutable.'})
+            with transaction.atomic():
+                update_listing_asset_and_specs(listing, request.data)
+                serializer.save()
+                ensure_transaction_for_sold_listing(listing)
             listing.refresh_from_db()
             return Response(ListingSerializer(listing, context={'request': request}).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -2001,7 +2016,10 @@ def admin_users_list_create(request):
     elif request.method == 'POST':
         serializer = AdminUserCreateSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
+            role = serializer.validated_data.get('role', 'customer')
+            hierarchy_error = check_account_management_permission(request, requested_role=role)
+            if hierarchy_error: return hierarchy_error
+            user = serializer.save(is_staff=role in {'admin', 'owner'})
             return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -2014,13 +2032,22 @@ def admin_user_detail_update_delete(request, pk):
     if request.method == 'GET':
         return Response(UserSerializer(user).data)
     elif request.method in ['PUT', 'PATCH']:
-        serializer = UserSerializer(user, data=request.data, partial=True)
+        requested_role = request.data.get('role')
+        hierarchy_error = check_account_management_permission(request, user, requested_role)
+        if hierarchy_error: return hierarchy_error
+        serializer = AdminUserUpdateSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+            role = serializer.validated_data.get('role', user.role)
+            serializer.save(is_staff=role in {'admin', 'owner'})
+            return Response(UserSerializer(user).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     elif request.method == 'DELETE':
-        user.delete()
+        hierarchy_error = check_account_management_permission(request, user)
+        if hierarchy_error: return hierarchy_error
+        if user.pk == request.user.pk:
+            return Response({'error': 'You cannot deactivate your own account.'}, status=status.HTTP_400_BAD_REQUEST)
+        user.is_active = False
+        user.save(update_fields=['is_active'])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 @api_view(['POST'])
@@ -2029,9 +2056,12 @@ def admin_user_set_role(request, pk):
     if err: return err
     user = get_object_or_404(User, pk=pk)
     role = request.data.get('role')
+    hierarchy_error = check_account_management_permission(request, user, role)
+    if hierarchy_error: return hierarchy_error
     if role in dict(User._meta.get_field('role').choices):
         user.role = role
-        user.save()
+        user.is_staff = role in {'admin', 'owner'}
+        user.save(update_fields=['role', 'is_staff'])
         return Response(UserSerializer(user).data)
     return Response({'error': 'Role required'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -2040,8 +2070,12 @@ def admin_user_toggle_status(request, pk):
     err = check_admin_permission(request, 'accounts')
     if err: return err
     user = get_object_or_404(User, pk=pk)
+    hierarchy_error = check_account_management_permission(request, user)
+    if hierarchy_error: return hierarchy_error
+    if user.pk == request.user.pk:
+        return Response({'error': 'You cannot deactivate your own account.'}, status=status.HTTP_400_BAD_REQUEST)
     user.is_active = not user.is_active
-    user.save()
+    user.save(update_fields=['is_active'])
     return Response(UserSerializer(user).data)
 
 @api_view(['POST'])
@@ -2049,6 +2083,8 @@ def admin_user_reset_password(request, pk):
     err = check_admin_permission(request, 'accounts')
     if err: return err
     user = get_object_or_404(User, pk=pk)
+    hierarchy_error = check_account_management_permission(request, user)
+    if hierarchy_error: return hierarchy_error
     new_password = request.data.get('password') or request.data.get('new_password')
     if new_password:
         try:
@@ -2086,7 +2122,7 @@ def admin_transaction_detail(request, pk):
     
     if request.method == 'GET':
         return Response(TransactionSerializer(transaction).data)
-    elif request.method == 'PUT':
+    elif request.method in ['PUT', 'PATCH']:
         serializer = TransactionSerializer(transaction, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -2213,7 +2249,7 @@ def api_proposal_detail_view(request, pk):
     
     if request.method == 'GET':
         return Response(ListingProposalSerializer(proposal).data)
-    elif request.method == 'PUT':
+    elif request.method in ['PUT', 'PATCH']:
         serializer = ListingProposalSerializer(proposal, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()

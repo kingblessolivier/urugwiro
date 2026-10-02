@@ -2,12 +2,17 @@ from unittest.mock import AsyncMock
 
 from asgiref.sync import async_to_sync
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import resolve
 from rest_framework.test import APIClient
 
 from .consumers import ChatConsumer
-from .models import Asset, Customer, Listing, Offer, ResidentialSpec, SellerProfile, SystemSetting, User
+from .models import (
+    Asset, CommissionRule, Customer, Listing, ListingProposal, Offer,
+    ResidentialSpec, SellerPayment, SellerProfile, SystemSetting, Transaction, User,
+    VerificationDocument,
+)
 
 
 NO_THROTTLE = {**settings.REST_FRAMEWORK, 'DEFAULT_THROTTLE_CLASSES': []}
@@ -184,6 +189,137 @@ class ApiSecurityTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertIsNone(guest.user_id)
         self.assertNotEqual(str(response.data['customer']), str(guest.pk))
+
+    def test_saved_properties_returns_public_listing_contract(self):
+        customer = User.objects.create_user(username='saver', password='Saver-pass-123!')
+        self.published.saved_by.create(user=customer)
+        self.authenticate(customer)
+        response = self.client.get('/api/consumer/saved-properties/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], self.published.pk)
+        self.assertIn('asset', response.data['results'][0])
+        self.assertNotIn('phone_number', response.data['results'][0]['seller'])
+
+    def test_admin_cannot_manage_owner_or_assign_protected_role(self):
+        admin = User.objects.create_user(
+            username='admin-user', password='Admin-pass-123!', role='admin', is_staff=True
+        )
+        customer = User.objects.create_user(username='managed-user', password='Managed-pass-123!')
+        self.authenticate(admin)
+        role_response = self.client.post(
+            f'/api/admin/users/{customer.pk}/set-role/', {'role': 'owner'}, format='json'
+        )
+        reset_response = self.client.post(
+            f'/api/admin/users/{self.owner.pk}/reset-password/',
+            {'password': 'Replacement-pass-123!'}, format='json',
+        )
+        self.assertEqual(role_response.status_code, 403)
+        self.assertEqual(reset_response.status_code, 403)
+        customer.refresh_from_db()
+        self.assertEqual(customer.role, 'customer')
+
+    def test_admin_user_update_cannot_set_superuser_and_delete_deactivates(self):
+        customer = User.objects.create_user(username='preserved-user', password='Managed-pass-123!')
+        self.authenticate(self.owner)
+        escalation = self.client.patch(
+            f'/api/admin/users/{customer.pk}/', {'is_superuser': True}, format='json'
+        )
+        deletion = self.client.delete(f'/api/admin/users/{customer.pk}/')
+        customer.refresh_from_db()
+        self.assertEqual(escalation.status_code, 400)
+        self.assertEqual(deletion.status_code, 204)
+        self.assertFalse(customer.is_superuser)
+        self.assertFalse(customer.is_active)
+
+    def test_proposal_patch_and_conversion_create_asset_backed_draft(self):
+        proposal = ListingProposal.objects.create(
+            full_name='Owner', phone_number='0788333333', email='proposal@example.com',
+            title='Apartment proposal', asset_type='apartment', purpose='sale',
+            district='Gasabo', sector='Kacyiru', address='Kacyiru',
+            proposed_price=75_000_000, bedrooms=2, bathrooms=2,
+        )
+        self.authenticate(self.owner)
+        patched = self.client.patch(
+            f'/api/proposals/{proposal.pk}/', {'status': 'inspected'}, format='json'
+        )
+        converted = self.client.post(f'/api/proposals/{proposal.pk}/convert/', {}, format='json')
+        proposal.refresh_from_db()
+        self.assertEqual(patched.status_code, 200)
+        self.assertEqual(converted.status_code, 201)
+        self.assertEqual(proposal.status, 'approved')
+        self.assertIsNotNone(proposal.converted_listing.asset_id)
+        self.assertEqual(proposal.converted_listing.category, 'house')
+        self.assertEqual(proposal.converted_listing.asset.residential_spec.sub_type, 'Apartment')
+
+    def test_sold_listing_creates_one_transaction_and_payment_atomically(self):
+        CommissionRule.objects.create(
+            name='Default five percent', rule_type='percentage', percentage=5,
+            is_default=True, is_active=True,
+        )
+        self.authenticate(self.owner)
+        first = self.client.patch(
+            f'/api/admin/properties/{self.published.pk}/', {'status': 'sold'}, format='json'
+        )
+        second = self.client.patch(
+            f'/api/admin/properties/{self.published.pk}/', {'status': 'sold'}, format='json'
+        )
+        rejected_edit = self.client.patch(
+            f'/api/admin/properties/{self.published.pk}/', {'price': 1}, format='json'
+        )
+        transaction_record = Transaction.objects.get(listing=self.published)
+        payment = SellerPayment.objects.get(transaction=transaction_record)
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(rejected_edit.status_code, 400)
+        self.assertEqual(Transaction.objects.filter(listing=self.published).count(), 1)
+        self.assertEqual(payment.commission_amount, 5_000_000)
+        self.assertEqual(payment.seller_entitlement, 95_000_000)
+
+    def test_verification_requires_all_documents_and_downgrades_on_rejection(self):
+        first = VerificationDocument.objects.create(
+            listing=self.draft,
+            file=SimpleUploadedFile('first.pdf', b'%PDF-1.4 first', content_type='application/pdf'),
+            document_type='Title deed',
+        )
+        second = VerificationDocument.objects.create(
+            listing=self.draft,
+            file=SimpleUploadedFile('second.pdf', b'%PDF-1.4 second', content_type='application/pdf'),
+            document_type='Identity',
+        )
+        self.addCleanup(first.file.delete, save=False)
+        self.addCleanup(second.file.delete, save=False)
+        self.authenticate(self.owner)
+        first_approval = self.client.post(
+            f'/api/admin/verification/review/{first.pk}/', {'status': 'approved'}, format='json'
+        )
+        self.draft.refresh_from_db()
+        self.assertEqual(first_approval.status_code, 201)
+        self.assertEqual(self.draft.verification_level, 'submitted')
+
+        self.client.post(
+            f'/api/admin/verification/review/{second.pk}/', {'status': 'approved'}, format='json'
+        )
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.verification_level, 'verified')
+
+        self.client.post(
+            f'/api/admin/verification/review/{first.pk}/', {'status': 'rejected'}, format='json'
+        )
+        self.draft.refresh_from_db()
+        self.assertEqual(self.draft.verification_level, 'submitted')
+
+    def test_verification_upload_rejects_unsupported_file_type(self):
+        self.authenticate(self.seller_user)
+        response = self.client.post(
+            f'/api/listings/{self.draft.pk}/verify/',
+            {
+                'document_type': 'Executable',
+                'file': SimpleUploadedFile('payload.exe', b'MZ', content_type='application/x-msdownload'),
+            },
+            format='multipart',
+        )
+        self.assertEqual(response.status_code, 400)
 
 
 class ChatAuthorizationTests(TestCase):

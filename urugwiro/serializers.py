@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
+from PIL import Image, UnidentifiedImageError
 from .models import (
     Listing, ListingMedia, Asset, ResidentialSpec, CommercialSpec, LandSpec,
     HotelSpec, VehicleSpec, SellerProfile, Customer, Conversation,
@@ -77,10 +79,49 @@ class AssetSerializer(serializers.ModelSerializer):
 
 # ─── Media ───
 
+def validate_uploaded_file(value, *, max_size, allowed_types):
+    if value.size > max_size:
+        raise serializers.ValidationError(f'File must be {max_size // (1024 * 1024)} MB or smaller.')
+    content_type = getattr(value, 'content_type', '')
+    if content_type not in allowed_types:
+        raise serializers.ValidationError('Unsupported file type.')
+    try:
+        if content_type.startswith('image/'):
+            Image.open(value).verify()
+        elif content_type == 'application/pdf' and value.read(5) != b'%PDF-':
+            raise serializers.ValidationError('The uploaded file is not a valid PDF.')
+    except (UnidentifiedImageError, OSError, SyntaxError):
+        raise serializers.ValidationError('The uploaded image is invalid.')
+    finally:
+        value.seek(0)
+    return value
+
 class ListingMediaSerializer(serializers.ModelSerializer):
     class Meta:
         model = ListingMedia
         fields = ['id', 'file', 'media_type', 'category', 'caption', 'room_name', 'order', 'uploaded_at']
+
+    def validate_file(self, value):
+        return validate_uploaded_file(
+            value,
+            max_size=25 * 1024 * 1024,
+            allowed_types={
+                'image/jpeg', 'image/png', 'image/webp',
+                'video/mp4', 'video/webm', 'application/pdf',
+            },
+        )
+
+    def validate(self, attrs):
+        value = attrs.get('file')
+        media_type = attrs.get('media_type', getattr(self.instance, 'media_type', 'image'))
+        content_type = getattr(value, 'content_type', '') if value else ''
+        if value and media_type == 'image' and not content_type.startswith('image/'):
+            raise serializers.ValidationError({'file': 'Image media requires an image file.'})
+        if value and media_type == 'video' and not content_type.startswith('video/'):
+            raise serializers.ValidationError({'file': 'Video media requires a video file.'})
+        if value and media_type == 'floor_plan' and content_type not in {'application/pdf', 'image/jpeg', 'image/png'}:
+            raise serializers.ValidationError({'file': 'Floor plans must be PDF, JPEG, or PNG.'})
+        return attrs
 
 
 # ─── Seller ───
@@ -378,6 +419,27 @@ class TransactionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'commission_amount', 'seller_amount', 'created_at']
 
+    def validate(self, attrs):
+        instance = self.instance
+        listing = attrs.get('listing', getattr(instance, 'listing', None))
+        seller = attrs.get('seller', getattr(instance, 'seller', None))
+        agreed_price = attrs.get('agreed_price', getattr(instance, 'agreed_price', None))
+        if listing and seller and listing.seller_id != seller.pk:
+            raise serializers.ValidationError({'seller': 'Seller must own the selected listing.'})
+        if agreed_price is not None and agreed_price <= 0:
+            raise serializers.ValidationError({'agreed_price': 'Agreed price must be positive.'})
+        return attrs
+
+    def create(self, validated_data):
+        if validated_data.get('status') == 'completed' and not validated_data.get('completed_at'):
+            validated_data['completed_at'] = timezone.now()
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if validated_data.get('status') == 'completed' and not instance.completed_at:
+            validated_data['completed_at'] = timezone.now()
+        return super().update(instance, validated_data)
+
 
 class SellerPaymentSerializer(serializers.ModelSerializer):
     seller_name = serializers.CharField(source='seller.name', read_only=True)
@@ -393,6 +455,47 @@ class SellerPaymentSerializer(serializers.ModelSerializer):
             'status', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'remaining_balance', 'created_at', 'updated_at']
+
+    def validate(self, attrs):
+        instance = self.instance
+        transaction = attrs.get('transaction', getattr(instance, 'transaction', None))
+        seller = attrs.get('seller', getattr(instance, 'seller', None))
+        listing = attrs.get('listing', getattr(instance, 'listing', None))
+        amount_paid = attrs.get('amount_paid', getattr(instance, 'amount_paid', 0))
+        entitlement = attrs.get('seller_entitlement', getattr(instance, 'seller_entitlement', 0))
+        if transaction:
+            errors = {}
+            if seller and transaction.seller_id != seller.pk:
+                errors['seller'] = 'Seller must match the transaction.'
+            if listing and transaction.listing_id != listing.pk:
+                errors['listing'] = 'Listing must match the transaction.'
+            expected = {
+                'gross_amount': transaction.agreed_price,
+                'commission_amount': transaction.commission_amount,
+                'seller_entitlement': transaction.seller_amount,
+            }
+            for field, value in expected.items():
+                supplied = attrs.get(field, getattr(instance, field, None))
+                if supplied is not None and supplied != value:
+                    errors[field] = 'Amount must match the transaction snapshot.'
+            if errors:
+                raise serializers.ValidationError(errors)
+            entitlement = transaction.seller_amount
+        if amount_paid < 0 or amount_paid > entitlement:
+            raise serializers.ValidationError({'amount_paid': 'Paid amount must be between zero and the seller entitlement.'})
+        return attrs
+
+    def _save_with_derived_status(self, instance, validated_data):
+        entitlement = validated_data.get('seller_entitlement', instance.seller_entitlement)
+        paid = validated_data.get('amount_paid', instance.amount_paid)
+        if paid == entitlement:
+            validated_data['status'] = 'paid'
+        elif paid > 0:
+            validated_data['status'] = 'partially_paid'
+        return super().update(instance, validated_data)
+
+    def update(self, instance, validated_data):
+        return self._save_with_derived_status(instance, validated_data)
 
 
 class BusinessExpenseSerializer(serializers.ModelSerializer):
@@ -450,6 +553,13 @@ class VerificationDocumentSerializer(serializers.ModelSerializer):
         model = VerificationDocument
         fields = ['id', 'listing', 'file', 'document_type', 'uploaded_at', 'is_verified']
         read_only_fields = ['id', 'uploaded_at', 'is_verified']
+
+    def validate_file(self, value):
+        return validate_uploaded_file(
+            value,
+            max_size=10 * 1024 * 1024,
+            allowed_types={'application/pdf', 'image/jpeg', 'image/png'},
+        )
 
 
 class VerificationReviewSerializer(serializers.ModelSerializer):
@@ -667,7 +777,7 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'role', 'password', 'is_active', 'is_staff']
+        fields = ['username', 'email', 'first_name', 'last_name', 'role', 'password', 'is_active']
 
     def create(self, validated_data):
         password = validated_data.pop('password')
@@ -683,6 +793,18 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
             }))
         except DjangoValidationError as exc:
             raise serializers.ValidationError({'password': exc.messages})
+        return attrs
+
+
+class AdminUserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'role', 'is_active']
+
+    def validate(self, attrs):
+        forbidden = set(self.initial_data) - set(self.fields)
+        if forbidden:
+            raise serializers.ValidationError({key: 'This field requires a dedicated privileged operation.' for key in forbidden})
         return attrs
 
 
