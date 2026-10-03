@@ -927,12 +927,23 @@ def listing_reviews(request, pk):
     elif request.method == 'POST':
         if not request.user.is_authenticated:
             return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
-        data = request.data.copy()
-        data['listing'] = listing.id
-        serializer = ListingReviewSerializer(data=data)
+        if listing.seller.user_id == request.user.id:
+            return Response({'error': 'You cannot review your own listing.'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = ListingReviewSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(reviewer=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            review, created = ListingReview.objects.update_or_create(
+                listing=listing,
+                reviewer=request.user,
+                defaults={
+                    'reviewer_name': '',
+                    'rating': serializer.validated_data['rating'],
+                    'comment': serializer.validated_data.get('comment', ''),
+                },
+            )
+            return Response(
+                ListingReviewSerializer(review).data,
+                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])

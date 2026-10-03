@@ -31,6 +31,7 @@ import { readGuestSavedListingIds, toggleGuestSavedListing } from '../../lib/sav
 import { api } from '../../api/endpoints';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { PhotoZoomLightbox, getMediaUrl } from './components/PhotoZoomLightbox';
 import { AtAGlanceGrid, type AtAGlanceFact } from './components/TechnicalSpecs';
 import {
@@ -182,6 +183,7 @@ function localDateInputValue(): string {
 const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onListingClick }) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [activeImage, setActiveImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -210,7 +212,6 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
 
   const [revRating, setRevRating] = useState(5);
   const [revComment, setRevComment] = useState('');
-  const [revName, setRevName] = useState('');
 
   const [activeRail, setActiveRail] = useState<string>('overview');
   const [upiFlash, setUpiFlash] = useState(false);
@@ -247,7 +248,6 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
       const phone = (user as any).phone_number || (user as any).phone || '';
       setVisitName((p) => p || name);
       setInqName((p) => p || name);
-      setRevName((p) => p || name);
       setInqEmail((p) => p || email);
       setVisitPhone((p) => p || phone);
       setInqPhone((p) => p || phone);
@@ -567,7 +567,6 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
     reviewMutation.mutate({
       rating: revRating,
       comment: revComment,
-      reviewer_name: user ? '' : revName,
     });
   };
 
@@ -1507,40 +1506,39 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
                   </div>
                 </div>
 
-                <form onSubmit={submitReview} className="space-y-3"
-                  style={{
-                    paddingTop: '1.25rem',
-                    borderTop: '1px solid var(--color-border)',
-                  }}
-                >
-                  <p className="text-sm font-semibold" style={{ color: 'var(--color-text-muted)' }}>
-                    Rate this property
-                  </p>
-                  <StarPicker value={revRating} onChange={setRevRating} />
-                  {!user && (
-                    <input
-                      value={revName}
-                      onChange={(e) => setRevName(e.target.value)}
-                      placeholder="Your name"
-                      className={inputCls}
-                      required
-                    />
-                  )}
-                  <textarea
-                    value={revComment}
-                    onChange={(e) => setRevComment(e.target.value)}
-                    placeholder="Share a short comment (optional)"
-                    rows={2}
-                    className={cn(inputCls, 'resize-none')}
-                  />
-                  <Button
-                    type="submit"
-                    isLoading={reviewMutation.isPending}
-                    className="px-5"
+                {user ? (
+                  <form onSubmit={submitReview} className="space-y-3"
+                    style={{
+                      paddingTop: '1.25rem',
+                      borderTop: '1px solid var(--color-border)',
+                    }}
                   >
-                    <Send size={15} /> Submit rating
-                  </Button>
-                </form>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--color-text-muted)' }}>
+                      Rate this property
+                    </p>
+                    <StarPicker value={revRating} onChange={setRevRating} />
+                    <textarea
+                      value={revComment}
+                      onChange={(e) => setRevComment(e.target.value)}
+                      placeholder="Share a short comment (optional)"
+                      rows={2}
+                      className={cn(inputCls, 'resize-none')}
+                    />
+                    <Button
+                      type="submit"
+                      isLoading={reviewMutation.isPending}
+                      className="px-5"
+                    >
+                      <Send size={15} /> Submit rating
+                    </Button>
+                  </form>
+                ) : (
+                  <div className="border-t border-[var(--color-border)] pt-5">
+                    <Button type="button" variant="secondary" onClick={() => navigate('/login')}>
+                      <UserCircle2 size={16} /> Sign in to rate
+                    </Button>
+                  </div>
+                )}
 
                 <div className="mt-6 space-y-3"
                   style={{
@@ -1564,7 +1562,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-sm font-bold" style={{ color: 'var(--color-text-main)' }}>
-                            {r.reviewer_name || 'Customer'}
+                            {r.reviewer_display_name || 'Customer'}
                           </span>
                           <Stars value={r.rating} size={14} />
                         </div>

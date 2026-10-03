@@ -651,7 +651,10 @@ class ListingReviewSerializer(serializers.ModelSerializer):
             'id', 'listing', 'listing_title', 'reviewer', 'reviewer_name',
             'reviewer_display_name', 'rating', 'comment', 'created_at',
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = [
+            'id', 'listing', 'listing_title', 'reviewer', 'reviewer_name',
+            'reviewer_display_name', 'created_at',
+        ]
 
     def get_reviewer_display_name(self, obj):
         if obj.reviewer_name:

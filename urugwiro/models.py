@@ -946,6 +946,12 @@ class ListingReview(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['listing', 'reviewer'],
+                name='unique_listing_review_per_account',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.rating}/5 on {self.listing.title}"

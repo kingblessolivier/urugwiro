@@ -15,7 +15,7 @@ from rest_framework.test import APIClient
 
 from .consumers import ChatConsumer
 from .models import (
-    Announcement, Asset, CommissionRule, Customer, Listing, ListingProposal, Message, Offer,
+    Announcement, Asset, CommissionRule, Customer, Listing, ListingProposal, ListingReview, Message, Offer,
     PropertyInquiry, Visit,
     ResidentialSpec, SellerPayment, SellerProfile, SystemSetting, Transaction, User,
     VerificationDocument, SystemLog,
@@ -543,6 +543,37 @@ class ApiSecurityTests(TestCase):
             'scheduled_date': tomorrow.isoformat(),
         }, format='json')
         self.assertEqual(own_visit.status_code, 400)
+
+    def test_reviews_are_account_bound_and_update_in_place(self):
+        anonymous = self.client.post(f'/api/listings/{self.published.pk}/reviews/', {
+            'rating': 5, 'reviewer_name': 'Trusted Seller',
+        }, format='json')
+        buyer = User.objects.create_user(
+            username='reviewer', email='reviewer@example.com', password='Review-pass-123!',
+        )
+        self.authenticate(buyer)
+        created = self.client.post(f'/api/listings/{self.published.pk}/reviews/', {
+            'rating': 5, 'comment': 'First impression', 'reviewer_name': 'Trusted Seller',
+        }, format='json')
+        updated = self.client.post(f'/api/listings/{self.published.pk}/reviews/', {
+            'rating': 3, 'comment': 'Updated after viewing', 'reviewer_name': 'Someone Else',
+        }, format='json')
+
+        self.assertEqual(anonymous.status_code, 401)
+        self.assertEqual(created.status_code, 201)
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(created.data['id'], updated.data['id'])
+        self.assertEqual(updated.data['reviewer_display_name'], buyer.username)
+        self.assertEqual(ListingReview.objects.filter(listing=self.published, reviewer=buyer).count(), 1)
+        review = ListingReview.objects.get(listing=self.published, reviewer=buyer)
+        self.assertEqual(review.rating, 3)
+        self.assertEqual(review.reviewer_name, '')
+
+        self.authenticate(self.seller_user)
+        own_review = self.client.post(f'/api/listings/{self.published.pk}/reviews/', {
+            'rating': 5,
+        }, format='json')
+        self.assertEqual(own_review.status_code, 400)
 
     def test_offer_creation_requires_account_and_rejects_self_offer(self):
         anonymous = self.client.post('/api/consumer/offers/', {

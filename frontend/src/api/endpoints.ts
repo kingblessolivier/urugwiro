@@ -25,7 +25,7 @@ export const api = {
         like: (id: string | number) => apiClient.post<{ liked: boolean; total_likes: number }>(`/listings/${id}/like/`),
         estimateValuation: (data: { category: ListingCategory; purpose: ListingPurpose; currency?: string; rental_frequency?: 'per_day' | 'per_month' | 'per_year'; province?: string; district?: string; sector?: string; bedrooms?: number; bathrooms?: number; area_sqm?: number }) => apiClient.post<{ estimated_value: number | null; low_range: number | null; high_range: number | null; currency: string; confidence: 'high' | 'medium' | 'low' | 'insufficient_data'; method: string; comparables_count: number; limitations: string[] }>('/valuation/estimate/', data),
         reviews: (id: string | number) => apiClient.get<ReviewSummary>(`/listings/${id}/reviews/`),
-        submitReview: (id: string | number, data: { rating: number; comment?: string; reviewer_name?: string }) =>
+        submitReview: (id: string | number, data: { rating: number; comment?: string }) =>
             apiClient.post<Review>(`/listings/${id}/reviews/`, data),
         deleteReview: (reviewId: string | number) => apiClient.delete(`/reviews/${reviewId}/`),
         audit: (id: string | number) => apiClient.get(`/listings/${id}/audit/`),
