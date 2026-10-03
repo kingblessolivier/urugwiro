@@ -757,6 +757,8 @@ class UserSerializer(serializers.ModelSerializer):
     listings_count = serializers.SerializerMethodField()
     offers_count = serializers.SerializerMethodField()
     is_seller = serializers.SerializerMethodField()
+    seller_is_verified = serializers.SerializerMethodField()
+    seller_status = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -764,6 +766,7 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'role', 'is_active', 'is_staff', 'is_superuser',
             'date_joined', 'last_login', 'listings_count', 'offers_count', 'is_seller',
+            'seller_is_verified', 'seller_status',
         ]
 
     def get_listings_count(self, obj):
@@ -776,6 +779,14 @@ class UserSerializer(serializers.ModelSerializer):
     def get_offers_count(self, obj):
         profile = getattr(obj, 'seller_profile', None)
         return profile.offers_received.count() if profile else 0
+
+    def get_seller_is_verified(self, obj):
+        profile = getattr(obj, 'seller_profile', None)
+        return bool(profile and profile.is_verified)
+
+    def get_seller_status(self, obj):
+        profile = getattr(obj, 'seller_profile', None)
+        return profile.status if profile else None
 
 
 class AdminUserCreateSerializer(serializers.ModelSerializer):

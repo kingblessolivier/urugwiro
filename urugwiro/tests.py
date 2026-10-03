@@ -156,6 +156,14 @@ class ApiSecurityTests(TestCase):
         self.assertFalse(customer.is_staff)
         self.assertFalse(customer.is_superuser)
 
+    def test_auth_profile_reports_real_seller_verification_state(self):
+        self.authenticate(self.seller_user)
+        response = self.client.get('/api/auth/me/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data['seller_is_verified'])
+        self.assertEqual(response.data['seller_status'], 'approved')
+
     def test_public_listing_detail_only_exposes_published_safe_fields(self):
         draft = self.client.get(f'/api/listings/{self.draft.pk}/')
         published = self.client.get(f'/api/listings/{self.published.pk}/')

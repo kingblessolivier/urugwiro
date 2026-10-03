@@ -245,7 +245,7 @@ const AdminReports: React.FC = () => {
     {
       label: 'Total Properties',
       value: listings.length.toString(),
-      sub: 'Verified listings',
+      sub: `${listings.filter((listing: any) => ['verified', 'professional'].includes(listing.verification_level)).length} verified`,
       icon: Building2,
       color: 'text-blue-700 dark:text-blue-400',
       bg: 'bg-blue-50 dark:bg-blue-500/10'

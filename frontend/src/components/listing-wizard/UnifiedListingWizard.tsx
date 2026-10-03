@@ -647,7 +647,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm font-bold" style={{ color: 'var(--color-text-main)' }}>Why verify?</h3>
-                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Verified listings get 3x more inquiries and appear first in search results.</p>
+                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Approved documents display a verification status that buyers can inspect.</p>
                 </div>
               </div>
 

@@ -95,7 +95,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                         {/* Concise Highlights */}
                         <div className="space-y-4">
                             {[
-                              { icon: ShieldCheck, title: 'RLMUA Cadastre Verified', desc: '100% verified titles and official land boundary data.' },
+                              { icon: ShieldCheck, title: 'Visible Review Status', desc: 'See whether listing documents are submitted, approved, or still pending.' },
                               { icon: Lock, title: 'Bank-Grade Escrow', desc: '10% earnest deposits protected in regulated custody.' },
                               { icon: Sparkles, title: '3D Spatial Digital Twins', desc: 'Interactive virtual showings and LiDAR site scans.' },
                             ].map(({ icon: Icon, title, desc }) => (
@@ -181,13 +181,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                                 <label className="block text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
                                     Password
                                 </label>
-                                <a
-                                    href="#"
-                                    onClick={(e) => { e.preventDefault(); alert('Please contact support@urugwiro.rw to reset credentials.'); }}
+                                <button
+                                    type="button"
+                                    onClick={() => onNavigate?.('contact')}
                                     className="text-[11px] font-medium text-emerald-500 hover:text-emerald-400 transition-colors"
                                 >
-                                    Forgot?
-                                </a>
+                                    Need account help?
+                                </button>
                             </div>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none" style={{ color: 'var(--color-text-dim)' }}>

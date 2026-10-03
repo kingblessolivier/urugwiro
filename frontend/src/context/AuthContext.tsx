@@ -12,6 +12,9 @@ export interface AuthUser {
     last_name?: string;
     full_name?: string;
     is_staff?: boolean;
+    is_superuser?: boolean;
+    seller_is_verified?: boolean;
+    seller_status?: string | null;
 }
 
 interface AuthContextType {

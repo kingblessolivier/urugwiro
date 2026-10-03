@@ -48,7 +48,6 @@ const AssetProposalPage = lazy(() => import('./features/public/AssetProposalPage
 const LandInfoPage = lazy(() => import('./features/public/LandInfoPage'));
 const ServicesPage = lazy(() => import('./features/public/ServicesPage'));
 const InvestmentCalculator = lazy(() => import('./features/public/InvestmentCalculator'));
-const VisitKanban = lazy(() => import('./features/agent/VisitKanban'));
 
 const PageLoader: React.FC = () => (
   <div className="min-h-screen flex items-center justify-center" role="status" aria-label="Loading" aria-live="polite">
@@ -276,9 +275,9 @@ function RoutedApp() {
       <Route path="/seller/visits" element={<SellerDashboardRoute tab="visits" />} />
       <Route path="/seller/offers" element={<SellerDashboardRoute tab="offers" />} />
       <Route path="/seller/earnings" element={<SellerDashboardRoute tab="earnings" />} />
-      <Route path="/seller/analytics" element={<SellerDashboardRoute tab="overview" />} />
-      <Route path="/seller/documents" element={<SellerDashboardRoute tab="overview" />} />
-      <Route path="/seller/profile" element={<SellerDashboardRoute tab="overview" />} />
+      <Route path="/seller/analytics" element={<Navigate to="/seller" replace />} />
+      <Route path="/seller/documents" element={<Navigate to="/seller" replace />} />
+      <Route path="/seller/profile" element={<Navigate to="/seller" replace />} />
       <Route path="/dashboard/seller" element={<Navigate to="/seller" replace />} />
 
       {/* Admin */}
@@ -314,7 +313,7 @@ function RoutedApp() {
       <Route path="/dashboard/owner" element={<Navigate to="/owner" replace />} />
 
       {/* Agent */}
-      <Route path="/agent/visits" element={<AdminRoute view="admin-visits"><VisitKanban /></AdminRoute>} />
+      <Route path="/agent/visits" element={<Navigate to="/admin/visits" replace />} />
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/" replace />} />

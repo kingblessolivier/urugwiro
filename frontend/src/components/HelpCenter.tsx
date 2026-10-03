@@ -76,7 +76,7 @@ const FAQ_ITEMS: FAQItem[] = [
     },
     {
         question: 'How does property verification work?',
-        answer: 'Our team physically inspects the property, verifies the title deed against the Rwanda Land Management and Use Authority (RLMUA) registry, and confirms ownership documents before issuing a verification badge.',
+        answer: 'Submit the requested ownership and identity documents with the listing. A verification badge is issued only after platform staff approve every required document; rejected or outstanding documents keep the listing unverified.',
         category: 'verification',
     },
     {

@@ -10,7 +10,7 @@ interface AboutPageProps {
 
 const values = [
   { title: 'Integrity', text: 'Every listing, every transaction, and every interaction built on honesty and transparency.', icon: ShieldCheck },
-  { title: 'Innovation', text: 'Pushing boundaries with AI-powered verification, valuation, and market intelligence tools.', icon: Lightbulb },
+  { title: 'Useful Technology', text: 'Building practical search, document review, comparable pricing, and market reporting tools.', icon: Lightbulb },
   { title: 'Customer Focus', text: 'We measure success by whether people can make better, more informed decisions.', icon: Target },
   { title: 'Collaboration', text: 'Working with owners, buyers, agents, and professionals as one unified marketplace.', icon: Users },
   { title: 'Excellence', text: 'Listing quality, media standards, and support held to the highest professional bar.', icon: CheckCircle2 },
@@ -21,8 +21,8 @@ const milestones = [
   { year: '2020', title: 'Founded in Kigali', text: 'Urugwiro started from a need to bring clarity and trust to property management and discovery in Rwanda.' },
   { year: '2021', title: 'Platform Launch', text: 'First-generation listing tools and tenant management system went live on the digital platform.' },
   { year: '2022', title: 'Marketplace Expansion', text: 'Expanded beyond property management into a full marketplace covering land, vehicles, and services.' },
-  { year: '2023', title: 'AI & Intelligence', text: 'Integrated NVIDIA-powered AI for valuations, document verification, and intelligent property matching.' },
-  { year: '2024', title: 'Trust Infrastructure', text: 'Launched RLMUA cadastre verification, escrow protection, and the 6-stage legal conveyance pipeline.' },
+  { year: '2023', title: 'Marketplace Tools', text: 'Added structured listings, search, document submission, and comparable-price analysis.' },
+  { year: '2024', title: 'Trust Infrastructure', text: 'Expanded staff review workflows, seller records, transaction tracking, and customer operations.' },
 ];
 
 const team = [

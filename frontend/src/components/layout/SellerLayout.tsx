@@ -6,10 +6,7 @@ import {
   MessageSquare,
   Calendar,
   Tag,
-  BarChart3,
-  FileText,
   Wallet,
-  User,
   ArrowLeft,
   X,
   LogOut,
@@ -37,6 +34,13 @@ export const SellerLayout: React.FC<SellerLayoutProps> = ({
 
   const displayName = user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.username || 'Seller';
   const initial = (user?.first_name?.[0] || user?.username?.[0] || displayName?.[0] || 'S').toUpperCase();
+  const sellerRole = user?.seller_is_verified
+    ? 'Verified Seller'
+    : user?.seller_status === 'approved'
+      ? 'Approved Seller'
+      : user?.seller_status === 'pending'
+        ? 'Seller - Pending Review'
+        : 'Seller';
 
   const activeView = currentView === 'seller' ? 'seller-dashboard' : currentView;
 
@@ -60,10 +64,7 @@ export const SellerLayout: React.FC<SellerLayoutProps> = ({
     {
       title: 'Business',
       items: [
-        { view: 'seller-analytics', label: 'Analytics', icon: BarChart3 },
-        { view: 'seller-documents', label: 'Documents', icon: FileText },
         { view: 'seller-earnings', label: 'Earnings', icon: Wallet },
-        { view: 'seller-profile', label: 'Profile', icon: User },
       ],
     },
   ];
@@ -110,7 +111,7 @@ export const SellerLayout: React.FC<SellerLayoutProps> = ({
         brandSubtitle="Listing Studio"
         userInitial={initial}
         userName={displayName}
-        userRole="Verified Seller"
+        userRole={sellerRole}
         storageKey="urugwiro_seller_sidebar_collapsed"
         onPublicClick={() => onNavigate('home')}
         onBrandClick={() => onNavigate('seller-dashboard')}
@@ -137,7 +138,7 @@ export const SellerLayout: React.FC<SellerLayoutProps> = ({
           avatar={{
             initial,
             name: displayName,
-            role: 'Verified Seller',
+            role: sellerRole,
             accentTone: 'emerald',
             onLogout: logout,
           }}
@@ -219,7 +220,7 @@ export const SellerLayout: React.FC<SellerLayoutProps> = ({
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-[12px] font-semibold text-[var(--color-text-main)] truncate leading-none">{displayName}</p>
-                    <p className="text-[10px] text-[var(--color-text-dim)] leading-none mt-1">Verified Seller</p>
+                    <p className="text-[10px] text-[var(--color-text-dim)] leading-none mt-1">{sellerRole}</p>
                   </div>
                   <button type="button" onClick={() => logout()} title="Sign Out"
                     className="p-2 rounded-xl text-[var(--color-text-dim)] hover:text-red-500 hover:bg-red-500/10 transition-colors">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { AppView } from '../../types/navigation';
 
 interface PublicFooterProps {
@@ -6,9 +6,6 @@ interface PublicFooterProps {
 }
 
 export const PublicFooter: React.FC<PublicFooterProps> = ({ onNavigate }) => {
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
-
   return (
     <footer
       className="mt-auto transition-colors duration-300"
@@ -27,24 +24,8 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ onNavigate }) => {
               <span className="text-xl font-bold font-display tracking-tight" style={{ color: 'var(--color-text-main)' }}>Urugwiro</span>
             </button>
             <p className="mt-4 max-w-xs text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-              Rwanda's premier marketplace for property, land, and vehicles.
-              Built on trust, verification, and transparent transactions.
+              A marketplace for property, land, vehicles, and structured transaction support in Rwanda.
             </p>
-            <div className="mt-6 flex items-center gap-3">
-              {['Twitter', 'LinkedIn', 'Instagram'].map((name) => (
-                <button
-                  key={name}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border text-xs font-bold transition-all oneui-press cursor-pointer hover:border-emerald-500/40 hover:text-emerald-500"
-                  style={{
-                    borderColor: 'var(--color-border)',
-                    background: 'var(--color-bg-card)',
-                    color: 'var(--color-text-muted)',
-                  }}
-                >
-                  {(name && name[0]) || '•'}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Marketplace Links */}
@@ -89,47 +70,26 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ onNavigate }) => {
                   </button>
                 </li>
               ))}
-              <li><span className="text-sm" style={{ color: 'var(--color-text-dim)' }}>Privacy Policy</span></li>
-              <li><span className="text-sm" style={{ color: 'var(--color-text-dim)' }}>Terms of Service</span></li>
             </ul>
           </div>
 
-          {/* Newsletter & Contact */}
+          {/* Support */}
           <div>
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--color-text-dim)' }}>Stay Updated</h2>
-            <p className="mt-5 text-sm" style={{ color: 'var(--color-text-muted)' }}>Get market insights and new listings delivered to your inbox.</p>
-            <form
-              className="mt-4 flex overflow-hidden rounded-xl border focus-within:border-emerald-500/40 transition-colors"
-              style={{
-                borderColor: 'var(--color-border)',
-                background: 'var(--color-input-bg)',
-              }}
-              onSubmit={(e) => { e.preventDefault(); if (email.trim()) setSubscribed(true); }}
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--color-text-dim)' }}>Support</h2>
+            <p className="mt-5 text-sm leading-6" style={{ color: 'var(--color-text-muted)' }}>Send listing questions, service requests, or account issues through the contact form.</p>
+            <button
+              type="button"
+              onClick={() => onNavigate('contact')}
+              className="mt-4 rounded-lg border border-[var(--color-border)] px-4 py-2.5 text-sm font-semibold text-[var(--color-text-main)] transition-colors hover:border-emerald-500/40 hover:text-emerald-500"
             >
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@email.com"
-                className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-sm outline-none"
-                style={{ color: 'var(--color-text-main)' }}
-              />
-              <button type="submit" className="bg-emerald-500 px-4 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors cursor-pointer">
-                {subscribed ? '✓' : 'Join'}
-              </button>
-            </form>
-            <div className="mt-6 space-y-2 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-              <p>support@urugwiro.com</p>
-              <p>+250 788 123 456</p>
-              <p>Kigali Heights, Kigali, Rwanda</p>
-            </div>
+              Contact the team
+            </button>
           </div>
         </div>
 
         <div className="mt-14 flex flex-col gap-3 pt-7 text-xs sm:flex-row sm:items-center sm:justify-between" style={{ borderTop: '1px solid var(--color-border)', color: 'var(--color-text-dim)' }}>
-          <p>© 2026 Urugwiro Ltd. All rights reserved.</p>
-          <p>Privacy · Terms · Cookie Policy</p>
+          <p>© 2026 Urugwiro.</p>
+          <button type="button" onClick={() => onNavigate('contact')} className="hover:text-emerald-500">Contact</button>
         </div>
       </div>
     </footer>

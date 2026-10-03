@@ -658,12 +658,11 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
               
               {/* Hero Banner with AI Valuation Insight */}
               <div className="relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] p-6 lg:p-10">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div className="space-y-2">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-[var(--color-brand-emerald)] text-[10px] font-bold uppercase tracking-widest">
                       <Sparkles size={12} />
-                      AI Market Insights Active
+                      Portfolio Snapshot
                     </div>
                     <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[var(--color-text-main)] font-display leading-tight">
                       Welcome Back, <span className="text-[var(--color-brand-emerald)]">{displayName}</span>
