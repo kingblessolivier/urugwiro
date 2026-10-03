@@ -179,6 +179,8 @@ class ListingSerializer(serializers.ModelSerializer):
         read_only_fields = ['views_count', 'date_listed', 'date_updated', 'slug']
 
     def get_likes_count(self, obj):
+        if hasattr(obj, '_likes_count'):
+            return obj._likes_count
         return obj.saved_by.count()
 
     def get_is_liked(self, obj):
@@ -188,13 +190,28 @@ class ListingSerializer(serializers.ModelSerializer):
         return False
 
     def get_inquiries_count(self, obj):
+        if hasattr(obj, '_inquiries_count'):
+            return obj._inquiries_count
         return obj.inquiries.count()
 
     def get_conversations_count(self, obj):
+        if hasattr(obj, '_conversations_count'):
+            return obj._conversations_count
         return obj.conversations.count()
 
     def get_offers_count(self, obj):
+        if hasattr(obj, '_offers_count'):
+            return obj._offers_count
         return obj.offers.count()
+
+
+class SellerListingListSerializer(ListingSerializer):
+    """Compact seller inventory payload without redundant owner or favorite lookups."""
+
+    class Meta(ListingSerializer.Meta):
+        fields = [field for field in ListingSerializer.Meta.fields if field not in {
+            'seller', 'seller_name', 'seller_phone', 'seller_user_id', 'is_liked',
+        }]
 
 
 class ListingCreateSerializer(serializers.ModelSerializer):
@@ -258,6 +275,25 @@ class SellerListingWriteSerializer(ListingCreateSerializer):
             raise serializers.ValidationError('Completed listings cannot be edited by sellers.')
         if attrs.get('price', 1) <= 0:
             raise serializers.ValidationError({'price': 'Price must be positive.'})
+        if self.instance is None:
+            raw = self.initial_data
+            category = attrs.get('category', raw.get('category', 'house'))
+            if category in {'car', 'motorbike'}:
+                required = {
+                    field: raw.get(field) for field in ('make', 'model', 'year')
+                    if not raw.get(field)
+                }
+                if required:
+                    raise serializers.ValidationError({field: 'Required for vehicle listings.' for field in required})
+                year = int(raw['year']) if str(raw['year']).isdigit() else 0
+                if year < 1886 or year > timezone.now().year + 1:
+                    raise serializers.ValidationError({'year': 'Enter a valid vehicle model year.'})
+            if category == 'land' and not any(raw.get(field) for field in ('total_area', 'plotSizeSqm', 'plot_size_sqm')):
+                raise serializers.ValidationError({'total_area': 'Land area is required.'})
+            if category == 'house':
+                bedrooms = raw.get('bedrooms')
+                if not bedrooms or not str(bedrooms).isdigit() or int(bedrooms) < 1:
+                    raise serializers.ValidationError({'bedrooms': 'Enter the number of bedrooms.'})
         return attrs
 
 

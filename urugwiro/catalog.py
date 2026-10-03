@@ -40,7 +40,7 @@ class PublicListingSerializer(ListingSerializer):
 
     class Meta(ListingSerializer.Meta):
         fields = [field for field in ListingSerializer.Meta.fields if field not in {
-            'seller_phone', 'inquiries_count', 'conversations_count', 'listed_by_role',
+            'seller_phone', 'inquiries_count', 'conversations_count', 'offers_count', 'listed_by_role',
         }]
 
     def get_likes_count(self, obj) -> int:

@@ -352,6 +352,56 @@ class ApiSecurityTests(TestCase):
         self.assertEqual(response.data['visits'][0]['id'], visit.pk)
         self.assertEqual(response.data['offers_count'], 1)
 
+    def test_seller_can_submit_listing_without_invented_land_claims(self):
+        self.authenticate(self.seller_user)
+
+        response = self.client.post('/api/seller/listings/create/', {
+            'title': 'Unverified land submission',
+            'description': 'Land details supplied by the seller for platform review.',
+            'category': 'land', 'purpose': 'sale', 'price': '25000000',
+            'currency': 'RWF', 'address': 'Rwanda', 'province': 'Kigali City',
+            'district': 'Gasabo', 'total_area': '500', 'status': 'submitted',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 201, response.data)
+        listing = Listing.objects.get(pk=response.data['id'])
+        self.assertEqual(listing.status, 'submitted')
+        self.assertEqual(listing.asset.land_spec.land_use_category, '')
+        self.assertEqual(listing.asset.land_spec.tenure_type, '')
+        self.assertFalse(listing.asset.land_spec.is_encumbrance_free)
+
+    def test_seller_vehicle_submission_requires_real_identity_fields(self):
+        self.authenticate(self.seller_user)
+        assets_before = Asset.objects.count()
+
+        response = self.client.post('/api/seller/listings/create/', {
+            'title': 'Vehicle missing identity fields', 'description': 'Incomplete vehicle.',
+            'category': 'car', 'purpose': 'sale', 'price': '10000000',
+            'currency': 'RWF', 'address': 'Rwanda', 'status': 'submitted',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('make', response.data)
+        self.assertEqual(Asset.objects.count(), assets_before)
+
+    def test_seller_inventory_query_budget_is_constant(self):
+        Listing.objects.bulk_create([
+            Listing(
+                asset=self.asset, seller=self.seller, title=f'Seller inventory {index}',
+                description='Seller inventory fixture', price=1_000_000 + index,
+                address='Remera', status='draft', slug=f'seller-inventory-{index}',
+            )
+            for index in range(18)
+        ])
+        self.authenticate(self.seller_user)
+
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.get('/api/seller/listings/?page_size=20')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 20)
+        self.assertLessEqual(len(queries), 8)
+
     def test_logout_revokes_refresh_token(self):
         response = self.client.post('/api/auth/login/', {
             'username': 'owner', 'password': 'Owner-pass-123!',

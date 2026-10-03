@@ -39,7 +39,8 @@ from .serializers import (
     TransactionSerializer, SellerPaymentSerializer, CommissionRuleSerializer, BusinessExpenseSerializer,
     ListingProposalSerializer, PublicListingProposalSerializer, SystemSettingSerializer, SystemLogSerializer, SavedPropertySerializer, ConversationEventSerializer,
     AdminUserCreateSerializer, AdminUserUpdateSerializer, AnnouncementSerializer, RegistrationSerializer,
-    SelfProfileSerializer, SellerListingDetailSerializer, SellerListingWriteSerializer
+    SelfProfileSerializer, SellerListingDetailSerializer, SellerListingListSerializer,
+    SellerListingWriteSerializer
 )
 
 # Services
@@ -111,8 +112,8 @@ def get_seller_profile(request):
         user=user,
         defaults={
             'name': user.get_full_name() or user.username,
-            'email': user.email or f'{user.username}@urugwiro.rw',
-            'phone_number': getattr(user, 'phone_number', None) or 'Not provided',
+            'email': user.email or '',
+            'phone_number': getattr(user, 'phone_number', None) or '',
             'status': 'pending',
             'is_verified': False,
         },
@@ -197,13 +198,13 @@ def create_listing_asset(data, category, title):
             road_type=land_data.get('landRoadType') or land_data.get('road_type') or land_data.get('roadType') or None,
             water_onsite=parse_bool(land_data.get('waterOnsite', land_data.get('water_onsite', False))),
             electricity_onsite=parse_bool(land_data.get('electricityOnsite', land_data.get('electricity_onsite', False))),
-            is_encumbrance_free=parse_bool(land_data.get('isEncumbranceFree', land_data.get('is_encumbrance_free', True))),
+            is_encumbrance_free=parse_bool(land_data.get('isEncumbranceFree', land_data.get('is_encumbrance_free', False))),
             has_fiber_conduit=parse_bool(land_data.get('hasFiberConduit', land_data.get('has_fiber_conduit', False))),
             is_in_wetland_buffer_zone=parse_bool(land_data.get('wetlandBuffer', land_data.get('is_in_wetland_buffer_zone', False))),
             soil_type=land_data.get('soilType') or land_data.get('soil_type') or None,
             drainage_system=land_data.get('drainageSystem') or land_data.get('drainage_system') or None,
-            land_use_category=land_data.get('landUse') or land_data.get('land_use_category') or 'Residential',
-            tenure_type=land_data.get('tenure') or land_data.get('tenure_type') or 'EmphyteuticLease',
+            land_use_category=land_data.get('landUse') or land_data.get('land_use_category') or '',
+            tenure_type=land_data.get('tenure') or land_data.get('tenure_type') or '',
             lease_years_remaining=parse_int(land_data.get('leaseYears') or land_data.get('lease_years_remaining')),
             floor_area_ratio=parse_decimal(land_data.get('far') or land_data.get('floor_area_ratio')),
             building_coverage_ratio=parse_decimal(land_data.get('bcr') or land_data.get('building_coverage_ratio')),
@@ -215,23 +216,23 @@ def create_listing_asset(data, category, title):
         VehicleSpec.objects.create(
             asset=asset,
             vehicle_type='Motorcycle' if category == 'motorbike' else (veh_data.get('vehicle_type') or veh_data.get('vehicleType') or 'Car'),
-            make=veh_data.get('make') or 'Not specified',
-            model=veh_data.get('model') or 'Not specified',
-            year=parse_int(veh_data.get('year'), default=2020),
+            make=veh_data.get('make'),
+            model=veh_data.get('model'),
+            year=parse_int(veh_data.get('year')),
             mileage=parse_int(veh_data.get('mileage'), default=0),
-            fuel_type=veh_data.get('fuelType') or veh_data.get('fuel_type') or 'Petrol',
-            transmission=veh_data.get('transmission') or 'Automatic',
-            drivetrain=veh_data.get('drivetrain') or 'FWD',
+            fuel_type=veh_data.get('fuelType') or veh_data.get('fuel_type') or '',
+            transmission=veh_data.get('transmission') or '',
+            drivetrain=veh_data.get('drivetrain') or '',
             engine_capacity=veh_data.get('engineCc') or veh_data.get('engine_capacity') or None,
             horsepower=parse_int(veh_data.get('horsepower')),
             condition=veh_data.get('condition') or None,
             body_type=veh_data.get('bodyType') or veh_data.get('body_type') or None,
             seating_capacity=parse_int(veh_data.get('seats') or veh_data.get('seating_capacity')),
             plate_number=veh_data.get('plateNumber') or veh_data.get('plate_number') or None,
-            plate_type=veh_data.get('plateType') or veh_data.get('plate_type') or 'Private',
+            plate_type=veh_data.get('plateType') or veh_data.get('plate_type') or None,
             vin_chassis_number=veh_data.get('vinChassis') or veh_data.get('vin_chassis_number') or None,
-            rra_customs_status=veh_data.get('rraCustoms') or veh_data.get('rra_customs_status') or 'DutyPaid',
-            has_air_conditioning=parse_bool(veh_data.get('hasAc', veh_data.get('has_air_conditioning', True))),
+            rra_customs_status=veh_data.get('rraCustoms') or veh_data.get('rra_customs_status') or '',
+            has_air_conditioning=parse_bool(veh_data.get('hasAc', veh_data.get('has_air_conditioning', False))),
             has_leather_seats=parse_bool(veh_data.get('hasLeather', veh_data.get('has_leather_seats', False))),
             has_sunroof=parse_bool(veh_data.get('hasSunroof', veh_data.get('has_sunroof', False))),
             has_reverse_camera=parse_bool(veh_data.get('hasReverseCamera', veh_data.get('has_reverse_camera', False))),
@@ -244,7 +245,7 @@ def create_listing_asset(data, category, title):
         comm_data = data.get('commercial_spec') if isinstance(data.get('commercial_spec'), dict) else data
         CommercialSpec.objects.create(
             asset=asset,
-            zoning_type=comm_data.get('commercialZoning') or comm_data.get('zoning_type') or 'Office',
+            zoning_type=comm_data.get('commercialZoning') or comm_data.get('zoning_type') or None,
             power_capacity=parse_decimal(comm_data.get('powerCapacity') or comm_data.get('power_capacity') or comm_data.get('power_capacity_kva')),
             loading_bays=parse_int(comm_data.get('loadingBays') or comm_data.get('loading_bays') or comm_data.get('loading_bays_count') or (1 if parse_bool(comm_data.get('hasLoadingBay')) else 0), default=0),
             parking_spaces=parse_int(comm_data.get('parkingSpaces') or comm_data.get('parkingSpacesCommercial') or comm_data.get('parking_spaces') or comm_data.get('parking_capacity'), default=0),
@@ -256,13 +257,13 @@ def create_listing_asset(data, category, title):
         hotel_data = data.get('hotel_spec') if isinstance(data.get('hotel_spec'), dict) else data
         HotelSpec.objects.create(
             asset=asset,
-            star_rating=parse_int(hotel_data.get('starRating') or hotel_data.get('star_rating'), default=1),
+            star_rating=parse_int(hotel_data.get('starRating') or hotel_data.get('star_rating')),
             total_rooms=parse_int(hotel_data.get('totalRooms') or hotel_data.get('total_rooms'), default=0),
             conference_halls=parse_int(hotel_data.get('conferenceHallsCount') or hotel_data.get('conference_halls') or hotel_data.get('conference_halls_count'), default=0),
             has_restaurant_bar=parse_bool(hotel_data.get('hasRestaurantBar', hotel_data.get('has_restaurant_bar', False))),
-            has_commercial_license=parse_bool(hotel_data.get('hasCommercialLicense', hotel_data.get('has_commercial_license', True))),
+            has_commercial_license=parse_bool(hotel_data.get('hasCommercialLicense', hotel_data.get('has_commercial_license', False))),
             occupancy_rate=parse_decimal(hotel_data.get('occupancyRate') or hotel_data.get('occupancy_rate')),
-            management_type=hotel_data.get('managementType') or hotel_data.get('management_type') or 'Independent',
+            management_type=hotel_data.get('managementType') or hotel_data.get('management_type') or None,
         )
     else:
         res_data = data.get('residential_spec') if isinstance(data.get('residential_spec'), dict) else data
@@ -1231,10 +1232,19 @@ def seller_listings_list(request):
     if not profile:
         return Response({'error': 'No seller profile found'}, status=status.HTTP_404_NOT_FOUND)
     
-    listings = Listing.objects.filter(seller=profile).order_by('-date_listed')
-    return get_paginated_response(listings, ListingSerializer, request)
+    listings = Listing.objects.filter(seller=profile).select_related(
+        'asset', 'asset__residential_spec', 'asset__commercial_spec',
+        'asset__land_spec', 'asset__hotel_spec', 'asset__vehicle_spec',
+    ).prefetch_related('media').annotate(
+        _likes_count=Count('saved_by', distinct=True),
+        _inquiries_count=Count('inquiries', distinct=True),
+        _conversations_count=Count('conversations', distinct=True),
+        _offers_count=Count('offers', distinct=True),
+    ).order_by('-date_listed')
+    return get_paginated_response(listings, SellerListingListSerializer, request)
 
 @api_view(['POST'])
+@transaction.atomic
 def seller_create_listing(request):
     err = check_seller_permission(request)
     if err: return err
