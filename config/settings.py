@@ -31,6 +31,8 @@ DEFAULT_ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'testserver',
+    'healthcheck.railway.app',
+    '.up.railway.app',
     'urugwiro-api-production.up.railway.app',
     'urugwiro-api-production-b6d5.up.railway.app',
     'urugwiro-frontend.vercel.app',
