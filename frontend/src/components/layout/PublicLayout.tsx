@@ -24,6 +24,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
 }) => {
   const isAuth = isAuthView(view);
   const isHome = view === 'home';
+  const showFloatingWhatsApp = !isAuth && view !== 'listing-detail';
 
   return (
     <div
@@ -44,7 +45,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
       <main id="main-content" className={cn("flex-1 w-full max-w-full overflow-x-clip", !isAuth && "pb-20 md:pb-0")} tabIndex={-1}>{children}</main>
       {showFooter && !isAuth ? <PublicFooter onNavigate={onNavigate} /> : null}
       {!isAuth && <MobileTabBar view={view} onNavigate={onNavigate} />}
-      {!isAuth && <WhatsAppButton />}
+      {showFloatingWhatsApp && <WhatsAppButton />}
     </div>
   );
 };

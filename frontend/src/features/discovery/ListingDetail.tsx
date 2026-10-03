@@ -448,6 +448,22 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
   const landSpec = asset.land_spec || {};
   const hasUPI = Boolean(landSpec.upi_number || asset.upi_number);
   const hasCoords = Boolean(asset.latitude && asset.longitude);
+  const administrativeLocation = [asset.village, asset.cell, asset.sector, asset.district, asset.province]
+    .filter(Boolean)
+    .join(', ');
+  const areaLabel = [asset.sector, asset.district, asset.province].filter(Boolean).join(', ') || locationStr;
+  const locationRows = [
+    ['Displayed address', listing?.address],
+    ['Village', asset.village],
+    ['Cell', asset.cell],
+    ['Sector', asset.sector],
+    ['District', asset.district],
+    ['Province', asset.province],
+  ].filter(([, v], index, rows) => {
+    if (!hasValue(v)) return false;
+    const normalized = String(v).trim().toLowerCase();
+    return rows.findIndex(([, other]) => String(other || '').trim().toLowerCase() === normalized) === index;
+  });
 
   const resolvedCoords = useMemo(() => {
     const lat = Number(asset.latitude);
@@ -1241,11 +1257,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
                       <Popup>
                         <div className="p-1 text-xs max-w-[200px]">
                           <p className="font-bold text-sm text-slate-900 mb-1">{listing.title || 'Property'}</p>
-                          <p className="text-slate-600 mb-1 leading-snug">
-                            {[asset.village, asset.cell, asset.sector, asset.district, asset.province]
-                              .filter(Boolean)
-                              .join(', ')}
-                          </p>
+                          <p className="text-slate-600 mb-1 leading-snug">{administrativeLocation || locationStr}</p>
                           <p className="font-mono text-[11px] text-slate-500 mb-2">
                             {resolvedCoords.lat.toFixed(5)}, {resolvedCoords.lng.toFixed(5)}
                           </p>
@@ -1286,7 +1298,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
                 <div
                   className="px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-xs border-t"
                   style={{
-                    backgroundColor: 'var(--color-bg-subtle)',
+                    backgroundColor: 'var(--color-bg-elevated)',
                     borderColor: 'var(--color-border)',
                     color: 'var(--color-text-muted)',
                   }}
@@ -1302,7 +1314,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
                       <MapPin size={11} />
                       {resolvedCoords.isExact
                         ? 'Exact Coordinates'
-                        : `Area: ${[asset.village, asset.cell, asset.sector, asset.district].filter(Boolean).slice(0, 2).join(', ') || 'Rwanda'}`}
+                        : `Approximate area: ${areaLabel}`}
                     </span>
                     <span className="font-mono tabular-nums text-[11px]">
                       {resolvedCoords.lat.toFixed(5)}, {resolvedCoords.lng.toFixed(5)}
@@ -1315,24 +1327,12 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
               </div>
 
               <div className="grid gap-5 lg:grid-cols-[1fr,1.2fr]">
-                <div
-                  className="surface-card oneui-card"
-                  style={{ padding: '1.5rem' }}
-                >
+                <div className="surface-card oneui-card" style={{ padding: '1.5rem' }}>
                   <h3 className="font-display text-xl mb-4" style={{ color: 'var(--color-text-main)' }}>
-                    Address
+                    Location details
                   </h3>
                   <div className="space-y-3">
-                    {[
-                      ['Address', listing.address],
-                      ['Village', asset.village],
-                      ['Cell', asset.cell],
-                      ['Sector', asset.sector],
-                      ['District', asset.district],
-                      ['Province', asset.province],
-                    ]
-                      .filter(([, v]) => hasValue(v))
-                      .map(([k, v], i) => (
+                    {locationRows.map(([k, v], i) => (
                         <div key={i} className="flex items-start justify-between gap-3 py-2"
                           style={{
                             borderBottom:
@@ -1347,7 +1347,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
                             {v}
                           </span>
                         </div>
-                      ))}
+                    ))}
                   </div>
                 </div>
                 <NeighborhoodInfo
@@ -1358,13 +1358,13 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
               </div>
             </section>
 
-            {/* ─── SOVEREIGN JOURNEY TIMELINE ─── */}
+            {/* ─── BUYER JOURNEY TIMELINE ─── */}
             <section className="ld-fade-in-up">
               <h2
                 className="font-display text-2xl sm:text-3xl tracking-tight mb-6"
                 style={{ color: 'var(--color-text-main)' }}
               >
-                Your Sovereign Journey
+                Buyer Journey
               </h2>
               <div
                 className="surface-card oneui-card"

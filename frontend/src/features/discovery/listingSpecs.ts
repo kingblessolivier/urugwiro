@@ -410,18 +410,6 @@ export function specGroups(listing: Listing, kind: ListingKind): { title: string
     });
   }
 
-  groups.push({
-    title: 'Location',
-    rows: [
-      row('Address', listing.address),
-      row('Village', asset.village),
-      row('Cell', asset.cell),
-      row('Sector', asset.sector),
-      row('District', asset.district),
-      row('Province', asset.province),
-    ],
-  });
-
   return groups
     .map((group) => ({
       ...group,
