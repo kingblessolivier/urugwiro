@@ -149,6 +149,24 @@
 /* Explicit .light is a no-op alias — :root already holds light values. */
 .light { color-scheme: light; }
 
+.home-hero {
+  --home-hero-image-opacity: 0.92;
+  --home-hero-left-overlay: 0.72;
+  --home-hero-mid-overlay: 0.34;
+  --home-hero-right-overlay: 0.08;
+  --home-hero-bottom-overlay: 0.52;
+  --home-hero-top-overlay: 0.08;
+}
+
+.dark .home-hero {
+  --home-hero-image-opacity: 0.82;
+  --home-hero-left-overlay: 0.84;
+  --home-hero-mid-overlay: 0.52;
+  --home-hero-right-overlay: 0.18;
+  --home-hero-bottom-overlay: 0.68;
+  --home-hero-top-overlay: 0.18;
+}
+
 html, body {
   background-color: var(--color-bg-deep);
   color: var(--color-text-main);

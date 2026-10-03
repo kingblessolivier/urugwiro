@@ -102,20 +102,20 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onListingClick }
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--color-bg-deep)] text-[var(--color-text-main)]">
-      <section className="relative isolate overflow-hidden bg-slate-950">
+      <section className="home-hero relative isolate overflow-hidden bg-slate-950">
         <div className="absolute inset-0">
           {heroSlides.map((item, index) => (
             <img
               key={item.label}
               src={item.image}
               alt=""
-              className={`absolute inset-0 h-full w-full object-cover transition duration-1000 ${activeSlide === index ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}
+              className={`absolute inset-0 h-full w-full object-cover transition duration-1000 ${activeSlide === index ? 'scale-100 opacity-[var(--home-hero-image-opacity)]' : 'scale-105 opacity-0'}`}
               loading={index === 0 ? 'eager' : 'lazy'}
             />
           ))}
         </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/92 via-slate-950/62 to-slate-950/18" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/78 via-transparent to-slate-950/20" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,var(--home-hero-left-overlay)),rgba(15,23,42,var(--home-hero-mid-overlay)),rgba(15,23,42,var(--home-hero-right-overlay)))]" />
+        <div className="absolute inset-0 bg-[linear-gradient(0deg,rgba(2,6,23,var(--home-hero-bottom-overlay)),transparent_52%,rgba(2,6,23,var(--home-hero-top-overlay)))]" />
 
         <div className="relative z-10 mx-auto flex min-h-[82svh] max-w-7xl flex-col justify-center px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
           <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-center">
