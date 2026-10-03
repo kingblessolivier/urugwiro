@@ -39,6 +39,7 @@ const AnnouncementManager = lazy(() => import('./features/admin/AnnouncementMana
 const SystemLogsPage = lazy(() => import('./features/admin/SystemLogsPage'));
 
 const OwnerLaunchpad = lazy(() => import('./features/owner/OwnerLaunchpad'));
+const CustomerDashboard = lazy(() => import('./features/customer/CustomerDashboard'));
 const LoginPage = lazy(() => import('./features/auth/LoginPage'));
 const RegisterPage = lazy(() => import('./features/auth/RegisterPage'));
 const AboutPage = lazy(() => import('./features/public/AboutPage'));
@@ -254,6 +255,10 @@ function RoutedApp() {
       <Route path="/listing/:id" element={<ListingDetailRoute />} />
       <Route path="/property/:id" element={<ListingDetailRoute />} />
       <Route path="/saved" element={<SavedRoute />} />
+      <Route path="/dashboard" element={<PublicRoute view="customer-dashboard" showFooter={false}><CustomerDashboard onNavigate={setView} /></PublicRoute>} />
+      <Route path="/dashboard/customer" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/dashboard/buyer" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/dashboard/tenant" element={<Navigate to="/dashboard" replace />} />
       <Route path="/about" element={<PublicRoute view="about"><AboutPage onNavigate={setView} /></PublicRoute>} />
       <Route path="/contact" element={<PublicRoute view="contact"><ContactPage /></PublicRoute>} />
       <Route path="/updates" element={<PublicRoute view="updates"><UpdatesPage onNavigate={setView} /></PublicRoute>} />

@@ -10,6 +10,7 @@ export type AppView =
   | 'about'
   | 'contact'
   | 'submit-proposal'
+  | 'customer-dashboard'
   // Auth
   | 'login'
   | 'register'
@@ -211,6 +212,8 @@ export function getViewFriendlyName(view: AppView): string {
       return 'Owner Executive Dashboard';
     case 'submit-proposal':
       return 'List Your Asset';
+    case 'customer-dashboard':
+      return 'My Dashboard';
     case 'discovery':
     case 'discover':
       return 'Property Discovery';
@@ -298,5 +301,5 @@ export function getDefaultDashboardForUser(user: UserRoleLike | null | undefined
     return 'seller-dashboard';
   }
 
-  return 'discovery';
+  return 'customer-dashboard';
 }

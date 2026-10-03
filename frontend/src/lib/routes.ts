@@ -24,6 +24,7 @@ const VIEW_TO_PATH: Record<StaticViews, string> = {
   about: '/about',
   contact: '/contact',
   'submit-proposal': '/sell',
+  'customer-dashboard': '/dashboard',
 
   // Auth
   login: '/login',
@@ -81,6 +82,9 @@ const PATH_TO_VIEW: Record<string, AppView> = {
   '/explore': 'discovery',
   '/properties': 'discovery',
   '/dashboard/seller': 'seller-dashboard',
+  '/dashboard/customer': 'customer-dashboard',
+  '/dashboard/buyer': 'customer-dashboard',
+  '/dashboard/tenant': 'customer-dashboard',
   '/dashboard/owner': 'owner-dashboard',
 };
 

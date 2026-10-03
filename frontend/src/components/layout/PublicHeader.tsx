@@ -7,7 +7,7 @@ import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import type { AppView } from '../../types/navigation';
+import { getDefaultDashboardForUser, hasCapability, type AppView } from '../../types/navigation';
 
 interface PublicHeaderProps {
   view: AppView;
@@ -98,10 +98,14 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
     }
   };
 
-  const role = user?.role || 'Buyer';
+  const role = user?.role || 'customer';
+  const defaultDashboard = getDefaultDashboardForUser(user);
+  const canAccessAdmin = hasCapability(user, 'operations');
   const getRoleBadge = (r: string) => {
     switch (r.toLowerCase()) {
       case 'admin':
+      case 'staff':
+      case 'finance':
         return {
           pill: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30',
           label: 'Platform Executive',
@@ -132,6 +136,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
           icon: <Building2 size={12} className="text-orange-600 dark:text-orange-400" />,
         };
       case 'buyer':
+      case 'customer':
       default:
         return {
           pill: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30',
@@ -249,9 +254,9 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
                   </div>
 
                   <div className="space-y-0.5 py-1">
-                    {role.toLowerCase() === 'admin' && (
+                    {canAccessAdmin && (
                       <>
-                        <button type="button" onClick={() => { onNavigate('admin'); setProfileDropdownOpen(false); }} className={menuItem}><Shield size={16} className="text-purple-500" /><span>Admin Dashboard</span></button>
+                        <button type="button" onClick={() => { onNavigate(defaultDashboard); setProfileDropdownOpen(false); }} className={menuItem}><Shield size={16} className="text-purple-500" /><span>Admin Dashboard</span></button>
                         <button type="button" onClick={() => { onNavigate('admin-listings'); setProfileDropdownOpen(false); }} className={menuItem}><Layers size={16} className="text-emerald-500" /><span>Admin Listings</span></button>
                         <button type="button" onClick={() => { onNavigate('admin-enquiries'); setProfileDropdownOpen(false); }} className={menuItem}><Mail size={16} className="text-emerald-500" /><span>Customer Inquiries &amp; Leads</span></button>
                         <button type="button" onClick={() => { onNavigate('admin-offers'); setProfileDropdownOpen(false); }} className={menuItem}><Briefcase size={16} className="text-blue-500" /><span>Offers &amp; Inspections</span></button>
@@ -271,8 +276,9 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
                       <button type="button" onClick={() => { onNavigate('owner-dashboard'); setProfileDropdownOpen(false); }} className={menuItem}><Building2 size={16} className="text-orange-500" /><span>Owner Portfolio Launchpad</span></button>
                     )}
 
-                    {role.toLowerCase() !== 'admin' && role.toLowerCase() !== 'seller' && role.toLowerCase() !== 'owner' && (
+                    {role.toLowerCase() !== 'admin' && role.toLowerCase() !== 'staff' && role.toLowerCase() !== 'finance' && role.toLowerCase() !== 'seller' && role.toLowerCase() !== 'owner' && (
                       <>
+                        <button type="button" onClick={() => { onNavigate('customer-dashboard'); setProfileDropdownOpen(false); }} className={menuItem}><LayoutDashboard size={16} className="text-emerald-500" /><span>My Dashboard</span></button>
                         <button type="button" onClick={() => { onNavigate('discovery'); setProfileDropdownOpen(false); }} className={menuItem}><Compass size={16} className="text-emerald-500" /><span>Explore Properties</span></button>
                         <button type="button" onClick={() => { onNavigate('saved'); setProfileDropdownOpen(false); }} className={menuItem}><Heart size={16} className="text-rose-500" /><span>Saved Properties</span></button>
                       </>
@@ -327,9 +333,10 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
               </div>
 
               <div className="mt-3 pt-3 border-t border-[var(--color-border)] grid gap-1">
-                {role.toLowerCase() === 'admin' && <button type="button" onClick={() => { onNavigate('admin'); setOpen(false); }} className={menuItem}><Shield size={16} className="text-purple-500" />Admin Dashboard</button>}
+                {canAccessAdmin && <button type="button" onClick={() => { onNavigate(defaultDashboard); setOpen(false); }} className={menuItem}><Shield size={16} className="text-purple-500" />Admin Dashboard</button>}
                 {role.toLowerCase() === 'seller' && <button type="button" onClick={() => { onNavigate('seller-dashboard'); setOpen(false); }} className={menuItem}><Building2 size={16} className="text-amber-500" />Seller Dashboard</button>}
                 {role.toLowerCase() === 'owner' && <button type="button" onClick={() => { onNavigate('owner-dashboard'); setOpen(false); }} className={menuItem}><Building2 size={16} className="text-orange-500" />Owner Portfolio</button>}
+                {!canAccessAdmin && role.toLowerCase() !== 'seller' && role.toLowerCase() !== 'owner' && <button type="button" onClick={() => { onNavigate('customer-dashboard'); setOpen(false); }} className={menuItem}><LayoutDashboard size={16} className="text-emerald-500" />My Dashboard</button>}
               </div>
             </div>
           )}

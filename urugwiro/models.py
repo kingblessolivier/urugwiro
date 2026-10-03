@@ -48,6 +48,11 @@ verification_levels = (
 class User(AbstractUser):
     role = models.CharField(max_length=20, choices=user_roles, default='customer')
 
+    def save(self, *args, **kwargs):
+        if self.is_superuser and self.role == 'customer':
+            self.role = 'admin'
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.username
 

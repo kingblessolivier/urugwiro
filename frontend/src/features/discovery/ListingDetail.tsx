@@ -1710,7 +1710,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
       {/* ══════ MOBILE BOTTOM PRICE GLASS SHEET — <md only ══════ */}
       <div className="md:hidden ld-bottom-glass safe-area-bottom">
         <div className="mx-auto max-w-2xl">
-          <div className="flex items-end justify-between gap-4 mb-3">
+          <div className="flex items-end justify-between gap-3 mb-3">
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-0.5"
                 style={{ color: 'var(--color-text-dim)' }}>
@@ -1731,7 +1731,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
             </div>
             <button
               onClick={openOffer}
-              className="shrink-0 inline-flex items-center gap-1.5 rounded-2xl border px-3 py-2 text-[11px] font-bold oneui-press"
+              className="shrink-0 inline-flex min-h-10 items-center gap-1.5 rounded-xl border px-3 py-2 text-[11px] font-bold oneui-press"
               style={{
                 borderColor: 'rgba(212,175,55,0.5)',
                 background: 'linear-gradient(135deg, rgba(212,175,55,0.12), rgba(229,193,88,0.08))',
@@ -1742,16 +1742,16 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_3rem_3rem] items-center gap-2">
             <button
               onClick={() => setVisitOpen(true)}
-              className="flex-[2] inline-flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white ld-btn-primary cursor-pointer oneui-press"
+              className="inline-flex h-12 min-w-0 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold text-white ld-btn-primary cursor-pointer oneui-press"
             >
-              <Calendar size={16} /> Book visit
+              <Calendar size={16} className="shrink-0" /> <span className="truncate">Book visit</span>
             </button>
             <button
               onClick={() => setInquiryOpen(true)}
-              className="flex w-12 h-12 shrink-0 items-center justify-center rounded-full border transition oneui-press cursor-pointer"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border transition oneui-press cursor-pointer"
               style={{
                 borderColor: 'var(--color-border)',
                 background: 'var(--color-bg-surface)',
@@ -1764,7 +1764,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
             <a
               href={phone ? `tel:${phone}` : undefined}
               className={cn(
-                'flex w-12 h-12 shrink-0 items-center justify-center rounded-full border transition oneui-press',
+                'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border transition oneui-press',
                 phone ? '' : 'pointer-events-none opacity-40',
               )}
               style={{

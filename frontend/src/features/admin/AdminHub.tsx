@@ -155,18 +155,6 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
 
   return (
     <div className="min-h-full bg-[var(--color-bg-deep)] pb-12">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-[var(--color-bg-surface)] border-b border-[var(--color-border)]">
-        <div className="px-4 sm:px-6 lg:px-8 py-4">
-          <h1 className="text-xl sm:text-2xl font-bold text-[var(--color-text-main)] tracking-tight">
-            Overview Dashboard
-          </h1>
-          <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-            Key metrics and pending actions.
-          </p>
-        </div>
-      </div>
-
       <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
         {/* KPI Grid */}

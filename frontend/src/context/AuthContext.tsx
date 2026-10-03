@@ -29,12 +29,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function normalizeAuthUser(rawUser: AuthUser): AuthUser {
+    if (rawUser?.is_superuser && rawUser.role !== 'owner') {
+        return { ...rawUser, role: rawUser.role === 'customer' ? 'admin' : rawUser.role };
+    }
+    return rawUser;
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const queryClient = useQueryClient();
     const [user, setUser] = useState<AuthUser | null>(() => {
         try {
             const cached = localStorage.getItem('urugwiro_user');
-            return cached ? JSON.parse(cached) : null;
+            return cached ? normalizeAuthUser(JSON.parse(cached)) : null;
         } catch {
             return null;
         }
@@ -67,10 +74,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const response = await api.auth.me();
                 const userData = response.data?.user || response.data;
                 if (userData && (userData.username || userData.id)) {
-                    setUser(userData);
-                    localStorage.setItem('urugwiro_user', JSON.stringify(userData));
-                    if (userData.role) {
-                        localStorage.setItem('user_role', userData.role);
+                    const normalizedUser = normalizeAuthUser(userData);
+                    setUser(normalizedUser);
+                    localStorage.setItem('urugwiro_user', JSON.stringify(normalizedUser));
+                    if (normalizedUser.role) {
+                        localStorage.setItem('user_role', normalizedUser.role);
                     }
                 }
             } catch (err: any) {
@@ -106,13 +114,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.setItem('refresh_token', refresh);
         }
         if (loggedUser) {
-            localStorage.setItem('urugwiro_user', JSON.stringify(loggedUser));
-            if (loggedUser.role) {
-                localStorage.setItem('user_role', loggedUser.role);
+            const normalizedUser = normalizeAuthUser(loggedUser);
+            localStorage.setItem('urugwiro_user', JSON.stringify(normalizedUser));
+            if (normalizedUser.role) {
+                localStorage.setItem('user_role', normalizedUser.role);
             }
-            setUser(loggedUser);
+            setUser(normalizedUser);
         }
-        return loggedUser;
+        return loggedUser ? normalizeAuthUser(loggedUser) : loggedUser;
     };
 
     const register = async (data: { username?: string; email: string; password: string; role: string; full_name?: string }): Promise<AuthUser> => {
@@ -130,13 +139,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.setItem('refresh_token', refresh);
         }
         if (registeredUser) {
-            localStorage.setItem('urugwiro_user', JSON.stringify(registeredUser));
-            if (registeredUser.role) {
-                localStorage.setItem('user_role', registeredUser.role);
+            const normalizedUser = normalizeAuthUser(registeredUser);
+            localStorage.setItem('urugwiro_user', JSON.stringify(normalizedUser));
+            if (normalizedUser.role) {
+                localStorage.setItem('user_role', normalizedUser.role);
             }
-            setUser(registeredUser);
+            setUser(normalizedUser);
         }
-        return registeredUser;
+        return registeredUser ? normalizeAuthUser(registeredUser) : registeredUser;
     };
 
     const logout = async () => {
