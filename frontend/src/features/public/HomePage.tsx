@@ -53,7 +53,7 @@ const HERO_SLIDES: HeroSlide[] = [
     icon: Home,
     query: 'house',
     image: '/images/hero/house.jpg',
-    title: 'Homes & Villas in Kigali',
+    title: 'Homes & Villas Across Rwanda',
     cornerBadge: 'Registry Title Verified',
     systemExplanation: 'Every residential property is cross-checked with official land registry records to guarantee authentic ownership.',
     watermark: 'ESTATES',
