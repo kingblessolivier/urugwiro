@@ -416,6 +416,16 @@ class VisitCreateSerializer(serializers.ModelSerializer):
             'phone', 'email', 'number_of_visitors', 'notes',
         ]
 
+    def validate_preferred_date(self, value):
+        if value < timezone.localdate():
+            raise serializers.ValidationError('Visit date cannot be in the past.')
+        return value
+
+    def validate_number_of_visitors(self, value):
+        if value > 20:
+            raise serializers.ValidationError('Contact support for groups larger than 20.')
+        return value
+
 
 # ─── Offer ───
 
@@ -753,6 +763,18 @@ class PropertyInquirySerializer(serializers.ModelSerializer):
             'id', 'listing', 'listing_title', 'name', 'email', 'phone',
             'location', 'message', 'is_read', 'created_at',
         ]
+
+
+class PublicPropertyInquirySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PropertyInquiry
+        fields = ['id', 'listing', 'name', 'email', 'phone', 'location', 'message', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def validate_listing(self, listing):
+        if listing.status != 'published':
+            raise serializers.ValidationError('This listing is not available for inquiries.')
+        return listing
 
 
 class SellerListingDetailSerializer(ListingSerializer):

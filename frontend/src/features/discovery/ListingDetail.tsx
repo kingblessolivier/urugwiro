@@ -164,6 +164,21 @@ function hasValue(v: unknown): boolean {
   return true;
 }
 
+function apiErrorMessage(error: any, fallback: string): string {
+  const data = error?.response?.data;
+  if (typeof data?.error === 'string') return data.error;
+  if (data && typeof data === 'object') {
+    const first = Object.values(data).flat().find((value) => typeof value === 'string');
+    if (typeof first === 'string') return first;
+  }
+  return fallback;
+}
+
+function localDateInputValue(): string {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+}
+
 const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onListingClick }) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -199,6 +214,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
 
   const [activeRail, setActiveRail] = useState<string>('overview');
   const [upiFlash, setUpiFlash] = useState(false);
+  const earliestVisitDate = useMemo(localDateInputValue, []);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
 
@@ -244,7 +260,10 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
       setOfferOpen(false);
       flash('Your price was sent to the seller.');
     },
-    onError: (e) => logError('[offerMutation]', e),
+    onError: (e) => {
+      logError('[offerMutation]', e);
+      flash(apiErrorMessage(e, 'Unable to send your offer. Please try again.'));
+    },
   });
   const visitMutation = useMutation({
     mutationFn: (data: any) => api.visits.create(data),
@@ -252,7 +271,10 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
       setVisitOpen(false);
       flash('Visit request sent. The seller will confirm.');
     },
-    onError: (e) => logError('[visitMutation]', e),
+    onError: (e) => {
+      logError('[visitMutation]', e);
+      flash(apiErrorMessage(e, 'Unable to request the visit. Please check the details.'));
+    },
   });
   const inquiryMutation = useMutation({
     mutationFn: (data: any) => api.public.contactSubmit(data),
@@ -261,7 +283,10 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
       setInqMessage('');
       flash('Message sent to the seller.');
     },
-    onError: (e) => logError('[inquiryMutation]', e),
+    onError: (e) => {
+      logError('[inquiryMutation]', e);
+      flash(apiErrorMessage(e, 'Unable to send your message. Please try again.'));
+    },
   });
   const reviewMutation = useMutation({
     mutationFn: (data: any) => api.listings.submitReview(listingId, data),
@@ -271,7 +296,10 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
       queryClient.invalidateQueries({ queryKey: ['listing-reviews', listingId] });
       flash('Thank you for your rating!');
     },
-    onError: (e) => logError('[reviewMutation]', e),
+    onError: (e) => {
+      logError('[reviewMutation]', e);
+      flash(apiErrorMessage(e, 'Unable to submit your review. Please try again.'));
+    },
   });
 
   const handleLike = async () => {
@@ -1853,6 +1881,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
             <input
               type="date"
               value={visitDate}
+              min={earliestVisitDate}
               onChange={(e) => setVisitDate(e.target.value)}
               className={inputCls}
               required

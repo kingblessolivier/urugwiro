@@ -1,4 +1,5 @@
 from unittest.mock import AsyncMock, Mock, patch
+from datetime import timedelta
 
 import requests
 
@@ -487,6 +488,61 @@ class ApiSecurityTests(TestCase):
         self.assertEqual(created.customer.user_id, account.pk)
         self.assertEqual(created.seller_id, self.seller.pk)
         self.assertEqual(created.asking_price, self.published.price)
+
+    def test_public_inquiry_cannot_target_private_listing_or_mark_itself_read(self):
+        rejected = self.client.post('/api/contact/submit/', {
+            'listing_id': self.draft.pk,
+            'name': 'Visitor',
+            'email': 'visitor@example.com',
+            'message': 'Can I view this?',
+            'is_read': True,
+        }, format='json')
+        accepted = self.client.post('/api/contact/submit/', {
+            'listing_id': self.published.pk,
+            'name': 'Visitor',
+            'email': 'visitor@example.com',
+            'message': 'Can I view this?',
+            'is_read': True,
+        }, format='json')
+
+        self.assertEqual(rejected.status_code, 400)
+        self.assertEqual(accepted.status_code, 201)
+        inquiry = PropertyInquiry.objects.get(pk=accepted.data['id'])
+        self.assertFalse(inquiry.is_read)
+        self.assertEqual(inquiry.listing_id, self.published.pk)
+
+    def test_visit_booking_requires_public_listing_contact_and_valid_date(self):
+        tomorrow = timezone.localdate() + timedelta(days=1)
+        missing_date = self.client.post('/api/consumer/visits/book/', {
+            'listing_id': self.published.pk, 'name': 'Visitor', 'phone': '0788111222',
+        }, format='json')
+        private_listing = self.client.post('/api/consumer/visits/book/', {
+            'listing_id': self.draft.pk, 'name': 'Visitor', 'phone': '0788111222',
+            'scheduled_date': tomorrow.isoformat(),
+        }, format='json')
+        past_date = self.client.post('/api/consumer/visits/book/', {
+            'listing_id': self.published.pk, 'name': 'Visitor', 'phone': '0788111222',
+            'scheduled_date': (timezone.localdate() - timedelta(days=1)).isoformat(),
+        }, format='json')
+        accepted = self.client.post('/api/consumer/visits/book/', {
+            'listing_id': self.published.pk, 'name': 'Visitor', 'phone': '0788111222',
+            'scheduled_date': tomorrow.isoformat(), 'scheduled_time': '09:00 - 11:00',
+        }, format='json')
+
+        self.assertEqual(missing_date.status_code, 400)
+        self.assertEqual(private_listing.status_code, 404)
+        self.assertEqual(past_date.status_code, 400)
+        self.assertEqual(accepted.status_code, 201)
+        visit = Visit.objects.get(pk=accepted.data['id'])
+        self.assertEqual(visit.preferred_date, tomorrow)
+        self.assertEqual(visit.preferred_time.strftime('%H:%M'), '09:00')
+
+        self.authenticate(self.seller_user)
+        own_visit = self.client.post('/api/consumer/visits/book/', {
+            'listing_id': self.published.pk, 'phone': '0788000000',
+            'scheduled_date': tomorrow.isoformat(),
+        }, format='json')
+        self.assertEqual(own_visit.status_code, 400)
 
     def test_offer_creation_requires_account_and_rejects_self_offer(self):
         anonymous = self.client.post('/api/consumer/offers/', {

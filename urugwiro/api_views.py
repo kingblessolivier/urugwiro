@@ -35,7 +35,7 @@ from .serializers import (
     ListingSerializer, ListingReviewSerializer, UserSerializer, SellerProfileSerializer, UpdatesSerializer,
     ArticleSerializer, ArticleCategorySerializer, VerificationDocumentSerializer, VerificationReviewSerializer,
     ListingAuditLogSerializer, ListingCreateSerializer, ListingMediaSerializer, OfferSerializer, VisitSerializer,
-    PropertyInquirySerializer, CustomerSerializer, ConversationSerializer, FollowUpSerializer, VisitCreateSerializer,
+    PropertyInquirySerializer, PublicPropertyInquirySerializer, CustomerSerializer, ConversationSerializer, FollowUpSerializer, VisitCreateSerializer,
     TransactionSerializer, SellerPaymentSerializer, CommissionRuleSerializer, BusinessExpenseSerializer,
     ListingProposalSerializer, PublicListingProposalSerializer, SystemSettingSerializer, SystemLogSerializer, SavedPropertySerializer, ConversationEventSerializer,
     AdminUserCreateSerializer, AdminUserUpdateSerializer, AnnouncementSerializer, RegistrationSerializer,
@@ -1067,23 +1067,33 @@ def notification_mark_read(request, pk):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@transaction.atomic
 def api_contact_submit(request):
-    serializer = PropertyInquirySerializer(data=request.data)
+    data = request.data.copy()
+    listing_id = data.get('listing_id') or data.get('listing')
+    if listing_id:
+        data['listing'] = listing_id
+    if request.user.is_authenticated:
+        data['name'] = request.user.get_full_name().strip() or request.user.username
+        data['email'] = request.user.email
+
+    serializer = PublicPropertyInquirySerializer(data=data)
     if serializer.is_valid():
+        listing = serializer.validated_data.get('listing')
+        if listing and request.user.is_authenticated and listing.seller.user_id == request.user.id:
+            return Response({'error': 'You cannot inquire about your own listing.'}, status=status.HTTP_400_BAD_REQUEST)
         inquiry = serializer.save()
         
         # Unified CRM Customer & Conversation creation
-        name = request.data.get('name') or request.data.get('full_name') or 'Customer'
-        phone = request.data.get('phone') or ''
-        email = request.data.get('email') or ''
-        message = request.data.get('message') or ''
-        listing_id = request.data.get('listing_id') or request.data.get('listing') or getattr(inquiry.listing, 'id', None)
+        name = inquiry.name
+        phone = inquiry.phone or ''
+        email = inquiry.email or ''
+        message = inquiry.message or ''
         
         customer = create_customer_for_intake(request, name, phone, email)
-            
-        if listing_id:
-            listing = Listing.objects.filter(pk=listing_id).first()
-            if listing and listing.seller:
+
+        if listing:
+            if listing.seller:
                 conversation, _ = Conversation.objects.get_or_create(
                     customer=customer,
                     listing=listing,
@@ -1104,13 +1114,14 @@ def api_contact_submit(request):
                         content=message,
                     )
                 from .consumers import push_notification
-                push_notification(
-                    recipient=listing.seller.user,
-                    actor=request.user if request.user.is_authenticated else None,
-                    notification_type='new_contact',
-                    message=f'New inquiry about {listing.title}',
-                    link='/admin/enquiries/',
-                )
+                if listing.seller.user_id:
+                    push_notification(
+                        recipient=listing.seller.user,
+                        actor=request.user if request.user.is_authenticated else None,
+                        notification_type='new_contact',
+                        message=f'New inquiry about {listing.title}',
+                        link='/seller/inbox/',
+                    )
                 for admin_user in User.objects.filter(role__in=['admin', 'owner', 'staff']).exclude(id=listing.seller.user_id):
                     push_notification(
                         recipient=admin_user,
@@ -1628,15 +1639,41 @@ def consumer_visits_list(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@transaction.atomic
 def consumer_visit_book(request):
     listing_id = request.data.get('listing') or request.data.get('listing_id')
     if not listing_id:
         return Response({'error': 'Listing ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-    listing = get_object_or_404(Listing, pk=listing_id)
-    
-    name = request.data.get('name') or request.data.get('full_name') or (request.user.get_full_name() if request.user.is_authenticated else '') or 'Customer'
-    phone = request.data.get('phone') or getattr(request.user, 'phone_number', '')
-    email = request.data.get('email') or (request.user.email if request.user.is_authenticated else '')
+    listing = get_object_or_404(Listing, pk=listing_id, status='published')
+    if request.user.is_authenticated and listing.seller.user_id == request.user.id:
+        return Response({'error': 'You cannot book a visit to your own listing.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if request.user.is_authenticated:
+        name = request.user.get_full_name().strip() or request.user.username
+        email = request.user.email
+    else:
+        name = (request.data.get('name') or request.data.get('full_name') or '').strip()
+        email = (request.data.get('email') or '').strip()
+    phone = (request.data.get('phone') or getattr(request.user, 'phone_number', '') or '').strip()
+    if not name or not phone:
+        return Response({'error': 'Name and phone number are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    preferred_date = request.data.get('preferred_date') or request.data.get('scheduled_date')
+    preferred_time_val = request.data.get('preferred_time') or request.data.get('scheduled_time')
+    preferred_time = None
+    if preferred_time_val:
+        preferred_time = str(preferred_time_val).split('-')[0].strip()
+
+    serializer = VisitCreateSerializer(data={
+        'listing': listing.pk,
+        'preferred_date': preferred_date,
+        'preferred_time': preferred_time,
+        'phone': phone,
+        'email': email,
+        'number_of_visitors': request.data.get('number_of_visitors', 1),
+        'notes': request.data.get('notes', ''),
+    })
+    serializer.is_valid(raise_exception=True)
     
     customer = create_customer_for_intake(request, name, phone, email)
         
@@ -1648,35 +1685,19 @@ def consumer_visit_book(request):
             seller=listing.seller
         )
         
-    preferred_date = request.data.get('preferred_date') or request.data.get('scheduled_date')
-    preferred_time_val = request.data.get('preferred_time') or request.data.get('scheduled_time')
-    
-    time_obj = None
-    if preferred_time_val:
-        from datetime import time
-        if ':' in str(preferred_time_val):
-            try:
-                part = str(preferred_time_val).split('-')[0].strip()
-                h, m = part.split(':')[:2]
-                time_obj = time(int(h), int(m))
-            except Exception:
-                time_obj = None
-                
-    if not preferred_date:
-        from django.utils import timezone
-        preferred_date = timezone.now().date()
-        
+    visit_data = serializer.validated_data
     visit = Visit.objects.create(
         customer=customer,
         listing=listing,
         seller=listing.seller,
         conversation=conversation,
-        preferred_date=preferred_date,
-        preferred_time=time_obj,
-        phone=phone,
-        email=email,
-        notes=request.data.get('notes', '') or (f"Time slot: {preferred_time_val}" if preferred_time_val else ''),
-        status='requested'
+        preferred_date=visit_data['preferred_date'],
+        preferred_time=visit_data.get('preferred_time'),
+        phone=visit_data['phone'],
+        email=visit_data.get('email', ''),
+        number_of_visitors=visit_data.get('number_of_visitors', 1),
+        notes=visit_data.get('notes', ''),
+        status='requested',
     )
 
     if listing.seller and listing.seller.user_id:
@@ -1702,7 +1723,7 @@ def consumer_visit_book(request):
             conversation=conversation,
             event_type='visit_requested',
             channel='website',
-            description=f"Visit requested for {preferred_date} ({preferred_time_val or 'Any time'})",
+            description=f"Visit requested for {visit.preferred_date} ({preferred_time_val or 'Any time'})",
             performed_by=request.user if request.user.is_authenticated else None
         )
         
