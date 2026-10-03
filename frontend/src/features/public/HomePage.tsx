@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
   Building2,
   Car,
+  ChevronLeft,
   ChevronRight,
   Home,
   Search,
@@ -26,7 +27,12 @@ interface HomePageProps {
   onListingClick?: (id: string) => void;
 }
 
-const HERO_IMAGE = '/images/hero/house.jpg';
+const heroSlides = [
+  { label: 'Homes', title: 'Sell or rent homes customers want.', query: 'house', image: '/images/hero/house.jpg' },
+  { label: 'Land', title: 'Put titled land in front of serious buyers.', query: 'land', image: '/images/hero/land.jpg' },
+  { label: 'Apartments', title: 'Fill apartments and rentals faster.', query: 'apartment', image: '/images/hero/house.jpg' },
+  { label: 'Vehicles', title: 'List vehicles beside property demand.', query: 'car', image: '/images/hero/car.jpg' },
+];
 
 const categoryCards = [
   { label: 'Homes', query: 'house', icon: Home, image: '/images/hero/house.jpg' },
@@ -34,8 +40,6 @@ const categoryCards = [
   { label: 'Apartments', query: 'apartment', icon: Building2, image: '/images/hero/house.jpg' },
   { label: 'Vehicles', query: 'car', icon: Car, image: '/images/hero/car.jpg' },
 ];
-
-const quickSearches = ['Kigali', 'Land', 'Rentals', 'Apartments', 'SUV'];
 
 const mapApiListing = (item: any): ListingCardData => {
   const media = Array.isArray(item.media) ? item.media : [];
@@ -63,8 +67,9 @@ const mapApiListing = (item: any): ListingCardData => {
   };
 };
 
-const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onListingClick }) => {
+const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onListingClick }) => {
   const [query, setQuery] = useState('');
+  const [activeSlide, setActiveSlide] = useState(0);
   const { savedIds, toggleSaved } = useSavedListings();
 
   const listingsQuery = useQuery({
@@ -81,34 +86,52 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
   const listings = listingsQuery.data || [];
   const featured = useMemo(() => listings.slice(0, 6), [listings]);
   const heroListing = featured[0];
+  const slide = heroSlides[activeSlide];
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveSlide((current) => (current + 1) % heroSlides.length);
+    }, 6000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const submitSearch = (event: React.FormEvent) => {
     event.preventDefault();
-    onExplore(query.trim());
+    onExplore(query.trim() || slide.query);
   };
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--color-bg-deep)] text-[var(--color-text-main)]">
-      <section className="relative isolate overflow-hidden">
-        <img src={HERO_IMAGE} alt="" className="absolute inset-0 h-full w-full object-cover" loading="eager" />
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/88 via-slate-950/64 to-slate-950/24" />
-        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[var(--color-bg-deep)] to-transparent" />
+      <section className="relative isolate overflow-hidden bg-slate-950">
+        <div className="absolute inset-0">
+          {heroSlides.map((item, index) => (
+            <img
+              key={item.label}
+              src={item.image}
+              alt=""
+              className={`absolute inset-0 h-full w-full object-cover transition duration-1000 ${activeSlide === index ? 'scale-100 opacity-100' : 'scale-105 opacity-0'}`}
+              loading={index === 0 ? 'eager' : 'lazy'}
+            />
+          ))}
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/92 via-slate-950/62 to-slate-950/18" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/78 via-transparent to-slate-950/20" />
 
-        <div className="relative z-10 mx-auto flex min-h-[76svh] max-w-7xl flex-col justify-center px-4 py-24 sm:px-6 lg:px-8">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-center">
+        <div className="relative z-10 mx-auto flex min-h-[82svh] max-w-7xl flex-col justify-center px-4 py-24 sm:px-6 lg:px-8">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-center">
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-emerald-100 backdrop-blur">
                 <ShieldCheck size={14} /> Buy, rent, or sell in Rwanda
               </div>
-              <h1 className="mt-5 text-4xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl lg:leading-[0.96]">
-                Your next property starts here.
+              <h1 className="mt-5 max-w-4xl text-4xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl lg:leading-[0.96]">
+                {slide.title}
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-slate-100 sm:text-xl">
-                Discover homes, land, rentals, commercial spaces, and vehicles. List your own property when you are ready to sell or rent.
+                Urugwiro brings buyers, tenants, sellers, and owners into one sharp marketplace for property and vehicles across Rwanda.
               </p>
 
               <form onSubmit={submitSearch} className="mt-7 max-w-2xl">
-                <div className="rounded-lg border border-white/20 bg-white p-2 shadow-2xl shadow-slate-950/30">
+                <div className="rounded-xl border border-white/20 bg-white p-2 shadow-2xl shadow-slate-950/30">
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <label className="flex min-w-0 flex-1 items-center gap-3 rounded-md bg-slate-100 px-4">
                       <Search size={18} className="shrink-0 text-emerald-700" />
@@ -119,7 +142,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
                         className="h-12 w-full bg-transparent text-sm font-medium text-slate-950 outline-none placeholder:text-slate-500"
                       />
                     </label>
-                    <Button type="submit" size="lg" className="rounded-md px-7">
+                    <Button type="submit" size="lg" className="rounded-lg px-7">
                       Search
                     </Button>
                   </div>
@@ -135,35 +158,86 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
                 </Button>
               </div>
 
-              <div className="mt-5 flex flex-wrap gap-2">
-                {quickSearches.map((item) => (
-                  <button key={item} type="button" onClick={() => onExplore(item)} className="rounded-full border border-white/18 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition hover:bg-white/18">
-                    {item}
+              <div className="mt-6 flex flex-col gap-4 xl:flex-row xl:items-center">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSlide((current) => (current - 1 + heroSlides.length) % heroSlides.length)}
+                    aria-label="Previous hero image"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:bg-white/18"
+                  >
+                    <ChevronLeft size={18} />
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => setActiveSlide((current) => (current + 1) % heroSlides.length)}
+                    aria-label="Next hero image"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition hover:bg-white/18"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {heroSlides.map((item, index) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => setActiveSlide(index)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-bold text-white backdrop-blur transition ${activeSlide === index ? 'border-emerald-300 bg-emerald-500/40' : 'border-white/18 bg-white/10 hover:bg-white/18'}`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="rounded-lg border border-white/18 bg-white/12 p-4 text-white shadow-2xl shadow-slate-950/25 backdrop-blur-md">
+            <div className="relative">
+              <div className="absolute -inset-4 rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-sm" />
+              <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-slate-950/70 text-white shadow-2xl shadow-slate-950/35">
+                <div className="relative aspect-[4/3] overflow-hidden bg-slate-900">
+                  <img src={slide.image} alt="" className="h-full w-full object-cover transition duration-700" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/92 via-slate-950/18 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-5">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-200">{slide.label}</p>
+                    <h2 className="mt-2 text-2xl font-bold leading-tight">{slide.title}</h2>
+                    <button
+                      type="button"
+                      onClick={() => onExplore(slide.query)}
+                      className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-400"
+                    >
+                      View {slide.label} <ArrowRight size={15} />
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-2 bg-slate-950/92 p-3">
+                  {heroSlides.map((item, index) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => setActiveSlide(index)}
+                      aria-label={`Show ${item.label}`}
+                      className={`relative aspect-[5/4] overflow-hidden rounded-lg border transition ${activeSlide === index ? 'border-emerald-300' : 'border-white/15 opacity-70 hover:opacity-100'}`}
+                    >
+                      <img src={item.image} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      <span className="absolute inset-x-0 bottom-0 bg-slate-950/70 px-1.5 py-1 text-center text-[10px] font-bold text-white">
+                        {item.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
               {heroListing && (
                 <button
                   type="button"
                   onClick={() => onListingClick?.(heroListing.id)}
-                  className="block w-full overflow-hidden rounded-md border border-white/14 bg-white/10 text-left transition hover:bg-white/16"
+                  className="relative mt-4 flex w-full items-center justify-between gap-3 rounded-xl border border-white/16 bg-white/12 px-4 py-3 text-left text-white backdrop-blur transition hover:bg-white/18"
                 >
-                  <div className="aspect-[4/3] bg-slate-800">
-                    {heroListing.media?.[0]?.url || heroListing.media?.[0]?.file ? (
-                      <img src={heroListing.media[0].url || heroListing.media[0].file} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-slate-300">Featured listing</div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-200">Featured now</p>
-                    <p className="mt-1 truncate text-base font-bold">{heroListing.title}</p>
-                    <p className="mt-1 text-sm font-semibold text-white">{heroListing.price.toLocaleString()} {heroListing.currency}</p>
-                    <p className="mt-1 truncate text-xs text-slate-200">{heroListing.location}</p>
-                  </div>
+                  <span className="min-w-0">
+                    <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-200">Featured now</span>
+                    <span className="mt-1 block truncate text-sm font-bold">{heroListing.title}</span>
+                  </span>
+                  <span className="shrink-0 text-sm font-bold">{heroListing.price.toLocaleString()} {heroListing.currency}</span>
                 </button>
               )}
             </div>
@@ -171,26 +245,28 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {categoryCards.map((category) => {
-            const Icon = category.icon;
-            return (
-              <button
-                key={category.label}
-                type="button"
-                onClick={() => onExplore(category.query)}
-                className="group relative min-h-36 overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] text-left shadow-[var(--shadow-depth-1)] transition hover:-translate-y-0.5 hover:border-emerald-500/40 hover:shadow-[var(--shadow-depth-2)] sm:min-h-44"
-              >
-                <img src={category.image} alt="" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/88 via-slate-950/38 to-transparent" />
-                <div className="relative flex h-full min-h-36 flex-col justify-end p-4 text-white sm:min-h-44">
-                  <Icon size={22} className="mb-3 text-emerald-200" />
-                  <h2 className="text-xl font-bold">{category.label}</h2>
-                </div>
-              </button>
-            );
-          })}
+      <section className="relative z-20 mx-auto -mt-12 max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3 shadow-[var(--shadow-depth-3)]">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {categoryCards.map((category) => {
+              const Icon = category.icon;
+              return (
+                <button
+                  key={category.label}
+                  type="button"
+                  onClick={() => onExplore(category.query)}
+                  className="group relative min-h-36 overflow-hidden rounded-xl text-left transition hover:-translate-y-0.5 sm:min-h-44"
+                >
+                  <img src={category.image} alt="" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/88 via-slate-950/38 to-transparent" />
+                  <div className="relative flex h-full min-h-36 flex-col justify-end p-4 text-white sm:min-h-44">
+                    <Icon size={22} className="mb-3 text-emerald-200" />
+                    <h2 className="text-xl font-bold">{category.label}</h2>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
 
