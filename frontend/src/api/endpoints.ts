@@ -160,8 +160,6 @@ export const api = {
             apiClient.delete(`/admin/media/${mediaId}/`),
         updateMedia: (id: string | number, data: Record<string, unknown>) =>
             apiClient.put(`/admin/media/${id}/`, data),
-        assignPropertyAgent: (id: number | string, agentId: number | string) => apiClient.post(`/admin/properties/${id}/assign-agent/`, { agent_id: agentId }),
-
         // Sellers
         sellers: (params?: Record<string, string>) => apiClient.get('/admin/sellers/', { params }),
         createSeller: (data: Record<string, unknown>) => apiClient.post('/admin/sellers/', data),

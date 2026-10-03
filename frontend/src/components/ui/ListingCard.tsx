@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, ShieldCheck, CheckCircle2, Heart, GitCompareArrows, Eye } from 'lucide-react';
+import { MapPin, ShieldCheck, CheckCircle2, Heart, GitCompareArrows, Eye, ImageOff } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { ListingCardData, ListingCardProps } from './types';
 
@@ -33,7 +33,7 @@ const ListingCard: React.FC<ListingCardProps> = ({
   const image =
     listing.media?.[0]?.url ||
     listing.media?.[0]?.file ||
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=900';
+    '';
 
   return (
     <article
@@ -51,13 +51,22 @@ const ListingCard: React.FC<ListingCardProps> = ({
           viewMode === 'list' ? 'aspect-[4/3] w-full shrink-0 sm:aspect-auto sm:h-auto sm:w-56' : 'aspect-[4/3]'
         )}
       >
-        <img
-          src={image}
-          alt={listing.title}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-        />
-        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/45 to-transparent" />
+        {image ? (
+          <>
+            <img
+              src={image}
+              alt={listing.title}
+              loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+            />
+            <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/45 to-transparent" />
+          </>
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-[var(--color-text-dim)]">
+            <ImageOff size={28} />
+            <span className="text-xs font-semibold">No photo uploaded</span>
+          </div>
+        )}
 
         <div className="absolute left-3 top-3 right-12 flex flex-wrap gap-1.5 pointer-events-none">
           <span className="rounded-md bg-black/55 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white">

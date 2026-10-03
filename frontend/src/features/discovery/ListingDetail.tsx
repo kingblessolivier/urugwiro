@@ -32,7 +32,8 @@ import { api } from '../../api/endpoints';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { PhotoZoomLightbox, getMediaUrl } from './components/PhotoZoomLightbox';
+import { PhotoZoomLightbox } from './components/PhotoZoomLightbox';
+import { getMediaUrl } from './components/media';
 import { AtAGlanceGrid, type AtAGlanceFact } from './components/TechnicalSpecs';
 import {
   detectListingKind,
@@ -1965,9 +1966,8 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
         </Modal>
       )}
 
-      {images.length > 0 && (
+      {images.length > 0 && lightboxOpen && (
         <PhotoZoomLightbox
-          isOpen={lightboxOpen}
           onClose={() => setLightboxOpen(false)}
           media={images}
           initialIndex={activeImage}

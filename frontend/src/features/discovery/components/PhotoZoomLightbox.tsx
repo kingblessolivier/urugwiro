@@ -13,79 +13,16 @@ import {
   Download,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-
-export interface MediaItem {
-  id?: string | number;
-  url?: string;
-  file?: string;
-  image?: string;
-  category?: string;
-  caption?: string;
-  room_name?: string;
-  media_type?: string;
-}
+import { getMediaCaption, getMediaUrl, type MediaItem } from './media';
 
 interface PhotoZoomLightboxProps {
-  isOpen: boolean;
   onClose: () => void;
   media: (MediaItem | string)[];
   initialIndex?: number;
   listingTitle?: string;
 }
 
-export function getMediaUrl(
-  item: MediaItem | string | undefined | null,
-  opts?: { width?: number; quality?: number; hero?: boolean }
-): string {
-  const width = opts?.width ?? (opts?.hero ? 2560 : 1600);
-  const quality = opts?.quality ?? 85;
-  if (!item) return '';
-  const raw = typeof item === 'string' ? item : (item.url || item.file || item.image || '');
-  if (!raw) return '';
-
-  try {
-    const u = new URL(raw);
-    const h = u.hostname.replace(/^www\./, '');
-
-    // Unsplash — force 4K / Retina native resolution at high quality
-    if (h === 'images.unsplash.com') {
-      u.searchParams.set('auto', 'format');
-      u.searchParams.set('fit', 'crop');
-      u.searchParams.set('w', String(width));
-      u.searchParams.set('q', String(quality));
-      if (opts?.hero) u.searchParams.set('dpr', '2');
-      return u.toString();
-    }
-
-    // Picsum — force exact width
-    if (h === 'picsum.photos') {
-      // Picsum supports /id/{id}/{w}/{h} or /seed/{seed}/{w}/{h} or ?random
-      // Rewrite path: anything → /seed/{stable}/{width}
-      const seed = (u.pathname.replace(/\//g, '-').replace(/^-/, '') || 'urugwiro').slice(0, 64) || 'urugwiro';
-      return `https://picsum.photos/seed/${encodeURIComponent(seed)}/${width}/${Math.round(width * 0.62)}`;
-    }
-
-    // LoremFlickr
-    if (h === 'loremflickr.com') {
-      const match = u.pathname.match(/^\/(\d+)\/(\d+)/);
-      const w = match ? Math.max(Number(match[1]), width) : width;
-      const hh = match ? Math.max(Number(match[2]), Math.round(width * 0.62)) : Math.round(width * 0.62);
-      const tail = u.pathname.replace(/^\/\d+\/\d+/, '');
-      return `https://loremflickr.com/${w}/${hh}${tail}`;
-    }
-  } catch {
-    // not a URL, leave alone
-  }
-  return raw;
-}
-
-export function getMediaCaption(item: MediaItem | string | undefined | null): string {
-  if (!item || typeof item === 'string') return '';
-  return item.caption || item.category || item.room_name || '';
-}
-
 export const PhotoZoomLightbox: React.FC<PhotoZoomLightboxProps> = ({
-  isOpen,
   onClose,
   media,
   initialIndex = 0,
@@ -102,15 +39,6 @@ export const PhotoZoomLightbox: React.FC<PhotoZoomLightboxProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const touchDistanceRef = useRef<number | null>(null);
-
-  // Sync initialIndex when lightbox opens
-  useEffect(() => {
-    if (isOpen) {
-      setCurrentIndex(initialIndex);
-      setZoom(1);
-      setPan({ x: 0, y: 0 });
-    }
-  }, [isOpen, initialIndex]);
 
   // Reset zoom and pan when switching photos
   const changePhoto = useCallback((newIndex: number) => {
@@ -250,8 +178,6 @@ export const PhotoZoomLightbox: React.FC<PhotoZoomLightboxProps> = ({
 
   // Keyboard navigation & shortcuts
   useEffect(() => {
-    if (!isOpen) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
@@ -277,12 +203,12 @@ export const PhotoZoomLightbox: React.FC<PhotoZoomLightboxProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = origOverflow;
     };
-  }, [isOpen, handleNext, handlePrev, onClose]);
+  }, [handleNext, handlePrev, onClose]);
 
-  if (!isOpen || media.length === 0) return null;
+  if (media.length === 0) return null;
 
   const currentMedia = media[currentIndex];
-  const currentUrl = getMediaUrl(currentMedia, { width: 3200, quality: 92, hero: true });
+  const currentUrl = getMediaUrl(currentMedia);
   const currentCaption = getMediaCaption(currentMedia);
 
   return (
@@ -445,8 +371,6 @@ export const PhotoZoomLightbox: React.FC<PhotoZoomLightboxProps> = ({
             <img
               ref={imageRef}
               src={currentUrl}
-              srcSet={`${getMediaUrl(currentMedia, { width: 1920, quality: 90, hero: true })} 1x, ${getMediaUrl(currentMedia, { width: 3840, quality: 92, hero: true })} 2x`}
-              sizes="(min-width: 2000px) 2000px, 90vw"
               alt={currentCaption || listingTitle}
               draggable={false}
               loading="eager"
@@ -513,7 +437,7 @@ export const PhotoZoomLightbox: React.FC<PhotoZoomLightboxProps> = ({
             {showThumbnails && (
               <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none max-w-full">
                 {media.map((item, idx) => {
-                  const thumbUrl = getMediaUrl(item, { width: 320, quality: 80 });
+                  const thumbUrl = getMediaUrl(item);
                   const isSelected = currentIndex === idx;
                   return (
                     <button

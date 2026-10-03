@@ -101,17 +101,6 @@
   --shadow-depth-3: 0 16px 32px -12px rgba(15, 23, 42, 0.16);
   --shadow-emerald-soft: 0 1px 3px rgba(5, 150, 105, 0.18);
 
-  /* Legacy luxury aliases (retained so dark admin dashboards keep working) */
-  --color-obsidian-deep: #0b0f14;
-  --color-obsidian-surface: #111823;
-  --color-obsidian-card: #ffffff;
-  --color-obsidian-card-hover: #f8fafc;
-  --color-obsidian-border: #e2e8f0;
-  --color-obsidian-border-hover: #cbd5e1;
-  --color-gold-champagne: #b8935a;
-  --color-gold-burnished: #a9813f;
-  --color-gold-glow: rgba(184, 147, 90, 0.18);
-  --color-sapphire-escrow: #2563eb;
 }
 
 /* ─── DARK MODE (refined neutral — retained for dashboards + toggle) ─── */
@@ -155,12 +144,6 @@
   --shadow-depth-2: 0 4px 16px -2px rgba(0, 0, 0, 0.5);
   --shadow-depth-3: 0 20px 40px -12px rgba(0, 0, 0, 0.65);
 
-  --color-obsidian-deep: #0b0f14;
-  --color-obsidian-surface: #111823;
-  --color-obsidian-card: #131a24;
-  --color-obsidian-card-hover: #1a2230;
-  --color-obsidian-border: rgba(255, 255, 255, 0.10);
-  --color-obsidian-border-hover: rgba(255, 255, 255, 0.18);
 }
 
 /* Explicit .light is a no-op alias — :root already holds light values. */

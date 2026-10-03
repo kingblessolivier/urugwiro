@@ -307,7 +307,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                     Seller
                   </span>
                 </span>
-                <span className="text-[10px] text-[var(--color-text-dim)] tracking-tight truncate">Verified Estate Hub</span>
+                <span className="text-[10px] text-[var(--color-text-dim)] tracking-tight truncate">Seller workspace</span>
               </div>
             )}
           </div>
