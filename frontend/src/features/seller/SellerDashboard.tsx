@@ -6,7 +6,7 @@ import {
   ArrowUpRight, Search, Sparkles, CheckCircle2,
   Clock, MapPin, Building,
   ArrowRight, ExternalLink, Menu, X,
-  Phone, Calendar, Users, Mail, Star, Eye
+  Phone, Calendar, Users, Mail, Star, Eye, ImageOff
 } from 'lucide-react';
 import { cn, logError } from '../../lib/utils';
 import { Badge } from '../../components/ui/Badge';
@@ -128,8 +128,8 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
       if (item.asset?.land_spec?.upi_number) upi = item.asset.land_spec.upi_number;
       else if (item.upi_number) upi = item.upi_number;
 
-      const img = item.featured_image || item.media?.[0]?.file || item.image ||
-        (cat === 'land' ? '/images/hero/land.jpg' : cat === 'car' ? '/images/hero/car.jpg' : '/images/hero/house.jpg');
+      const primaryImage = item.media?.find((media: any) => !media.media_type || media.media_type === 'image');
+      const img = item.featured_image || primaryImage?.url || primaryImage?.file || item.image || '';
 
       return {
         id: String(item.id),
@@ -913,11 +913,17 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                           className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-elevated)] hover:border-emerald-500/30 transition-all cursor-pointer group"
                         >
                           <div className="flex items-center gap-3.5">
-                            <img
-                              src={item.image}
-                              alt={item.title}
-                              className="w-16 h-16 rounded-xl object-cover shrink-0 border border-[var(--color-border)]"
-                            />
+                            {item.image ? (
+                              <img
+                                src={item.image}
+                                alt={item.title}
+                                className="w-16 h-16 rounded-xl object-cover shrink-0 border border-[var(--color-border)]"
+                              />
+                            ) : (
+                              <div className="flex w-16 h-16 items-center justify-center rounded-xl shrink-0 border border-[var(--color-border)] bg-[var(--color-bg-surface)] text-[var(--color-text-dim)]">
+                                <ImageOff size={20} aria-hidden="true" />
+                              </div>
+                            )}
                             <div>
                               <div className="flex items-center gap-2">
                                 <h4 className="font-semibold text-sm text-[var(--color-text-main)] line-clamp-1">{item.title}</h4>

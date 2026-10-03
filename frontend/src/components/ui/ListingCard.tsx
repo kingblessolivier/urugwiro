@@ -30,9 +30,10 @@ const ListingCard: React.FC<ListingCardProps> = ({
   onToggleSave,
   onToggleCompare,
 }) => {
+  const primaryImage = listing.media?.find((item) => !item.media_type || item.media_type === 'image');
   const image =
-    listing.media?.[0]?.url ||
-    listing.media?.[0]?.file ||
+    primaryImage?.url ||
+    primaryImage?.file ||
     '';
 
   return (

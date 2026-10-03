@@ -115,15 +115,17 @@ class ListingMediaSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, attrs):
-        value = attrs.get('file')
+        value = attrs.get('file', getattr(self.instance, 'file', None))
         url = attrs.get('url', getattr(self.instance, 'url', ''))
         media_type = attrs.get('media_type', getattr(self.instance, 'media_type', 'image'))
         content_type = getattr(value, 'content_type', '') if value else ''
-        if not value and not url and not getattr(self.instance, 'file', None):
+        if not value and not url:
             raise serializers.ValidationError('Provide a media file or Cloudinary URL.')
-        if attrs.get('url'):
-            parsed = urlparse(attrs['url'])
-            if parsed.scheme != 'https' or parsed.hostname != 'res.cloudinary.com':
+        if value and url:
+            raise serializers.ValidationError('Provide either a media file or Cloudinary URL, not both.')
+        if url:
+            parsed = urlparse(url)
+            if parsed.scheme != 'https' or parsed.netloc != 'res.cloudinary.com':
                 raise serializers.ValidationError({'url': 'Media URL must be a secure Cloudinary delivery URL.'})
             path_parts = [part for part in parsed.path.split('/') if part]
             expected_cloud = getattr(settings, 'CLOUDINARY_CLOUD_NAME', '')

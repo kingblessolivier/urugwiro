@@ -15,7 +15,7 @@ from rest_framework.test import APIClient
 
 from .consumers import ChatConsumer
 from .models import (
-    Announcement, Asset, CommissionRule, Customer, Listing, ListingProposal, ListingReview, Message, Offer,
+    Announcement, Asset, CommissionRule, Customer, Listing, ListingMedia, ListingProposal, ListingReview, Message, Offer,
     PropertyInquiry, Visit,
     ResidentialSpec, SellerPayment, SellerProfile, SystemSetting, Transaction, User,
     VerificationDocument, SystemLog,
@@ -72,6 +72,53 @@ class ApiSecurityTests(TestCase):
         response = self.client.get('/api/ready/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, {'status': 'ready'})
+
+    @override_settings(CLOUDINARY_CLOUD_NAME='demo-cloud')
+    def test_seller_media_accepts_only_configured_cloudinary_urls(self):
+        self.authenticate(self.seller_user)
+        endpoint = f'/api/seller/listings/{self.published.pk}/media/'
+
+        image = self.client.post(endpoint, {
+            'url': 'https://res.cloudinary.com/demo-cloud/image/upload/v1/listings/home.webp',
+            'media_type': 'video',
+        }, format='json')
+        video = self.client.post(endpoint, {
+            'url': 'https://res.cloudinary.com/demo-cloud/video/upload/v1/listings/tour.mp4',
+            'media_type': 'image',
+        }, format='json')
+        wrong_cloud = self.client.post(endpoint, {
+            'url': 'https://res.cloudinary.com/other-cloud/image/upload/v1/listings/home.webp',
+        }, format='json')
+        insecure = self.client.post(endpoint, {
+            'url': 'http://res.cloudinary.com/demo-cloud/image/upload/v1/listings/home.webp',
+        }, format='json')
+        malformed = self.client.post(endpoint, {
+            'url': 'https://res.cloudinary.com/demo-cloud/raw/upload/v1/listings/home.webp',
+        }, format='json')
+
+        self.assertEqual(image.status_code, 201, image.data)
+        self.assertEqual(video.status_code, 201, video.data)
+        self.assertEqual(image.data['media_type'], 'image')
+        self.assertEqual(video.data['media_type'], 'video')
+        self.assertEqual(wrong_cloud.status_code, 400)
+        self.assertEqual(insecure.status_code, 400)
+        self.assertEqual(malformed.status_code, 400)
+        self.assertEqual(ListingMedia.objects.filter(listing=self.published).count(), 2)
+
+    @override_settings(CLOUDINARY_CLOUD_NAME='demo-cloud')
+    def test_listing_media_rejects_file_and_url_together(self):
+        self.authenticate(self.seller_user)
+        response = self.client.post(
+            f'/api/seller/listings/{self.published.pk}/media/',
+            {
+                'file': SimpleUploadedFile('plan.pdf', b'%PDF-1.4\n%%EOF', content_type='application/pdf'),
+                'url': 'https://res.cloudinary.com/demo-cloud/image/upload/v1/listings/home.png',
+                'media_type': 'floor_plan',
+            },
+            format='multipart',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('non_field_errors', response.data)
 
     def test_system_logs_are_real_and_only_owner_can_clear_them(self):
         entry = SystemLog.objects.create(

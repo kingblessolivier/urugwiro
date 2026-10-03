@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCoreRowModel, getSortedRowModel, useReactTable, type ColumnDef, type SortingState, type VisibilityState } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, ArrowUpDown, Building2, CheckSquare, Columns3, Edit3, Eye, ExternalLink, LayoutGrid, ListFilter, MapPin, Plus, Search, ShieldCheck, Square, Table2, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Building2, CheckSquare, Columns3, Eye, ExternalLink, LayoutGrid, ListFilter, MapPin, Plus, Search, ShieldCheck, Square, Table2, Trash2, X } from 'lucide-react';
 import { api } from '../../api/endpoints';
 import { Pagination } from '../../components/ui/Pagination';
 import { tableHead, tableTh, tableBody, tableTr } from '../../components/ui/Dashboard';
@@ -45,16 +45,17 @@ const AdminListingsPage: React.FC<AdminListingsPageProps> = ({ onListingClick })
     },
   });
 
-  const listings = Array.isArray(data) ? data : (data?.results || []);
+  const listings = useMemo(() => Array.isArray(data) ? data : (data?.results || []), [data]);
   const filteredListings = useMemo(() => listings.filter((listing) => {
     const matchesSearch = !search || `${listing.title} ${listing.slug} ${listing.listing_type} ${listing.address}`.toLowerCase().includes(search.toLowerCase());
     const matchesType = type === 'all' || listing.listing_type === type;
     return matchesSearch && matchesType;
   }), [listings, search, type]);
 
-  const getListingImage = (listing: any): string | null => (
-    listing.featured_image || listing.media?.[0]?.url || listing.media?.[0]?.file || listing.image || null
-  );
+  const getListingImage = (listing: any): string | null => {
+    const primaryImage = listing.media?.find((item: any) => !item.media_type || item.media_type === 'image');
+    return listing.featured_image || primaryImage?.url || primaryImage?.file || listing.image || null;
+  };
 
   const getListingLocation = (listing: any): string => (
     listing.address || listing.district || listing.city || 'Location not provided'
@@ -84,7 +85,7 @@ const AdminListingsPage: React.FC<AdminListingsPageProps> = ({ onListingClick })
   const paginatedRows = useMemo(() => {
     const start = (page - 1) * pageSize;
     return table.getRowModel().rows.slice(start, start + pageSize);
-  }, [table, page, pageSize, filteredListings, sorting]);
+  }, [table, page, pageSize]);
 
   const pageIds = paginatedRows.map((row) => String(row.original.id));
   const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));

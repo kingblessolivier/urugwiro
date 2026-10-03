@@ -35,7 +35,6 @@ export const SellerMediaManager: React.FC<SellerMediaManagerProps> = ({ listingI
   const uploadMutation = useMutation({
     mutationFn: async (data: { url: string; media_type: 'image' | 'video' }) => api.seller.uploadMedia(listingId, data),
     onSuccess: invalidate,
-    onError: (err: any) => alert(`Upload failed: ${err?.response?.data?.error || err.message}`),
   });
 
   const deleteMutation = useMutation({
@@ -77,7 +76,7 @@ export const SellerMediaManager: React.FC<SellerMediaManagerProps> = ({ listingI
           <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-[#fff] text-xs font-bold transition-colors shadow-[var(--shadow-emerald-soft)]">
             <Upload size={14} /> {isUploading ? 'Uploading...' : 'Upload Media'}
           </div>
-          <input type="file" accept="image/*,video/*,.glb" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+          <input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
         </label>
       </div>
 

@@ -24,6 +24,7 @@ export function resolveImageUrl(url: string | null | undefined): string | null {
 }
 
 export function getListingImage(listing: Listing): string | null {
-  const raw = listing.featured_image || listing.media?.[0]?.url || listing.media?.[0]?.file || listing.image || null;
+  const primaryImage = listing.media?.find((item) => !item.media_type || item.media_type === 'image');
+  const raw = listing.featured_image || primaryImage?.url || primaryImage?.file || listing.image || null;
   return resolveImageUrl(raw);
 }

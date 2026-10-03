@@ -8,7 +8,7 @@ export interface ListingCardData {
   location: string;
   listing_type: string;
   verification_level?: 'none' | 'submitted' | 'verified' | 'professional';
-  media?: { url?: string; file?: string; category?: string }[];
+  media?: { url?: string; file?: string; category?: string; media_type?: string }[];
   specs?: Record<string, string | number>;
   description?: string;
   views?: number;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Trash2, GripVertical, Image as ImageIcon, Film, Box, X } from 'lucide-react';
+import { Upload, Trash2, Image as ImageIcon, Film, Box } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { api } from '../../../api/endpoints';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -38,13 +38,6 @@ export const AdminMediaManager: React.FC<AdminMediaManagerProps> = ({ listingId,
 
   const deleteMutation = useMutation({
     mutationFn: async (mediaId: string) => api.admin.deleteMedia(mediaId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['listing-detail', listingId] });
-    },
-  });
-
-  const updateMediaMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => api.admin.updateMedia(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['listing-detail', listingId] });
     },

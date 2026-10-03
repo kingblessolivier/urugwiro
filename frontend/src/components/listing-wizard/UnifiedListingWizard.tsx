@@ -132,6 +132,11 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitProgress, setSubmitProgress] = useState('');
+  const [createdListingId, setCreatedListingId] = useState<string | number | null>(null);
+
+  useEffect(() => () => {
+    if (videoPreview) URL.revokeObjectURL(videoPreview);
+  }, [videoPreview]);
 
   // ─── Validation ───
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -235,21 +240,22 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
   const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const fileArr = Array.from(files);
+    const fileArr = Array.from(files).slice(0, Math.max(0, 10 - gallery.length));
     setGallery((prev) => [...prev, ...fileArr]);
     fileArr.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (ev) => setGalleryPreviews((prev) => [...prev, ev.target?.result as string]);
       reader.readAsDataURL(file);
     });
+    e.target.value = '';
   };
 
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (videoPreview) URL.revokeObjectURL(videoPreview);
     setVideoFile(file);
     setVideoPreview(URL.createObjectURL(file));
+    e.target.value = '';
   };
 
   // Trust file handlers
@@ -285,10 +291,11 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
 
   // Submit
   const handleSubmit = async () => {
-    if (!category || !subtype) return;
+    if (!category || !subtype || createdListingId) return;
     setIsSubmitting(true);
     setSubmitError('');
     setSubmitProgress('Creating listing...');
+    let newListingId: string | number | null = null;
 
     try {
       const fd = new FormData();
@@ -357,14 +364,18 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
             headers: { 'Content-Type': 'multipart/form-data' },
           });
       const createResponse = await createRequest;
-      const createdListingId = createResponse.data?.id;
+      newListingId = createResponse.data?.id ?? null;
+      if (!newListingId) {
+        throw new Error('The API created the listing without returning its identifier.');
+      }
+      setCreatedListingId(newListingId);
       const mediaFiles = [heroImage, ...gallery, videoFile].filter(Boolean) as File[];
-      if (createdListingId && mediaFiles.length > 0) {
+      if (mediaFiles.length > 0) {
         const uploadMedia = listedByRole === 'admin' ? api.admin.uploadMedia : api.seller.uploadMedia;
         for (let index = 0; index < mediaFiles.length; index += 1) {
           setSubmitProgress(`Uploading media ${index + 1} of ${mediaFiles.length}...`);
           const uploaded = await uploadMediaToCloudinary(mediaFiles[index]);
-          await uploadMedia(createdListingId, {
+          await uploadMedia(newListingId, {
             url: uploaded.url,
             media_type: uploaded.mediaType,
             order: index,
@@ -385,7 +396,10 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
           .map(([field, value]) => `${field}: ${Array.isArray(value) ? value.join(', ') : String(value)}`)
           .join(' | ')
         : '';
-      setSubmitError(responseData?.error || responseData?.detail || fieldErrors || err.message || 'We could not add this property. Please try again.');
+      const detail = responseData?.error || responseData?.detail || fieldErrors || err.message;
+      setSubmitError(newListingId
+        ? `Listing #${newListingId} was created, but its media upload did not finish. Open the listing from your inventory to upload the missing media.${detail ? ` ${detail}` : ''}`
+        : detail || 'We could not add this property. Please try again.');
     } finally {
       setIsSubmitting(false);
       setSubmitProgress('');
@@ -651,7 +665,6 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      URL.revokeObjectURL(videoPreview);
                       setVideoFile(null);
                       setVideoPreview(null);
                     }}
@@ -964,15 +977,19 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!confirmed || isSubmitting}
+            disabled={!confirmed || isSubmitting || Boolean(createdListingId)}
             className={cn(
               'flex items-center gap-2 px-6 py-2.5 text-sm font-bold rounded-xl transition-all',
-              confirmed && !isSubmitting
+              confirmed && !isSubmitting && !createdListingId
                 ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 cursor-pointer'
                 : 'bg-white/[0.06] text-zinc-600 cursor-not-allowed',
             )}
           >
-            {isSubmitting ? (submitProgress || 'Submitting...') : <><Send size={16} /> {listedByRole === 'admin' ? 'Add property' : 'Submit listing'}</>}
+            {isSubmitting
+              ? (submitProgress || 'Submitting...')
+              : createdListingId
+                ? 'Listing created'
+                : <><Send size={16} /> {listedByRole === 'admin' ? 'Add property' : 'Submit listing'}</>}
           </button>
         )}
       </div>

@@ -27,7 +27,7 @@ export async function uploadMediaToCloudinary(file: File): Promise<CloudinaryUpl
     method: 'POST',
     body: formData,
   });
-  const data = await response.json() as CloudinaryResponse;
+  const data = await response.json().catch(() => ({})) as CloudinaryResponse;
   if (!response.ok || !data.secure_url) {
     throw new Error(data.error?.message || 'Cloudinary upload failed.');
   }
