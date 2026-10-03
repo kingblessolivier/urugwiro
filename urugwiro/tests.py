@@ -14,7 +14,7 @@ from rest_framework.test import APIClient
 
 from .consumers import ChatConsumer
 from .models import (
-    Announcement, Asset, CommissionRule, Customer, Listing, ListingProposal, Offer,
+    Announcement, Asset, CommissionRule, Customer, Listing, ListingProposal, Message, Offer,
     ResidentialSpec, SellerPayment, SellerProfile, SystemSetting, Transaction, User,
     VerificationDocument, SystemLog,
 )
@@ -393,6 +393,45 @@ class ApiSecurityTests(TestCase):
         self.assertEqual(response.data['results'][0]['id'], self.published.pk)
         self.assertIn('asset', response.data['results'][0])
         self.assertNotIn('phone_number', response.data['results'][0]['seller'])
+
+    def test_seller_saved_interest_is_aggregate_and_hides_customer_identity(self):
+        customer = User.objects.create_user(username='private-saver', password='Saver-pass-123!')
+        self.published.saved_by.create(user=customer)
+        self.authenticate(self.seller_user)
+
+        response = self.client.get('/api/seller/likes/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'], [{
+            'listing_id': self.published.pk,
+            'listing_title': self.published.title,
+            'saves_count': 1,
+        }])
+        self.assertNotIn('user', response.data['results'][0])
+
+    def test_chat_directory_and_new_threads_are_role_scoped(self):
+        customer = User.objects.create_user(username='chat-customer', password='Customer-pass-123!')
+        other_customer = User.objects.create_user(username='other-customer', password='Customer-pass-123!')
+        self.authenticate(customer)
+
+        directory = self.client.get('/api/chat/new-users/')
+        denied = self.client.post('/api/chat/send/', {
+            'recipient_id': other_customer.pk,
+            'content': 'Unsolicited message',
+        }, format='json')
+
+        self.assertEqual(directory.status_code, 200)
+        self.assertIn(self.owner.pk, [entry['id'] for entry in directory.data])
+        self.assertNotIn(other_customer.pk, [entry['id'] for entry in directory.data])
+        self.assertEqual(denied.status_code, 403)
+
+        Message.objects.create(sender=other_customer, recipient=customer, content='Established thread')
+        continued = self.client.post('/api/chat/send/', {
+            'recipient_id': other_customer.pk,
+            'content': 'Allowed reply',
+        }, format='json')
+        self.assertEqual(continued.status_code, 201)
 
     def test_admin_customer_directory_contract_and_query_budget(self):
         self.authenticate(self.owner)

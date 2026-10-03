@@ -47,7 +47,7 @@ export const PropertyInspectionDrawer: React.FC<PropertyInspectionDrawerProps> =
   // Offer Action Mutation (Accept / Reject)
   const offerStatusMutation = useMutation({
     mutationFn: async ({ offerId, status }: { offerId: number | string; status: 'accepted' | 'rejected' }) => {
-      return api.offers.updateStatus(offerId, { status });
+      return api.seller.respondOffer(offerId, status === 'accepted' ? 'accept' : 'decline');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['seller-listing-detail', listingId] });

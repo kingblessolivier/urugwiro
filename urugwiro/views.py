@@ -103,6 +103,16 @@ def chat_send_api(request):
         recipient = User.objects.get(id=recipient_id)
     except User.DoesNotExist:
         return Response({'error': 'Recipient not found'}, status=404)
+    if recipient.pk == request.user.pk:
+        return Response({'error': 'You cannot message your own account.'}, status=400)
+
+    has_existing_thread = Message.objects.filter(
+        Q(sender=request.user, recipient=recipient)
+        | Q(sender=recipient, recipient=request.user)
+    ).exists()
+    recipient_is_support = recipient.is_superuser or recipient.role in {'admin', 'owner', 'staff'}
+    if not has_capability(request.user, 'operations') and not recipient_is_support and not has_existing_thread:
+        return Response({'error': 'You cannot start a conversation with this account.'}, status=403)
     
     listing = None
     if listing_id:
@@ -116,12 +126,18 @@ def chat_send_api(request):
     )
 
     from .consumers import push_notification
+    if recipient.role == 'seller':
+        notification_link = '/seller/conversations'
+    elif has_capability(recipient, 'operations'):
+        notification_link = '/admin/conversations'
+    else:
+        notification_link = '/'
     push_notification(
         recipient=recipient,
         actor=request.user,
         notification_type='new_message',
         message=f"{request.user.get_full_name() or request.user.username}: {content[:80]}",
-        link='/admin/conversations/',
+        link=notification_link,
     )
     
     return Response({
@@ -140,7 +156,11 @@ def chat_new_users_api(request):
     if not request.user.is_authenticated:
         return Response({'error': 'Authentication required'}, status=401)
     
-    users = User.objects.exclude(id=request.user.id).filter(is_active=True)[:50]
+    chat_roles = {'admin', 'owner', 'staff', 'seller'}
+    users = User.objects.exclude(id=request.user.id).filter(is_active=True, role__in=chat_roles)
+    if not has_capability(request.user, 'operations'):
+        users = users.filter(role__in={'admin', 'owner', 'staff'})
+    users = users.order_by('first_name', 'username')[:50]
     data = [{
         'id': u.id,
         'username': u.username,

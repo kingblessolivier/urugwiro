@@ -8,5 +8,4 @@ export * from './Toast';
 export * from './Timeline';
 export { EmptyState } from './EmptyState';
 export * from './CalendarView';
-export * from './AdminToastSystem';
 export * from './types';

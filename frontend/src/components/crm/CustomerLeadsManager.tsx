@@ -1,21 +1,16 @@
-import React, { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Phone, MessageSquare, Mail, Calendar, Heart, Search,
-  CheckCircle2, Clock, Building2, User, ExternalLink,
-  ChevronDown, MessageCircle, Eye,
-  Sparkles, RefreshCw, X, Users
+  AlertCircle, Calendar, CheckCircle2, ChevronDown, ExternalLink,
+  MailCheck, MessageSquare, Phone, RefreshCw, Users,
 } from 'lucide-react';
-import { cn, logError } from '../../lib/utils';
 import { api } from '../../api/endpoints';
-import { Pagination } from '../ui/Pagination';
-import {
-  DashboardCard, CardHeader, StatCard, EmptyState,
-} from '../ui/Dashboard';
+import { cn } from '../../lib/utils';
+import { CardHeader, DashboardCard, StatCard } from '../ui/Dashboard';
 import { DataTable } from '../ui/DataTable';
 import { StatusBadge } from '../ui/StatusBadge';
 
-export type LeadChannel = 'all' | 'visits' | 'inquiries' | 'likes';
+export type LeadChannel = 'all' | 'visits' | 'inquiries';
 
 interface CustomerLeadsManagerProps {
   mode: 'seller' | 'admin';
@@ -25,20 +20,30 @@ interface CustomerLeadsManagerProps {
   subtitle?: string;
 }
 
-const chipBase = 'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider';
+interface Lead {
+  id: string;
+  rawId: number;
+  channel: 'visit' | 'inquiry';
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  propertyTitle: string;
+  propertyId: string;
+  status: string;
+  dateLabel: string;
+  notes: string;
+}
 
-const channelChip = (channel: string) =>
-  channel === 'visit'
-    ? `${chipBase} bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/40`
-    : channel === 'inquiry'
-    ? `${chipBase} bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/40`
-    : `${chipBase} bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/40`;
+const rowsFrom = (data: any): any[] => Array.isArray(data) ? data : data?.results || [];
 
-const statusChip =
-  `${chipBase} border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]`;
+const formatDate = (value: string) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+};
 
-const iconBtn =
-  'p-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:border-[var(--color-border-hover)] transition-colors cursor-pointer';
+const apiError = (error: any, fallback: string) =>
+  error?.response?.data?.error || error?.response?.data?.detail || fallback;
 
 export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
   mode,
@@ -48,371 +53,227 @@ export const CustomerLeadsManager: React.FC<CustomerLeadsManagerProps> = ({
   subtitle,
 }) => {
   const queryClient = useQueryClient();
-
-  // State
   const [activeChannel, setActiveChannel] = useState<LeadChannel>(initialChannel);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPropertyFilter, setSelectedPropertyFilter] = useState('all');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [selectedLead, setSelectedLead] = useState<any | null>(null);
-  const [actionSuccess, setActionSuccess] = useState('');
-  const [actionError, setActionError] = useState('');
+  const [selectedProperty, setSelectedProperty] = useState('all');
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const queryScope = `${mode}-customer-leads`;
 
-  // Fetch visits
-  const { data: visitsData, isLoading: loadingVisits, refetch: refetchVisits } = useQuery({
-    queryKey: ['seller-visits'],
-    queryFn: async () => (await api.seller.visits()).data,
-  });
-
-  // Fetch inquiries
-  const { data: inquiriesData, isLoading: loadingInquiries, refetch: refetchInquiries } = useQuery({
-    queryKey: ['seller-inquiries'],
-    queryFn: async () => (await api.seller.inquiries()).data,
-  });
-
-  // Fetch likes
-  const { data: likesData, isLoading: loadingLikes, refetch: refetchLikes } = useQuery({
-    queryKey: ['seller-likes'],
-    queryFn: async () => (await api.seller.likes()).data,
-  });
-
-  // Mutations
-  const updateVisitMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
-      api.seller.updateVisit(id, { status }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['seller-visits'] });
-      setActionSuccess('Visit marked as completed.');
-      setTimeout(() => setActionSuccess(''), 3000);
-    },
-    onError: () => {
-      setActionError('Failed to update visit.');
-      setTimeout(() => setActionError(''), 3000);
+  const visitsQuery = useQuery({
+    queryKey: [queryScope, 'visits'],
+    queryFn: async () => {
+      const response = mode === 'admin'
+        ? await api.admin.visits({ page_size: '100' })
+        : await api.seller.visits({ page_size: '100' });
+      return rowsFrom(response.data);
     },
   });
 
-  const updateInquiryMutation = useMutation({
-    mutationFn: ({ id, is_read }: { id: number; is_read: boolean }) =>
-      api.seller.updateInquiry(id, { is_read }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['seller-inquiries'] });
-      setActionSuccess('Inquiry marked as contacted.');
-      setTimeout(() => setActionSuccess(''), 3000);
-    },
-    onError: () => {
-      setActionError('Failed to update inquiry.');
-      setTimeout(() => setActionError(''), 3000);
+  const inquiriesQuery = useQuery({
+    queryKey: [queryScope, 'inquiries'],
+    queryFn: async () => {
+      const response = mode === 'admin'
+        ? await api.admin.enquiries({ page_size: 100 })
+        : await api.seller.inquiries({ page_size: '100' });
+      return rowsFrom(response.data);
     },
   });
 
-  // Normalize data
-  const normalizedVisits = useMemo(() => {
-    if (!Array.isArray(visitsData)) return [];
-    return visitsData.map((v: any) => ({
-      id: `visit-${v.id}`,
-      rawId: v.id,
-      channel: 'visit',
-      customerName: v.name || v.buyer_name || 'Unknown',
-      customerPhone: v.phone || v.buyer_phone || '',
-      customerEmail: v.email || '',
-      propertyTitle: v.listing?.title || v.property_title || 'Property',
-      propertyId: v.listing_id,
-      status: v.status || 'scheduled',
-      dateLabel: v.scheduled_date || v.date || '',
-      timeSlot: v.scheduled_time || '',
-      notes: v.notes || '',
-    }));
-  }, [visitsData]);
+  const visits = useMemo<Lead[]>(() => (visitsQuery.data || []).map((visit: any) => ({
+    id: `visit-${visit.id}`,
+    rawId: visit.id,
+    channel: 'visit',
+    customerName: visit.customer_name || visit.name || 'Unknown customer',
+    customerPhone: visit.phone || '',
+    customerEmail: visit.email || '',
+    propertyTitle: visit.listing_title || visit.listing?.title || 'Property',
+    propertyId: String(visit.listing || visit.listing_id || ''),
+    status: visit.status || 'requested',
+    dateLabel: visit.confirmed_date || visit.preferred_date || visit.created_at || '',
+    notes: visit.notes || '',
+  })), [visitsQuery.data]);
 
-  const normalizedInquiries = useMemo(() => {
-    if (!Array.isArray(inquiriesData)) return [];
-    return inquiriesData.map((i: any) => ({
-      id: `inquiry-${i.id}`,
-      rawId: i.id,
-      channel: 'inquiry',
-      customerName: i.name || i.sender_name || 'Unknown',
-      customerPhone: i.phone || '',
-      customerEmail: i.email || '',
-      propertyTitle: i.listing?.title || i.property_title || 'Property',
-      propertyId: i.listing_id,
-      status: i.is_read ? 'contacted' : 'unread',
-      dateLabel: i.created_at || '',
-      timeSlot: '',
-      notes: i.message || '',
-    }));
-  }, [inquiriesData]);
+  const inquiries = useMemo<Lead[]>(() => (inquiriesQuery.data || []).map((inquiry: any) => ({
+    id: `inquiry-${inquiry.id}`,
+    rawId: inquiry.id,
+    channel: 'inquiry',
+    customerName: inquiry.name || 'Unknown customer',
+    customerPhone: inquiry.phone || '',
+    customerEmail: inquiry.email || '',
+    propertyTitle: inquiry.listing_title || inquiry.listing?.title || 'Property',
+    propertyId: String(inquiry.listing || inquiry.listing_id || ''),
+    status: inquiry.is_read ? 'contacted' : 'unread',
+    dateLabel: inquiry.created_at || '',
+    notes: inquiry.message || '',
+  })), [inquiriesQuery.data]);
 
-  const normalizedLikes = useMemo(() => {
-    if (!Array.isArray(likesData)) return [];
-    return likesData.map((l: any) => ({
-      id: `like-${l.id}`,
-      rawId: l.id,
-      channel: 'like',
-      customerName: l.user?.full_name || l.user?.username || 'Unknown',
-      customerPhone: l.user?.phone_number || '',
-      customerEmail: l.user?.email || '',
-      propertyTitle: l.listing?.title || 'Property',
-      propertyId: l.listing_id,
-      status: 'saved',
-      dateLabel: l.created_at || '',
-      timeSlot: '',
-      notes: '',
-    }));
-  }, [likesData]);
+  const updateLead = useMutation({
+    mutationFn: async (lead: Lead) => {
+      if (lead.channel === 'visit') {
+        return mode === 'admin'
+          ? api.admin.updateVisit(lead.rawId, { status: 'completed' })
+          : api.seller.updateVisit(lead.rawId, { status: 'completed' });
+      }
+      return mode === 'admin'
+        ? api.admin.updateEnquiry(lead.rawId, { is_read: true })
+        : api.seller.updateInquiry(lead.rawId, { is_read: true });
+    },
+    onSuccess: (_response, lead) => {
+      queryClient.invalidateQueries({ queryKey: [queryScope, lead.channel === 'visit' ? 'visits' : 'inquiries'] });
+      setFeedback({
+        type: 'success',
+        text: lead.channel === 'visit' ? 'Visit marked as completed.' : 'Inquiry marked as contacted.',
+      });
+    },
+    onError: (error, lead) => setFeedback({
+      type: 'error',
+      text: apiError(error, lead.channel === 'visit' ? 'The visit could not be updated.' : 'The inquiry could not be updated.'),
+    }),
+  });
 
-  // Filter by channel
+  const allLeads = useMemo(() => [...visits, ...inquiries], [visits, inquiries]);
   const displayedLeads = useMemo(() => {
-    let leads: any[] = [];
-    if (activeChannel === 'all' || activeChannel === 'visits') leads = [...leads, ...normalizedVisits];
-    if (activeChannel === 'all' || activeChannel === 'inquiries') leads = [...leads, ...normalizedInquiries];
-    if (activeChannel === 'all' || activeChannel === 'likes') leads = [...leads, ...normalizedLikes];
-
-    // Filter by property
-    if (selectedPropertyFilter !== 'all') {
-      leads = leads.filter((l) => String(l.propertyId) === selectedPropertyFilter);
+    let leads = activeChannel === 'visits' ? visits : activeChannel === 'inquiries' ? inquiries : allLeads;
+    if (selectedProperty !== 'all') {
+      leads = leads.filter((lead) => lead.propertyId === selectedProperty);
     }
-
-    // Filter by search
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      leads = leads.filter((l) =>
-        l.customerName.toLowerCase().includes(q) ||
-        l.customerPhone.toLowerCase().includes(q) ||
-        l.customerEmail.toLowerCase().includes(q) ||
-        l.propertyTitle.toLowerCase().includes(q) ||
-        l.notes.toLowerCase().includes(q)
-      );
-    }
-
     return leads;
-  }, [activeChannel, normalizedVisits, normalizedInquiries, normalizedLikes, selectedPropertyFilter, searchQuery]);
+  }, [activeChannel, allLeads, inquiries, selectedProperty, visits]);
 
-  const paginatedLeads = useMemo(
-    () => displayedLeads.slice((page - 1) * pageSize, page * pageSize),
-    [displayedLeads, page, pageSize]
-  );
+  const properties = useMemo(() => {
+    const unique = new Map<string, string>();
+    allLeads.forEach((lead) => {
+      if (lead.propertyId) unique.set(lead.propertyId, lead.propertyTitle);
+    });
+    return Array.from(unique, ([id, propertyTitle]) => ({ id, propertyTitle }));
+  }, [allLeads]);
 
-  // Total phone numbers captured
-  const totalPhonesCount = useMemo(() => {
-    const all = [...normalizedVisits, ...normalizedInquiries, ...normalizedLikes];
-    return all.filter((item) => Boolean(item.customerPhone)).length;
-  }, [normalizedVisits, normalizedInquiries, normalizedLikes]);
+  const contactableCount = allLeads.filter((lead) => Boolean(lead.customerPhone)).length;
+  const isLoading = visitsQuery.isLoading || inquiriesQuery.isLoading;
+  const isError = visitsQuery.isError || inquiriesQuery.isError;
 
-  // Unique properties list for filter dropdown
-  const propertiesList = useMemo(() => {
-    const all = [...normalizedVisits, ...normalizedInquiries, ...normalizedLikes];
-    const seen = new Set<string>();
-    return all
-      .filter((item) => item.propertyId && !seen.has(String(item.propertyId)) && seen.add(String(item.propertyId)))
-      .map((item) => ({ id: String(item.propertyId), title: item.propertyTitle }));
-  }, [normalizedVisits, normalizedInquiries, normalizedLikes]);
-
-  const handleRefreshAll = () => {
-    refetchVisits();
-    refetchInquiries();
-    refetchLikes();
+  const refresh = () => {
+    visitsQuery.refetch();
+    inquiriesQuery.refetch();
   };
 
-  const switchChannel = (ch: LeadChannel) => {
-    setActiveChannel(ch);
-    setPage(1);
+  const switchChannel = (channel: LeadChannel) => {
+    setActiveChannel(channel);
+    setFeedback(null);
   };
 
-  const isLoading = loadingVisits || loadingInquiries || loadingLikes;
-
-  const channelTabs: { id: LeadChannel; label: string; count: number; icon: React.ElementType }[] = [
-    { id: 'all', label: 'All Channels', count: normalizedVisits.length + normalizedInquiries.length + normalizedLikes.length, icon: Users },
-    { id: 'visits', label: 'Booked Visits', count: normalizedVisits.length, icon: Calendar },
-    { id: 'inquiries', label: 'Inquiries', count: normalizedInquiries.length, icon: MessageSquare },
-    { id: 'likes', label: 'Wishlist', count: normalizedLikes.length, icon: Heart },
-  ];
-
-  const leadColumns = useMemo(() => [
-    { accessorKey: 'customerName', id: 'name', header: 'Customer', cell: ({ row }: any) => (
-      <div>
-        <span className="font-semibold text-[var(--color-text-main)]">{row.original.customerName}</span>
-        {row.original.customerPhone && <div className="text-xs text-[var(--color-text-muted)] font-mono">{row.original.customerPhone}</div>}
-      </div>
-    ) },
-    { accessorKey: 'channel', id: 'channel', header: 'Channel', cell: ({ row }: any) => {
-      const channel = row.original.channel;
-      const variant = channel === 'visit' ? 'pending' : channel === 'inquiry' ? 'published' : 'draft';
-      return <StatusBadge status={variant} size="sm" />;
-    } },
-    { accessorKey: 'propertyTitle', id: 'property', header: 'Property', cell: ({ row }: any) => (
-      <span className="text-sm text-[var(--color-text-muted)]">{row.original.propertyTitle}</span>
-    ) },
+  const columns = useMemo(() => [
+    {
+      accessorKey: 'customerName', id: 'customer', header: 'Customer', cell: ({ row }: any) => (
+        <div>
+          <p className="font-semibold text-[var(--color-text-main)]">{row.original.customerName}</p>
+          {row.original.customerPhone && <p className="text-xs text-[var(--color-text-muted)]">{row.original.customerPhone}</p>}
+          {!row.original.customerPhone && row.original.customerEmail && <p className="text-xs text-[var(--color-text-muted)]">{row.original.customerEmail}</p>}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'channel', id: 'channel', header: 'Channel', cell: ({ row }: any) => row.original.channel === 'visit'
+        ? <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-700 dark:text-sky-300"><Calendar size={13} />Visit</span>
+        : <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"><MessageSquare size={13} />Inquiry</span>,
+    },
+    { accessorKey: 'propertyTitle', id: 'property', header: 'Property' },
     { accessorKey: 'status', id: 'status', header: 'Status', cell: ({ row }: any) => <StatusBadge status={row.original.status} size="sm" /> },
-    { accessorKey: 'dateLabel', id: 'date', header: 'Date', cell: ({ row }: any) => (
-      <span className="text-xs text-[var(--color-text-muted)]">{row.original.dateLabel || '-'}</span>
-    ) },
-    { accessorKey: 'notes', id: 'notes', header: 'Notes', cell: ({ row }: any) => (
-      <span className="text-xs text-[var(--color-text-muted)] truncate max-w-xs block">{row.original.notes || '—'}</span>
-    ) },
-    { id: 'actions', header: '', cell: ({ row }: any) => (
-      <div className="flex items-center justify-end gap-1.5">
-        {onListingClick && (
-          <button onClick={() => onListingClick(String(row.original.propertyId))} className="p-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition-colors" title="View Property"><ExternalLink size={14} /></button>
-        )}
-      </div>
-    ) },
-  ], [onListingClick]);
+    { accessorKey: 'dateLabel', id: 'date', header: 'Date', cell: ({ row }: any) => <span className="text-xs text-[var(--color-text-muted)]">{formatDate(row.original.dateLabel)}</span> },
+    { accessorKey: 'notes', id: 'notes', header: 'Notes', cell: ({ row }: any) => <span className="block max-w-xs truncate text-xs text-[var(--color-text-muted)]">{row.original.notes || '-'}</span> },
+    {
+      id: 'actions', header: '', cell: ({ row }: any) => {
+        const lead = row.original as Lead;
+        const isComplete = lead.channel === 'visit'
+          ? ['completed', 'cancelled', 'no_show'].includes(lead.status)
+          : lead.status === 'contacted';
+        return (
+          <div className="flex justify-end gap-1">
+            {!isComplete && (
+              <button type="button" onClick={() => updateLead.mutate(lead)} disabled={updateLead.isPending} className="rounded-lg p-2 text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-elevated)] hover:text-emerald-600 disabled:opacity-50" title={lead.channel === 'visit' ? 'Mark visit completed' : 'Mark inquiry contacted'} aria-label={lead.channel === 'visit' ? 'Mark visit completed' : 'Mark inquiry contacted'}>
+                {lead.channel === 'visit' ? <CheckCircle2 size={16} /> : <MailCheck size={16} />}
+              </button>
+            )}
+            {onListingClick && lead.propertyId && (
+              <button type="button" onClick={() => onListingClick(lead.propertyId)} className="rounded-lg p-2 text-[var(--color-text-muted)] transition hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-main)]" title="View property" aria-label="View property"><ExternalLink size={16} /></button>
+            )}
+          </div>
+        );
+      },
+    },
+  ], [onListingClick, updateLead]);
 
   return (
     <div className="space-y-6 text-[var(--color-text-main)]">
-      {/* Toast feedback */}
-      {actionSuccess && (
-        <div className="fixed top-6 right-6 z-50 px-4 py-3 rounded-2xl border shadow-[var(--shadow-depth-1)] flex items-center gap-2.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 animate-fadeIn">
-          <CheckCircle2 size={16} />
-          <span>{actionSuccess}</span>
+      <div className="flex flex-col justify-between gap-4 border-b border-[var(--color-border)] pb-5 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="text-2xl font-bold">{title || (mode === 'seller' ? 'Customer enquiries and visits' : 'Marketplace enquiries and visits')}</h1>
+          <p className="mt-1 text-sm text-[var(--color-text-muted)]">{subtitle || 'Review direct enquiries and scheduled property visits.'}</p>
         </div>
-      )}
-      {actionError && (
-        <div role="alert" className="fixed right-6 top-20 z-50 flex items-center gap-2.5 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-semibold text-red-400 shadow-[var(--shadow-depth-1)] animate-fadeIn">
-          <X size={16} />
-          <span>{actionError}</span>
-        </div>
-      )}
-
-      {/* ━━━ 1. HEADER ━━━ */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-border)] pb-6">
-        <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-[var(--color-brand-emerald)] text-[10px] font-mono font-bold uppercase tracking-[0.2em] mb-2">
-            <Sparkles size={12} /> {mode === 'seller' ? 'Customers' : 'Admin Customers'}
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--color-text-main)]">
-            {title || (mode === 'seller' ? 'Customers & Visit Requests' : 'Customer Inquiries & Visits')}
-          </h1>
-          {subtitle && <p className="text-xs sm:text-sm text-[var(--color-text-muted)]">{subtitle}</p>}
-        </div>
-
-        <button
-          onClick={handleRefreshAll}
-          className="self-start md:self-auto p-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:border-[var(--color-border-hover)] transition-all cursor-pointer flex items-center gap-2 text-xs font-bold"
-        >
-          <RefreshCw size={14} className={cn(isLoading && 'animate-spin text-[var(--color-brand-emerald)]')} />
-          Refresh Leads
+        <button type="button" onClick={refresh} className="flex self-start items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-2 text-xs font-semibold text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-main)]">
+          <RefreshCw size={14} className={cn(isLoading && 'animate-spin')} /> Refresh
         </button>
       </div>
 
-      {/* ━━━ 2. KPI STRIP ━━━ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard
-          label="Booked Visits"
-          value={normalizedVisits.length}
-          sub="Scheduled tours"
-          icon={Calendar}
-          tone="blue"
-          onClick={() => switchChannel('visits')}
-          className={cn(activeChannel === 'visits' && 'border-sky-500/50 ring-1 ring-sky-500/30')}
-        />
-        <StatCard
-          label="Property Inquiries"
-          value={normalizedInquiries.length}
-          sub="Inbound messages"
-          icon={MessageSquare}
-          tone="emerald"
-          onClick={() => switchChannel('inquiries')}
-          className={cn(activeChannel === 'inquiries' && 'border-emerald-500/50 ring-1 ring-emerald-500/30')}
-        />
-        <StatCard
-          label="Wishlist & Saves"
-          value={normalizedLikes.length}
-          sub="Client saves"
-          icon={Heart}
-          tone="amber"
-          onClick={() => switchChannel('likes')}
-          className={cn(activeChannel === 'likes' && 'border-amber-500/50 ring-1 ring-amber-500/30')}
-        />
-        <StatCard
-          label="Phones Captured"
-          value={totalPhonesCount}
-          sub="Verified phone numbers"
-          icon={Phone}
-          tone="neutral"
-          onClick={() => switchChannel('all')}
-          className={cn(activeChannel === 'all' && 'border-emerald-500/50 ring-1 ring-emerald-500/30')}
-        />
+      {feedback && (
+        <div role="status" className={cn(
+          'flex items-center gap-2 rounded-lg border px-4 py-3 text-sm',
+          feedback.type === 'success'
+            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+            : 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300',
+        )}>{feedback.type === 'success' ? <CheckCircle2 size={17} /> : <AlertCircle size={17} />}{feedback.text}</div>
+      )}
+
+      {isError && (
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+          <span className="flex items-center gap-2"><AlertCircle size={17} />Some lead records could not be loaded.</span>
+          <button type="button" onClick={refresh} className="font-semibold underline">Retry</button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard label="Visits" value={visits.length} sub="Property appointments" icon={Calendar} tone="blue" onClick={() => switchChannel('visits')} className={cn(activeChannel === 'visits' && 'border-sky-500/50')} />
+        <StatCard label="Inquiries" value={inquiries.length} sub="Direct messages" icon={MessageSquare} tone="emerald" onClick={() => switchChannel('inquiries')} className={cn(activeChannel === 'inquiries' && 'border-emerald-500/50')} />
+        <StatCard label="Phone provided" value={contactableCount} sub="Across these records" icon={Phone} tone="neutral" onClick={() => switchChannel('all')} className={cn(activeChannel === 'all' && 'border-emerald-500/50')} />
       </div>
 
-      {/* ━━━ 3. TOOLBAR: CHANNEL TABS + FILTERS ━━━ */}
-      <DashboardCard className="p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-        <div className="flex items-center gap-1 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] p-1 overflow-x-auto">
-          {channelTabs.map((tab) => {
-            const Icon = tab.icon;
-            const active = activeChannel === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => switchChannel(tab.id)}
-                className={cn(
-                  "px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5",
-                  active
-                    ? "bg-emerald-600 text-[#fff] shadow-sm dark:bg-emerald-500 dark:text-emerald-950"
-                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]"
-                )}
-              >
-                <Icon size={13} />
-                {tab.label} ({tab.count})
-              </button>
-            );
-          })}
+      <DashboardCard className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-1">
+          {([
+            ['all', 'All', Users],
+            ['visits', 'Visits', Calendar],
+            ['inquiries', 'Inquiries', MessageSquare],
+          ] as const).map(([id, label, Icon]) => (
+            <button key={id} type="button" onClick={() => switchChannel(id)} className={cn(
+              'flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition',
+              activeChannel === id ? 'bg-emerald-600 text-white' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)]',
+            )}><Icon size={13} />{label}</button>
+          ))}
         </div>
-
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          {propertiesList.length > 0 && (
-            <div className="relative sm:min-w-[200px]">
-              <select
-                value={selectedPropertyFilter}
-                onChange={(e) => { setSelectedPropertyFilter(e.target.value); setPage(1); }}
-                className="w-full appearance-none rounded-xl border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3.5 py-2 pr-8 text-xs font-medium text-[var(--color-text-main)] focus:outline-none focus:border-emerald-500/50 transition-colors"
-              >
-                <option value="all">All Properties ({propertiesList.length})</option>
-                {propertiesList.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title.length > 32 ? `${p.title.slice(0, 32)}...` : p.title}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)] pointer-events-none" />
-            </div>
-          )}
-
-          <div className="relative flex-1 sm:w-64">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)]" />
-            <input
-              type="text"
-              placeholder="Search name, phone, notes..."
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-              className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-input-bg)] pl-9 pr-3.5 py-2 text-xs font-medium text-[var(--color-text-main)] placeholder:text-[var(--color-text-dim)] focus:outline-none focus:border-emerald-500/50 transition-colors"
-            />
+        {properties.length > 0 && (
+          <div className="relative sm:min-w-56">
+            <select value={selectedProperty} onChange={(event) => setSelectedProperty(event.target.value)} className="h-10 w-full appearance-none rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 pr-8 text-xs text-[var(--color-text-main)] outline-none focus:border-emerald-500">
+              <option value="all">All properties</option>
+              {properties.map((property) => <option key={property.id} value={property.id}>{property.propertyTitle}</option>)}
+            </select>
+            <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)]" />
           </div>
-        </div>
+        )}
       </DashboardCard>
 
-      {/* ━━━ 4. CUSTOMER LEADS LEDGER (TABLE) ━━━ */}
       <DashboardCard className="overflow-hidden">
-        <CardHeader
-          icon={Users}
-          title="Customer Leads Ledger"
-          subtitle={`${displayedLeads.length} ${displayedLeads.length === 1 ? 'record' : 'records'} · direct follow-up channels`}
-        />
-
+        <CardHeader icon={Users} title="Lead records" subtitle={`${displayedLeads.length} direct customer ${displayedLeads.length === 1 ? 'record' : 'records'}`} />
         <DataTable
           data={displayedLeads}
-          columns={leadColumns}
-          searchKeys={['customerName', 'customerPhone', 'propertyTitle', 'notes']}
-          searchPlaceholder="Search name, phone, notes..."
-          emptyTitle="No customer leads found"
-          emptyDescription="When prospective buyers request site inspections, send inquiry messages, or save properties to their wishlist, they will appear here."
+          columns={columns}
+          searchKeys={['customerName', 'customerPhone', 'customerEmail', 'propertyTitle', 'notes']}
+          searchPlaceholder="Search customer, contact, property, or notes"
+          emptyTitle="No lead records found"
+          emptyDescription="Direct enquiries and scheduled visits will appear here."
           isLoading={isLoading}
           showBulkActions={false}
-          showDensityToggle={true}
-          showColumnToggle={true}
-          pageSize={pageSize}
+          showDensityToggle
+          showColumnToggle
+          pageSize={10}
         />
       </DashboardCard>
     </div>

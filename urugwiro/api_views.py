@@ -1444,8 +1444,18 @@ def seller_likes_list(request):
     err = check_seller_permission(request)
     if err: return err
     profile = get_seller_profile(request)
-    saved_props = SavedProperty.objects.filter(listing__seller=profile).order_by('-saved_at')
-    return get_paginated_response(saved_props, SavedPropertySerializer, request)
+    saved_props = SavedProperty.objects.filter(listing__seller=profile)
+    by_listing = saved_props.values('listing_id', 'listing__title').annotate(
+        saves_count=Count('id'),
+    ).order_by('-saves_count', 'listing__title')
+    return Response({
+        'count': saved_props.count(),
+        'results': [{
+            'listing_id': row['listing_id'],
+            'listing_title': row['listing__title'],
+            'saves_count': row['saves_count'],
+        } for row in by_listing],
+    })
 
 @api_view(['GET'])
 def seller_conversations_list(request):

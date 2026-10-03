@@ -1,13 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Package, MessageSquare, HandCoins,
   ShieldCheck, TrendingUp, Bell, LogOut, Plus,
   ArrowUpRight, Search, Sparkles, CheckCircle2,
   Clock, MapPin, Building,
-  ArrowRight, ExternalLink, Bot, Menu, X,
-  UserCheck, DollarSign, Phone, Heart, Calendar, Users, Mail,
-  Layers, Activity, FileSpreadsheet, RefreshCw, Cpu, Compass, Star, Eye
+  ArrowRight, ExternalLink, Menu, X,
+  Phone, Calendar, Users, Mail, Star, Eye
 } from 'lucide-react';
 import { cn, logError } from '../../lib/utils';
 import { Badge } from '../../components/ui/Badge';
@@ -16,11 +15,11 @@ import ListingWizard from './ListingWizard';
 import { PropertyInspectionDrawer } from './components/PropertyInspectionDrawer';
 import SellerPropertyEditor from './components/SellerPropertyEditor';
 import SellerRatings from './components/SellerRatings';
+import AdminInbox from '../admin/AdminInbox';
 import { CustomerLeadsManager, type LeadChannel } from '../../components/crm/CustomerLeadsManager';
 import SellerListingsTable from './SellerListingsTable';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/endpoints';
-import { Pagination } from '../../components/ui/Pagination';
 import { DataTable } from '../../components/ui/DataTable';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 
@@ -60,13 +59,6 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('urugwiro_seller_sidebar_collapsed') === '1');
   const [headerSearch, setHeaderSearch] = useState('');
 
-  useEffect(() => {
-    if (initialTab) {
-      setActiveTab(initialTab);
-    }
-  }, [initialTab]);
-
-
   const toggleSidebar = () => {
     setSidebarCollapsed(prev => {
       localStorage.setItem('urugwiro_seller_sidebar_collapsed', prev ? '0' : '1');
@@ -99,7 +91,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
     queryKey: ['seller-database-offers'],
     queryFn: async () => {
       try {
-        const res = await api.offers.list();
+        const res = await api.seller.offers();
         const d: any = res.data;
         return Array.isArray(d) ? d : (d?.results || []);
       } catch {
@@ -120,7 +112,9 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
       }
     },
   });
-  const unreadMessagesCount = contactsData?.total_unread || 0;
+  const unreadMessagesCount = Array.isArray(contactsData)
+    ? contactsData.reduce((total: number, contact: any) => total + (Number(contact.unread_count) || 0), 0)
+    : 0;
 
   // Map raw database listings to UI model
   const listings: ListingItem[] = useMemo(() => {
@@ -173,15 +167,15 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
     },
   });
 
-  // 5. Live database likes / wishlist prospects for seller
-  const { data: rawLikes = [] } = useQuery({
+  // 5. Aggregate saved-listing interest; saver identities are not exposed to sellers.
+  const { data: savedInterest } = useQuery({
     queryKey: ['seller-database-likes'],
     queryFn: async () => {
       try {
         const res = await api.seller.likes();
-        return Array.isArray(res.data) ? res.data : (res.data?.results || []);
+        return res.data;
       } catch {
-        return [];
+        return { count: 0, results: [] };
       }
     },
   });
@@ -214,7 +208,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
 
 
   const totalVisits = rawVisits.length;
-  const totalLikes = rawLikes.length;
+  const totalLikes = Number(savedInterest?.count || 0);
   const totalLeads = (rawInquiries.length || totalInquiries) + totalVisits + totalLikes;
 
   const recentFollowUps = useMemo(() => {
@@ -1060,10 +1054,9 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
           {/* TAB 4: REAL-TIME MESSAGING & INQUIRIES */}
           {activeTab === 'messages' && (
             <div className="max-w-7xl mx-auto animate-fadeIn">
-              <CustomerLeadsManager
-                mode="seller"
-                initialChannel="inquiries"
-                onListingClick={onListingClick}
+              <AdminInbox
+                title="Messages"
+                subtitle="Direct conversations with buyers and platform staff."
               />
             </div>
           )}

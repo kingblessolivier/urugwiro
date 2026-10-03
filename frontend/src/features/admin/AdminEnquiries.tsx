@@ -1,23 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Mail,
   Eye,
   Search,
   CheckCircle2,
-  Reply,
   Calendar,
-  Clock,
-  Phone,
   Building2,
   ShieldCheck,
-  Car,
-  RefreshCw,
   MapPin,
   Users,
-  Heart,
-  Sparkles,
-  MessageSquare
 } from 'lucide-react';
 import { cn, logError } from '../../lib/utils';
 import { DataTable } from '../../components/ui/DataTable';
@@ -26,90 +17,68 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { api } from '../../api/endpoints';
 import { CustomerLeadsManager, type LeadChannel } from '../../components/crm/CustomerLeadsManager';
 
-interface Enquiry {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  propertyTitle: string;
-  message: string;
-  status: 'unread' | 'read' | 'archived';
-  createdAt?: string;
-}
-
-export type AdminEnquirySection = 'leads' | 'visits' | 'inquiries' | 'likes' | 'proposals';
+export type AdminEnquirySection = 'leads' | 'visits' | 'inquiries' | 'proposals';
 
 export const AdminEnquiries: React.FC = () => {
   // Mode: New Listings vs Customers tabs
   const [section, setSection] = useState<AdminEnquirySection>('leads');
 
   // Proposal State
-  const [proposals, setProposals] = useState<any[]>([]);
-  const [loadingProposals, setLoadingProposals] = useState(false);
   const [proposalFilter, setProposalFilter] = useState('all');
   const [selectedProposal, setSelectedProposal] = useState<any | null>(null);
   const [actionSuccess, setActionSuccess] = useState('');
+  const [actionError, setActionError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
-  const [proposalPage, setProposalPage] = useState(1);
-  const [proposalPageSize, setProposalPageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearch = useDeferredValue(searchQuery);
 
-  const fetchProposals = async () => {
-    setLoadingProposals(true);
-    try {
+  const proposalsQuery = useQuery({
+    queryKey: ['admin-proposals', proposalFilter, deferredSearch],
+    queryFn: async () => {
       const res = await api.proposals.list({
         status: proposalFilter !== 'all' ? proposalFilter : undefined,
-        search: searchQuery || undefined,
+        search: deferredSearch || undefined,
       });
-      setProposals(Array.isArray(res.data) ? res.data : (res.data?.results || []));
-    } catch (err) {
-      logError('Failed to fetch proposals:', err);
-    } finally {
-      setLoadingProposals(false);
-    }
-  };
-
-  useEffect(() => {
-    if (section === 'proposals') {
-      fetchProposals();
-    }
-  }, [section, proposalFilter, searchQuery]);
-
-  const paginatedProposals = proposals.slice(
-    (proposalPage - 1) * proposalPageSize,
-    proposalPage * proposalPageSize
-  );
+      return Array.isArray(res.data) ? res.data : (res.data?.results || []);
+    },
+    enabled: section === 'proposals',
+  });
+  const proposals = proposalsQuery.data || [];
+  const refetchProposals = proposalsQuery.refetch;
 
   // Actions for Proposals
-  const handleConfirmVisit = async (id: number) => {
+  const handleConfirmVisit = useCallback(async (id: number) => {
     setActionLoading(true);
+    setActionError('');
     try {
       await api.proposals.update(id, { status: 'visit_scheduled' });
       setActionSuccess('Physical surveyor visit confirmed. Status updated to Visit Scheduled.');
-      fetchProposals();
+      refetchProposals();
       setTimeout(() => setActionSuccess(''), 4000);
     } catch (err) {
       logError('Failed to confirm visit:', err);
+      setActionError('The visit could not be confirmed.');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [refetchProposals]);
 
-  const handleConvertToLiveListing = async (id: number) => {
+  const handleConvertToLiveListing = useCallback(async (id: number) => {
     if (!window.confirm('Convert this verified proposal into a live marketplace listing?')) return;
     setActionLoading(true);
+    setActionError('');
     try {
       const res = await api.proposals.convert(id);
       setActionSuccess(`Proposal converted successfully! Official Listing ID: ${res.data?.listing_id}`);
-      fetchProposals();
+      refetchProposals();
       setSelectedProposal(null);
       setTimeout(() => setActionSuccess(''), 5000);
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to convert proposal to listing');
+      setActionError(err.response?.data?.error || 'The proposal could not be converted.');
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [refetchProposals]);
 
   const proposalColumns = useMemo(() => [
     { accessorKey: 'proposal_code', id: 'code', header: 'Code', cell: ({ row }: any) => (
@@ -161,7 +130,7 @@ export const AdminEnquiries: React.FC = () => {
         )}
       </div>
     ) },
-  ], [setSelectedProposal, handleConfirmVisit, handleConvertToLiveListing]);
+  ], [handleConfirmVisit, handleConvertToLiveListing]);
 
 
   const pendingCount = proposals.filter(p => p.status === 'pending').length;
@@ -227,6 +196,11 @@ export const AdminEnquiries: React.FC = () => {
           <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-[var(--color-brand-emerald)] text-xs sm:text-sm flex items-center gap-3 animate-in fade-in">
             <CheckCircle2 size={18} className="text-[var(--color-brand-emerald)] shrink-0" />
             <span className="font-semibold">{actionSuccess}</span>
+          </div>
+        )}
+        {actionError && (
+          <div role="alert" className="mb-6 flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">
+            <span className="font-semibold">{actionError}</span>
           </div>
         )}
 
@@ -305,12 +279,18 @@ export const AdminEnquiries: React.FC = () => {
               searchPlaceholder="Search by title, owner, UPI, code..."
               emptyTitle="No submissions found"
               emptyDescription="No submissions match the current filters."
-              isLoading={loadingProposals}
+              isLoading={proposalsQuery.isLoading}
               showBulkActions={false}
               showDensityToggle={true}
               showColumnToggle={true}
-              pageSize={proposalPageSize}
+              pageSize={10}
             />
+            {proposalsQuery.isError && (
+              <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300">
+                <span>Listing submissions could not be loaded.</span>
+                <button type="button" onClick={() => refetchProposals()} className="font-semibold underline">Retry</button>
+              </div>
+            )}
           </div>
         )}
 
@@ -321,7 +301,7 @@ export const AdminEnquiries: React.FC = () => {
               mode="admin"
               initialChannel={section === 'leads' ? 'all' : (section as LeadChannel)}
               title="Customers"
-              subtitle="View and respond to property inquiries, booked visits, and saved listings."
+              subtitle="Review direct property inquiries and booked visits."
             />
           </div>
         )}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { MessageSquare, Send, User, Search, RefreshCw, CheckCheck, Plus, X } from 'lucide-react';
 import { api } from '../../api/endpoints';
 
@@ -21,12 +22,19 @@ interface MessageItem {
   is_mine: boolean;
 }
 
-const AdminInbox: React.FC = () => {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  const [messages, setMessages] = useState<MessageItem[]>([]);
+const EMPTY_MESSAGES: MessageItem[] = [];
+
+interface AdminInboxProps {
+  title?: string;
+  subtitle?: string;
+}
+
+const AdminInbox: React.FC<AdminInboxProps> = ({
+  title = 'Admin Inbox',
+  subtitle = 'Internal communication and buyer/seller direct chats',
+}) => {
+  const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
   const [inputContent, setInputContent] = useState('');
-  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [composeOpen, setComposeOpen] = useState(false);
@@ -36,44 +44,28 @@ const AdminInbox: React.FC = () => {
   const [composeStatus, setComposeStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const fetchContacts = async () => {
-    try {
-      setLoading(true);
+  const contactsQuery = useQuery({
+    queryKey: ['chat-contacts'],
+    queryFn: async () => {
       const res = await api.chat.contacts();
-      const data = res.data || [];
-      setContacts(data);
-      if (data.length > 0 && !selectedContact) {
-        setSelectedContact(data[0]);
-      }
-    } catch (err) {
-      console.error('Failed to fetch chat contacts:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return Array.isArray(res.data) ? res.data as Contact[] : [];
+    },
+    refetchInterval: 15_000,
+  });
+  const contacts = contactsQuery.data || [];
+  const selectedContact = contacts.find((contact) => contact.id === selectedContactId) || contacts[0] || null;
 
-  const fetchHistory = async (contactId: number) => {
-    try {
-      const res = await api.chat.history(contactId);
-      setMessages(res.data || []);
-    } catch (err) {
-      console.error('Failed to fetch message history:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchContacts();
-    const interval = setInterval(fetchContacts, 15000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (selectedContact) {
-      fetchHistory(selectedContact.id);
-      const interval = setInterval(() => fetchHistory(selectedContact.id), 5000);
-      return () => clearInterval(interval);
-    }
-  }, [selectedContact]);
+  const historyQuery = useQuery({
+    queryKey: ['chat-history', selectedContact?.id],
+    queryFn: async () => {
+      if (!selectedContact) return [];
+      const res = await api.chat.history(selectedContact.id);
+      return Array.isArray(res.data) ? res.data as MessageItem[] : [];
+    },
+    enabled: Boolean(selectedContact),
+    refetchInterval: 5_000,
+  });
+  const messages = historyQuery.data || EMPTY_MESSAGES;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -90,8 +82,8 @@ const AdminInbox: React.FC = () => {
         content: inputContent.trim(),
       });
       setInputContent('');
-      await fetchHistory(selectedContact.id);
-      fetchContacts();
+      await historyQuery.refetch();
+      contactsQuery.refetch();
     } catch (err) {
       console.error('Failed to send message:', err);
     } finally {
@@ -120,7 +112,7 @@ const AdminInbox: React.FC = () => {
       const recipient = availableUsers.find((user) => user.id === composeRecipient);
       setComposeStatus({ type: 'success', message: `Message sent to ${recipient?.name || 'user'}.` });
       setComposeContent('');
-      fetchContacts();
+      contactsQuery.refetch();
     } catch {
       setComposeStatus({ type: 'error', message: 'Message could not be sent. Please try again.' });
     }
@@ -140,16 +132,16 @@ const AdminInbox: React.FC = () => {
             <MessageSquare className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-[var(--color-text-main)]">Admin Inbox</h1>
-            <p className="text-xs text-[var(--color-text-dim)]">Internal communication and buyer/seller direct chats</p>
+            <h1 className="text-lg font-bold text-[var(--color-text-main)]">{title}</h1>
+            <p className="text-xs text-[var(--color-text-dim)]">{subtitle}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={openCompose} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-700">
             <Plus size={14} /> New message
           </button>
-          <button type="button" onClick={fetchContacts} className="rounded-lg p-2 text-[var(--color-text-dim)] transition-colors hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-main)]" title="Refresh">
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <button type="button" onClick={() => contactsQuery.refetch()} className="rounded-lg p-2 text-[var(--color-text-dim)] transition-colors hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-main)]" title="Refresh">
+            <RefreshCw className={`w-4 h-4 ${contactsQuery.isFetching ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -173,7 +165,7 @@ const AdminInbox: React.FC = () => {
           <div className="flex-1 overflow-y-auto divide-y divide-[var(--color-border)]">
             {filteredContacts.length === 0 ? (
               <div className="p-6 text-center text-xs text-[var(--color-text-dim)]">
-                {loading ? 'Loading conversations...' : 'No conversations found'}
+                {contactsQuery.isLoading ? 'Loading conversations...' : 'No conversations found'}
               </div>
             ) : (
               filteredContacts.map((contact) => {
@@ -182,7 +174,7 @@ const AdminInbox: React.FC = () => {
                   <button
                     key={contact.id}
                     type="button"
-                    onClick={() => setSelectedContact(contact)}
+                    onClick={() => setSelectedContactId(contact.id)}
                     className={`w-full text-left p-3.5 flex items-start gap-3 transition-colors ${
                       isSelected
                         ? 'bg-emerald-50 dark:bg-emerald-950/30 border-l-2 border-emerald-600'

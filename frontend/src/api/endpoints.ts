@@ -105,11 +105,11 @@ export const api = {
         offers: () => apiClient.get<Offer[]>('/seller/offers/'),
         respondOffer: (id: string | number, action: string, amount?: string | number) =>
             apiClient.post(`/seller/offers/${id}/respond/`, { action, amount }),
-        inquiries: () => apiClient.get('/seller/inquiries/'),
+        inquiries: (params?: Record<string, string>) => apiClient.get('/seller/inquiries/', { params }),
         inquiryDetail: (id: string | number) => apiClient.get(`/seller/inquiries/${id}/`),
         updateInquiry: (id: string | number, data: Record<string, unknown>) => apiClient.put(`/seller/inquiries/${id}/`, data),
         deleteInquiry: (id: string | number) => apiClient.delete(`/seller/inquiries/${id}/`),
-        visits: () => apiClient.get('/seller/visits/'),
+        visits: (params?: Record<string, string>) => apiClient.get('/seller/visits/', { params }),
         updateVisit: (id: string | number, data: { status?: string; notes?: string; report?: string }) =>
             apiClient.put(`/seller/visits/${id}/`, data),
         likes: () => apiClient.get('/seller/likes/'),
@@ -186,8 +186,8 @@ export const api = {
         updateFollowUp: (id: number, data: Record<string, unknown>) => apiClient.put(`/admin/follow-ups/${id}/`, data),
 
         // Enquiries
-        enquiries: (params?: { status?: string; search?: string }) => apiClient.get('/admin/enquiries/', { params }),
-        updateEnquiry: (id: string | number, data: { status?: string }) => apiClient.put(`/admin/enquiries/${id}/`, data),
+        enquiries: (params?: { status?: string; search?: string; page_size?: number }) => apiClient.get('/admin/enquiries/', { params }),
+        updateEnquiry: (id: string | number, data: { is_read?: boolean }) => apiClient.put(`/admin/enquiries/${id}/`, data),
 
         // Visits
         visits: (params?: Record<string, string>) => apiClient.get('/admin/visits/', { params }),
