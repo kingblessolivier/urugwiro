@@ -117,20 +117,20 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onListingClick }
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/92 via-slate-950/62 to-slate-950/18" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/78 via-transparent to-slate-950/20" />
 
-        <div className="relative z-10 mx-auto flex min-h-[82svh] max-w-7xl flex-col justify-center px-4 py-24 sm:px-6 lg:px-8">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-center">
-            <div className="max-w-3xl">
+        <div className="relative z-10 mx-auto flex min-h-[82svh] max-w-7xl flex-col justify-center px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+          <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-center">
+            <div className="min-w-0 max-w-[calc(100vw-2rem)] sm:max-w-3xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-emerald-100 backdrop-blur">
                 <ShieldCheck size={14} /> Buy, rent, or sell in Rwanda
               </div>
-              <h1 className="mt-5 max-w-4xl text-4xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl lg:leading-[0.96]">
+              <h1 className="mt-5 max-w-4xl break-words text-2xl font-bold leading-tight tracking-tight text-white min-[430px]:text-3xl sm:text-6xl lg:text-7xl lg:leading-[0.96]">
                 {slide.title}
               </h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-slate-100 sm:text-xl">
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-100 sm:mt-5 sm:text-xl sm:leading-7">
                 Urugwiro brings buyers, tenants, sellers, and owners into one sharp marketplace for property and vehicles across Rwanda.
               </p>
 
-              <form onSubmit={submitSearch} className="mt-7 max-w-2xl">
+              <form onSubmit={submitSearch} className="mt-7 w-full max-w-2xl">
                 <div className="rounded-xl border border-white/20 bg-white p-2 shadow-2xl shadow-slate-950/30">
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <label className="flex min-w-0 flex-1 items-center gap-3 rounded-md bg-slate-100 px-4">
@@ -158,7 +158,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onListingClick }
                 </Button>
               </div>
 
-              <div className="mt-6 flex flex-col gap-4 xl:flex-row xl:items-center">
+              <div className="mt-6 flex max-w-full flex-col gap-4 xl:flex-row xl:items-center">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -177,7 +177,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onListingClick }
                     <ChevronRight size={18} />
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex max-w-full flex-wrap gap-2">
                   {heroSlides.map((item, index) => (
                     <button
                       key={item.label}
@@ -192,7 +192,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onListingClick }
               </div>
             </div>
 
-            <div className="relative">
+            <div className="relative hidden lg:block">
               <div className="absolute -inset-4 rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-sm" />
               <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-slate-950/70 text-white shadow-2xl shadow-slate-950/35">
                 <div className="relative aspect-[4/3] overflow-hidden bg-slate-900">

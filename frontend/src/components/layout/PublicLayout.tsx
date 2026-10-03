@@ -4,33 +4,8 @@ import { PublicFooter } from './PublicFooter';
 import { MobileTabBar } from './MobileTabBar';
 import { WhatsAppButton } from '../whatsapp/WhatsAppButton';
 import { BannerNotifications } from '../notifications/BannerNotifications';
-import { OnboardingTour } from '../onboarding/OnboardingTour';
 import { isAuthView, type AppView } from '../../types/navigation';
-import { cn, logWarn } from '../../lib/utils';
-
-/* ────────────────────────────────────────────────────────────────
-   CRASH BARRIER — on any child error, silently renders null.
-   React class ErrorBoundary required (no hook equivalent exists).
-   Prevents any tour/layout subcomponent crash from a full white-screen.
-   ──────────────────────────────────────────────────────────────── */
-interface ErrorSwallowState { hasError: boolean; }
-class OnboardingTourErrorBoundary extends React.Component<{ children: React.ReactNode }, ErrorSwallowState> {
-  declare state: ErrorSwallowState;
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-  static getDerivedStateFromError(): ErrorSwallowState {
-    return { hasError: true };
-  }
-  componentDidCatch(error: unknown, info: unknown): void {
-    logWarn('[OnboardingTourErrorBoundary] suppressed non-fatal error to prevent white-screen —', error, info);
-  }
-  render(): React.ReactNode {
-    if (this.state.hasError) return null;
-    return this.props.children;
-  }
-}
+import { cn } from '../../lib/utils';
 
 interface PublicLayoutProps {
   view: AppView;
@@ -69,11 +44,6 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({
       {showFooter && !isAuth ? <PublicFooter onNavigate={onNavigate} /> : null}
       {!isAuth && <MobileTabBar view={view} onNavigate={onNavigate} />}
       {!isAuth && <WhatsAppButton />}
-      {!isAuth && (
-        <OnboardingTourErrorBoundary>
-          <OnboardingTour onNavigate={onNavigate} />
-        </OnboardingTourErrorBoundary>
-      )}
     </div>
   );
 };
