@@ -27,6 +27,7 @@ const defaultIcon = new L.Icon({
 });
 import { Button } from '../../components/ui/Button';
 import { cn, logError, logWarn } from '../../lib/utils';
+import { readGuestSavedListingIds, toggleGuestSavedListing } from '../../lib/savedListings';
 import { api } from '../../api/endpoints';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
@@ -174,7 +175,6 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
   const [offerOpen, setOfferOpen] = useState(false);
   const [visitOpen, setVisitOpen] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
-  const [guestOpen, setGuestOpen] = useState(false);
   const [toast, setToast] = useState('');
 
   const [isLiked, setIsLiked] = useState(false);
@@ -192,10 +192,6 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
   const [inqEmail, setInqEmail] = useState('');
   const [inqPhone, setInqPhone] = useState('');
   const [inqMessage, setInqMessage] = useState('');
-
-  const [guestName, setGuestName] = useState('');
-  const [guestPhone, setGuestPhone] = useState('');
-  const [guestEmail, setGuestEmail] = useState('');
 
   const [revRating, setRevRating] = useState(5);
   const [revComment, setRevComment] = useState('');
@@ -235,13 +231,10 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
       const phone = (user as any).phone_number || (user as any).phone || '';
       setVisitName((p) => p || name);
       setInqName((p) => p || name);
-      setGuestName((p) => p || name);
       setRevName((p) => p || name);
       setInqEmail((p) => p || email);
-      setGuestEmail((p) => p || email);
       setVisitPhone((p) => p || phone);
       setInqPhone((p) => p || phone);
-      setGuestPhone((p) => p || phone);
     }
   }, [user]);
 
@@ -283,7 +276,10 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
 
   const handleLike = async () => {
     if (!user) {
-      setGuestOpen(true);
+      const saved = toggleGuestSavedListing(String(listingId));
+      const nowSaved = saved.has(String(listingId));
+      setIsLiked(nowSaved);
+      flash(nowSaved ? 'Saved on this device.' : 'Removed from saved listings.');
       return;
     }
     try {
@@ -306,23 +302,6 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
     setOfferOpen(true);
   };
 
-  const handleGuestSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await api.listings.like(listingId, {
-        name: guestName,
-        phone: guestPhone,
-        email: guestEmail,
-      });
-      setIsLiked(true);
-      setLikesCount(res.data.total_likes ?? likesCount + 1);
-      setGuestOpen(false);
-      flash('Saved! We will keep you updated.');
-    } catch (e) {
-      logWarn('[handleGuestSave] failed', e);
-    }
-  };
-
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
@@ -339,7 +318,11 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
 
   useEffect(() => {
     if (listing) {
-      if (typeof listing.is_liked === 'boolean') setIsLiked(listing.is_liked);
+      setIsLiked(
+        user
+          ? Boolean(listing.is_liked)
+          : readGuestSavedListingIds().has(String(listingId)),
+      );
       if (typeof listing.likes_count === 'number') setLikesCount(listing.likes_count);
       setOfferAmount(Number(listing.price) || 0);
       try {
@@ -355,7 +338,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
         logWarn('[addRecentlyViewed] failed silently', e);
       }
     }
-  }, [listing, listingId]);
+  }, [listing, listingId, user]);
 
   // ── Derived polymorphic data ──────────────────────────────────────────
 
@@ -1950,41 +1933,6 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
             />
             <Button type="submit" isLoading={inquiryMutation.isPending} className="w-full py-3">
               <Send size={16} /> Send message
-            </Button>
-          </form>
-        </Modal>
-      )}
-
-      {guestOpen && (
-        <Modal title="Save this property" onClose={() => setGuestOpen(false)}>
-          <form onSubmit={handleGuestSave} className="space-y-3">
-            <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-              Leave your details and we will keep you updated.
-            </p>
-            <input
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              placeholder="Your name"
-              className={inputCls}
-              required
-            />
-            <input
-              type="tel"
-              value={guestPhone}
-              onChange={(e) => setGuestPhone(e.target.value)}
-              placeholder="Phone number"
-              className={inputCls}
-              required
-            />
-            <input
-              type="email"
-              value={guestEmail}
-              onChange={(e) => setGuestEmail(e.target.value)}
-              placeholder="Email (optional)"
-              className={inputCls}
-            />
-            <Button type="submit" className="w-full py-3">
-              <Heart size={16} /> Save
             </Button>
           </form>
         </Modal>

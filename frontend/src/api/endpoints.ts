@@ -22,7 +22,7 @@ export const api = {
         list: (params?: ListingsListParams) => apiClient.get<PaginatedResponse<Listing>>('/listings/', { params }),
         detail: (slugOrId: string | number) => apiClient.get<Listing>(`/listings/${slugOrId}/`),
         get: (slugOrId: string | number) => apiClient.get<Listing>(`/listings/${slugOrId}/`),
-        like: (id: string | number, data?: { name?: string; phone?: string; email?: string }) => apiClient.post<{ liked: boolean; total_likes: number }>(`/listings/${id}/like/`, data),
+        like: (id: string | number) => apiClient.post<{ liked: boolean; total_likes: number }>(`/listings/${id}/like/`),
         estimateValuation: (data: { category: ListingCategory; purpose: ListingPurpose; currency?: string; rental_frequency?: 'per_day' | 'per_month' | 'per_year'; province?: string; district?: string; sector?: string; bedrooms?: number; bathrooms?: number; area_sqm?: number }) => apiClient.post<{ estimated_value: number | null; low_range: number | null; high_range: number | null; currency: string; confidence: 'high' | 'medium' | 'low' | 'insufficient_data'; method: string; comparables_count: number; limitations: string[] }>('/valuation/estimate/', data),
         reviews: (id: string | number) => apiClient.get<ReviewSummary>(`/listings/${id}/reviews/`),
         submitReview: (id: string | number, data: { rating: number; comment?: string; reviewer_name?: string }) =>
@@ -65,7 +65,8 @@ export const api = {
         bookVisit: (data: { listing_id: number | string; scheduled_date?: string; preferred_date?: string; notes?: string }) =>
             apiClient.post('/consumer/visits/book/', data),
         cancelVisit: (id: number | string) => apiClient.post(`/consumer/visits/${id}/cancel/`),
-        savedProperties: () => apiClient.get<PaginatedResponse<Listing>>('/consumer/saved-properties/'),
+        savedProperties: (params?: { page?: number; page_size?: number }) =>
+            apiClient.get<PaginatedResponse<Listing>>('/consumer/saved-properties/', { params }),
     },
 
     // Offers (Convenience alias)

@@ -6,9 +6,9 @@ import { api } from '../../api/endpoints';
 import { Sparkles, Image as ImageIcon, SlidersHorizontal, Map, Grid, List, Heart, GitCompareArrows, X } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { LoadingState, ErrorState } from '../../components/ui/Dashboard';
-import { useAuth } from '../../context/AuthContext';
-import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { logError } from '../../lib/utils';
+import { useSavedListings } from '../../hooks/useSavedListings';
 
 interface DiscoveryPageProps {
     onListingClick?: (id: string) => void;
@@ -44,9 +44,6 @@ function updateURLFilters(filters: Record<string, string | undefined>) {
 }
 
 const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQuery = '', initialSavedOnly = false }) => {
-    const { user } = useAuth();
-    const queryClient = useQueryClient();
-
     const urlFilters = useMemo(() => getFiltersFromURL(), []);
 
     const [filters, setFilters] = useState(() => ({
@@ -74,9 +71,6 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
     const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>(
         (urlFilters.view as 'grid' | 'list' | 'map') || 'grid'
     );
-    const [savedIds, setSavedIds] = useState<Set<string>>(() => {
-        try { return new Set(JSON.parse(localStorage.getItem('urugwiro_saved_listings') || '[]')); } catch { return new Set(); }
-    });
     const [comparedIds, setComparedIds] = useState<Set<string>>(new Set());
     const [showSavedOnly, setShowSavedOnly] = useState(initialSavedOnly || urlFilters.savedOnly === 'true');
 
@@ -126,6 +120,8 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
         return Array.isArray(listingsData) ? listingsData : listingsData?.results || [];
     }, [listingsData]);
 
+    const { savedIds, savedPropertiesQuery, toggleSaved } = useSavedListings(listings);
+
     const totalListings = useMemo(() => {
         if (Array.isArray(listingsData)) return listingsData.length;
         return listingsData?.count || 0;
@@ -137,52 +133,6 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
     useEffect(() => {
         setListingsPage(1);
     }, [filters.search, filters.type, filters.purpose, filters.category, filters.minPrice, filters.maxPrice, filters.bedrooms, filters.bathrooms, filters.verification, filters.furnished, filters.city, filters.province, filters.district, filters.sector, filters.sort]);
-
-    // Fetch user's saved properties from backend if authenticated
-    const savedPropertiesQuery = useQuery({
-        queryKey: ['consumer-saved-properties'],
-        queryFn: async () => {
-            const res = await api.consumer.savedProperties();
-            return Array.isArray(res.data) ? res.data : res.data?.results || [];
-        },
-        enabled: !!user,
-    });
-
-    // Ingest backend saved properties into savedIds
-    useEffect(() => {
-        if (savedPropertiesQuery.data && Array.isArray(savedPropertiesQuery.data)) {
-            const idsFromBackend = savedPropertiesQuery.data
-                .map((item: any) => String(item.id || item.listing?.id || item.listing))
-                .filter(Boolean);
-            if (idsFromBackend.length > 0) {
-                setSavedIds((current) => {
-                    const merged = new Set(current);
-                    idsFromBackend.forEach((id: string) => merged.add(id));
-                    try {
-                        localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...merged]));
-                    } catch {}
-                    return merged;
-                });
-            }
-        }
-    }, [savedPropertiesQuery.data]);
-
-    // Also ingest is_liked from returned listings into savedIds
-    useEffect(() => {
-        if (listings.length > 0) {
-            const likedListings = listings.filter((l: any) => l.is_liked).map((l: any) => String(l.id));
-            if (likedListings.length > 0) {
-                setSavedIds((current) => {
-                    const merged = new Set(current);
-                    likedListings.forEach((id: string) => merged.add(id));
-                    try {
-                        localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...merged]));
-                    } catch {}
-                    return merged;
-                });
-            }
-        }
-    }, [listings]);
 
     // Bidirectional map-grid linking
     const [hoveredListingId, setHoveredListingId] = useState<string | null>(null);
@@ -236,39 +186,6 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
     }, [showSavedOnly, listings, savedIds, savedPropertiesQuery.data]);
 
     const comparedListings = listings.filter((listing) => comparedIds.has(String(listing.id)));
-
-    const toggleSaved = async (id: string) => {
-        const isCurrentlySaved = savedIds.has(id);
-        setSavedIds((current) => {
-            const next = new Set(current);
-            if (next.has(id)) next.delete(id); else next.add(id);
-            try {
-                localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...next]));
-            } catch {}
-            return next;
-        });
-
-        if (user) {
-            try {
-                await api.listings.like(id);
-                queryClient.invalidateQueries({ queryKey: ['listings'] });
-                queryClient.invalidateQueries({ queryKey: ['consumer-saved-properties'] });
-                queryClient.invalidateQueries({ queryKey: ['consumer-dashboard'] });
-                queryClient.invalidateQueries({ queryKey: ['listing-detail', id] });
-                queryClient.invalidateQueries({ queryKey: ['homepage-listings'] });
-            } catch (err) {
-                logError('Failed to toggle save on backend:', err);
-                setSavedIds((current) => {
-                    const rollback = new Set(current);
-                    if (isCurrentlySaved) rollback.add(id); else rollback.delete(id);
-                    try {
-                        localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...rollback]));
-                    } catch {}
-                    return rollback;
-                });
-            }
-        }
-    };
 
     const toggleCompared = (id: string) => {
         setComparedIds((current) => {

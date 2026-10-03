@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../../context/AuthContext';
+import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
   Building2,
@@ -24,8 +23,9 @@ import { Button } from '../../components/ui/Button';
 import { SkeletonGrid, ErrorState } from '../../components/ui/Dashboard';
 import { api } from '../../api/endpoints';
 import type { AppView } from '../../types/navigation';
-import { cn, logError } from '../../lib/utils';
+import { cn } from '../../lib/utils';
 import { useTheme } from '../../context/ThemeContext';
+import { useSavedListings } from '../../hooks/useSavedListings';
 
 interface HomePageProps {
   onExplore: (query?: string) => void;
@@ -134,75 +134,12 @@ const mapApiListing = (item: any): ListingCardData => {
 
 const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onListingClick }) => {
   const { isDark } = useTheme();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
 
-  const [savedIds, setSavedIds] = useState<Set<string>>(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('urugwiro_saved_listings') || '[]')); } catch { return new Set(); }
-  });
-
-  const savedPropertiesQuery = useQuery({
-    queryKey: ['consumer-saved-properties'],
-    queryFn: async () => {
-      const res = await api.consumer.savedProperties();
-      return Array.isArray(res.data) ? res.data : res.data?.results || [];
-    },
-    enabled: !!user,
-  });
-
-  useEffect(() => {
-    if (savedPropertiesQuery.data && Array.isArray(savedPropertiesQuery.data)) {
-      const idsFromBackend = savedPropertiesQuery.data
-        .map((item: any) => String(item.id || item.listing?.id || item.listing))
-        .filter(Boolean);
-      if (idsFromBackend.length > 0) {
-        setSavedIds((current) => {
-          const merged = new Set(current);
-          idsFromBackend.forEach((id: string) => merged.add(id));
-          try {
-            localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...merged]));
-          } catch {}
-          return merged;
-        });
-      }
-    }
-  }, [savedPropertiesQuery.data]);
-
-  const toggleSaved = async (id: string) => {
-    const isCurrentlySaved = savedIds.has(id);
-    setSavedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      try {
-        localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...next]));
-      } catch {}
-      return next;
-    });
-
-    if (user) {
-      try {
-        await api.listings.like(id);
-        queryClient.invalidateQueries({ queryKey: ['consumer-saved-properties'] });
-        queryClient.invalidateQueries({ queryKey: ['consumer-dashboard'] });
-        queryClient.invalidateQueries({ queryKey: ['listing-detail', id] });
-        queryClient.invalidateQueries({ queryKey: ['homepage-listings'] });
-      } catch (err) {
-        logError('Failed to toggle save on homepage:', err);
-        setSavedIds((current) => {
-          const rollback = new Set(current);
-          if (isCurrentlySaved) rollback.add(id); else rollback.delete(id);
-          try {
-            localStorage.setItem('urugwiro_saved_listings', JSON.stringify([...rollback]));
-          } catch {}
-          return rollback;
-        });
-      }
-    }
-  };
+  const { savedIds, toggleSaved } = useSavedListings();
 
   useEffect(() => {
     if (isPaused) return;
