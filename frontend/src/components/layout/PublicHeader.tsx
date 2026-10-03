@@ -48,6 +48,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
   const [open, setOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const isHome = view === 'home';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -151,13 +152,16 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50 w-full border-b backdrop-blur-md transition-colors duration-300 overflow-x-clip"
-      style={{ background: 'var(--color-header-bg)', borderColor: 'var(--color-header-border)' }}
+      style={{
+        background: isHome ? 'rgba(2, 6, 23, 0.40)' : 'var(--color-header-bg)',
+        borderColor: isHome ? 'rgba(255, 255, 255, 0.12)' : 'var(--color-header-border)',
+      }}
     >
       <div className="flex h-16 sm:h-18 w-full max-w-7xl mx-auto items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <button type="button" data-tour="logo" onClick={() => onNavigate('home')} className="flex shrink-0 items-center gap-2.5 group cursor-pointer">
           <img src="/urugwiro_logo_fav.png" alt="Urugwiro Logo" className="h-9 w-9 rounded-lg object-contain group-hover:scale-105 transition-transform" />
-          <span className="text-xl font-bold font-display tracking-tight text-[var(--color-text-main)]">Urugwiro</span>
+          <span className={cn('text-xl font-bold font-display tracking-tight', isHome ? 'text-white' : 'text-[var(--color-text-main)]')}>Urugwiro</span>
         </button>
 
         {/* Desktop Nav */}
@@ -173,12 +177,12 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
                 className={cn(
                   'relative rounded-[var(--radius-control)] px-3.5 py-2 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap',
                   active
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)]'
+                    ? (isHome ? 'text-emerald-200' : 'text-emerald-600 dark:text-emerald-400')
+                    : (isHome ? 'text-white/82 hover:bg-white/10 hover:text-white' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)]')
                 )}
               >
                 {link.label}
-                {active && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-5 rounded-full bg-emerald-600 dark:bg-emerald-400" />}
+                {active && <span className={cn('absolute bottom-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full', isHome ? 'bg-emerald-200' : 'bg-emerald-600 dark:bg-emerald-400')} />}
               </button>
             );
           })}
@@ -187,13 +191,13 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
         {/* Desktop Search */}
         {view !== 'discovery' && (
           <form onSubmit={submitSearch} className="hidden min-w-0 flex-1 justify-end 2xl:flex max-w-xs">
-            <label className={searchWrap} data-tour="search">
-              <Search size={18} className="shrink-0 text-[var(--color-text-dim)]" />
+            <label className={cn(searchWrap, isHome && 'border-white/18 bg-white/12')} data-tour="search">
+              <Search size={18} className={cn('shrink-0', isHome ? 'text-white/75' : 'text-[var(--color-text-dim)]')} />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search properties..."
-                className={searchInput}
+                className={cn(searchInput, isHome && 'text-white placeholder:text-white/65')}
               />
             </label>
           </form>
@@ -205,7 +209,7 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
             type="button"
             onClick={toggleTheme}
             aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            className={iconButton}
+            className={cn(iconButton, isHome && 'border-white/18 bg-white/12 text-white hover:border-white/30 hover:bg-white/18 hover:text-white')}
           >
             {isDark ? <Sun size={18} className="text-amber-500" /> : <Moon size={18} />}
           </button>
@@ -219,20 +223,28 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
               <button
                 type="button"
                 onClick={() => setProfileDropdownOpen((p) => !p)}
-                className="flex items-center gap-2.5 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-[var(--color-bg-card)] hover:bg-[var(--color-bg-elevated)] hover:border-[var(--color-border-hover)] px-3 py-2 transition-colors text-left cursor-pointer"
+                className={cn(
+                  'flex items-center gap-2.5 rounded-[var(--radius-control)] border px-3 py-2 text-left transition-colors cursor-pointer',
+                  isHome
+                    ? 'border-white/18 bg-white/12 hover:border-white/30 hover:bg-white/18'
+                    : 'border-[var(--color-border)] bg-[var(--color-bg-card)] hover:bg-[var(--color-bg-elevated)] hover:border-[var(--color-border-hover)]'
+                )}
               >
-                <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-sm font-bold">
+                <div className={cn(
+                  'relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-bold',
+                  isHome ? 'border-emerald-200/50 bg-emerald-400/20 text-emerald-100' : 'bg-emerald-50 dark:bg-emerald-500/15 border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                )}>
                   {getInitials()}
                 </div>
                 <div className="flex flex-col text-left">
-                  <span className="text-sm font-semibold text-[var(--color-text-main)] leading-tight max-w-[140px] truncate">
+                  <span className={cn('max-w-[140px] truncate text-sm font-semibold leading-tight', isHome ? 'text-white' : 'text-[var(--color-text-main)]')}>
                     {user.full_name || user.username}
                   </span>
-                  <span className="text-[11px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  <span className={cn('mt-0.5 text-[11px] font-bold uppercase tracking-wider', isHome ? 'text-emerald-200' : 'text-emerald-600 dark:text-emerald-400')}>
                     {user.role}
                   </span>
                 </div>
-                <ChevronDown size={16} className={cn('text-[var(--color-text-dim)] transition-transform', profileDropdownOpen && 'rotate-180')} />
+                <ChevronDown size={16} className={cn(isHome ? 'text-white/70' : 'text-[var(--color-text-dim)]', 'transition-transform', profileDropdownOpen && 'rotate-180')} />
               </button>
 
               {profileDropdownOpen && (
@@ -304,7 +316,10 @@ export const PublicHeader: React.FC<PublicHeaderProps> = ({ view, onNavigate, on
         {/* Mobile toggle */}
         <button
           type="button"
-          className="ml-auto rounded-[var(--radius-control)] p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)] lg:hidden transition-colors cursor-pointer"
+          className={cn(
+            'ml-auto rounded-[var(--radius-control)] p-2 lg:hidden transition-colors cursor-pointer',
+            isHome ? 'text-white/85 hover:bg-white/10 hover:text-white' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-[var(--color-bg-elevated)]'
+          )}
           onClick={() => setOpen((v) => !v)}
           aria-label={open ? 'Close menu' : 'Open menu'}
         >
