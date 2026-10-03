@@ -1648,7 +1648,18 @@ def admin_customers_list(request):
     err = check_admin_permission(request)
     if err: return err
     if request.method == 'GET':
-        customers = Customer.objects.all().order_by('-last_activity_at')
+        customers = Customer.objects.annotate(
+            _conversations_count=Count('conversations'),
+        ).order_by('-last_activity_at')
+        search = request.query_params.get('search', '').strip()
+        source = request.query_params.get('source', '').strip()
+        if search:
+            customers = customers.filter(
+                Q(full_name__icontains=search) | Q(phone__icontains=search)
+                | Q(email__icontains=search) | Q(location__icontains=search)
+            )
+        if source:
+            customers = customers.filter(source=source)
         return get_paginated_response(customers, CustomerSerializer, request)
     elif request.method == 'POST':
         serializer = CustomerSerializer(data=request.data)

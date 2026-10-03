@@ -269,7 +269,8 @@ class CustomerSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'last_activity_at']
 
     def get_conversations_count(self, obj):
-        return obj.conversations.count()
+        annotated_count = getattr(obj, '_conversations_count', None)
+        return annotated_count if annotated_count is not None else obj.conversations.count()
 
 
 class CustomerCreateSerializer(serializers.ModelSerializer):

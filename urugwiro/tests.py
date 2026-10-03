@@ -357,6 +357,23 @@ class ApiSecurityTests(TestCase):
         self.assertIn('asset', response.data['results'][0])
         self.assertNotIn('phone_number', response.data['results'][0]['seller'])
 
+    def test_admin_customer_directory_contract_and_query_budget(self):
+        self.authenticate(self.owner)
+        created = self.client.post('/api/admin/customers/', {
+            'full_name': 'CRM Customer', 'phone': '0788444444',
+            'email': 'crm@example.com', 'location': 'Kigali', 'source': 'referral',
+        }, format='json')
+        self.assertEqual(created.status_code, 201)
+
+        with CaptureQueriesContext(connection) as captured:
+            listed = self.client.get('/api/admin/customers/?search=CRM&source=referral&page_size=100')
+
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(listed.data['count'], 1)
+        self.assertEqual(listed.data['results'][0]['full_name'], 'CRM Customer')
+        self.assertEqual(listed.data['results'][0]['conversations_count'], 0)
+        self.assertLessEqual(len(captured), 6)
+
     def test_admin_cannot_manage_owner_or_assign_protected_role(self):
         admin = User.objects.create_user(
             username='admin-user', password='Admin-pass-123!', role='admin', is_staff=True

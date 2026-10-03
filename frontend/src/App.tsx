@@ -30,6 +30,7 @@ const AdminEnquiries = lazy(() => import('./features/admin/AdminEnquiries'));
 const AdminOffers = lazy(() => import('./features/admin/AdminOffers'));
 const AdminReports = lazy(() => import('./features/admin/AdminReports'));
 const AdminUserManagement = lazy(() => import('./features/admin/AdminUserManagement'));
+const AdminCustomers = lazy(() => import('./features/admin/AdminCustomers'));
 const AdminSellerManager = lazy(() => import('./features/admin/AdminSellerManager'));
 const AdminPropertyWizard = lazy(() => import('./features/admin/AdminPropertyWizard'));
 const AdminInbox = lazy(() => import('./features/admin/AdminInbox'));
@@ -287,8 +288,8 @@ function RoutedApp() {
       <Route path="/admin/properties/:id" element={<AdminPropertyDetailRoute />} />
       <Route path="/admin/sellers" element={<AdminRoute view="admin-sellers"><AdminSellerManager /></AdminRoute>} />
       <Route path="/admin/sellers/:id" element={<AdminRoute view="admin-sellers"><AdminSellerManager /></AdminRoute>} />
-      <Route path="/admin/customers" element={<AdminRoute view="admin-customers"><AdminUserManagement /></AdminRoute>} />
-      <Route path="/admin/customers/:id" element={<AdminRoute view="admin-customers"><AdminUserManagement /></AdminRoute>} />
+      <Route path="/admin/customers" element={<AdminRoute view="admin-customers"><AdminCustomers /></AdminRoute>} />
+      <Route path="/admin/customers/:id" element={<AdminRoute view="admin-customers"><AdminCustomers /></AdminRoute>} />
       <Route path="/admin/users" element={<AdminRoute view="admin-users"><AdminUserManagement /></AdminRoute>} />
       <Route path="/admin/conversations" element={<AdminRoute view="admin-conversations"><AdminInbox /></AdminRoute>} />
       <Route path="/admin/inbox" element={<Navigate to="/admin/conversations" replace />} />
