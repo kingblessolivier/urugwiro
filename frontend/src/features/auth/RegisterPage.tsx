@@ -125,7 +125,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                                     URUGWIRO
                                 </span>
                                 <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-500 font-bold block">
-                                    Verified Platform
+                                    Marketplace Access
                                 </span>
                             </div>
                         </div>
@@ -135,7 +135,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                         </h2>
 
                         <p className="text-sm leading-relaxed mb-8" style={{ color: 'var(--color-text-muted)' }}>
-                            Create your personalized account to discover verified listings, schedule visits, and complete secure transactions.
+                            Create an account to discover listings, save properties, schedule visits, and manage offers.
                         </p>
 
                         {/* Account Types Breakdown */}
@@ -148,7 +148,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                                     <Building2 size={16} /> Private Client / Buyer
                                 </div>
                                 <div className="text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-                                    Purchase land parcels, villas, and commercial assets with bank-grade escrow protection.
+                                    Browse properties, save favorites, request visits, and submit offers for seller review.
                                 </div>
                             </div>
 
@@ -160,7 +160,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                                     <KeyRound size={16} /> Resident / Tenant
                                 </div>
                                 <div className="text-xs leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-                                    Lease verified residential residences, track tenancy agreements, and manage requests.
+                                    Explore rental listings, contact sellers, and keep visit requests in one account.
                                 </div>
                             </div>
                         </div>

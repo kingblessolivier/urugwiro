@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import FilterPane from './components/FilterPane';
 import ResultsGrid from './components/ResultsGrid';
 import DiscoveryMap from './components/DiscoveryMap';
@@ -540,9 +540,9 @@ const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onListingClick, initialQu
                     <section className={`flex-1 overflow-y-auto p-5 lg:p-8 ${viewMode === 'map' ? 'hidden md:block md:w-1/2 xl:w-[58%]' : 'block w-full'}`}>
                         <div className="mb-6 flex items-center justify-between">
                             <div>
-                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-500">Curated Showcase</span>
+                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-500">Marketplace</span>
                                 <h1 className="mt-1 text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>
-                                    Verified Assets
+                                    Available Listings
                                 </h1>
                             </div>
                             <div

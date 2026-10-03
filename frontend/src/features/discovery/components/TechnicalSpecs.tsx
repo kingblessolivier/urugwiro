@@ -89,10 +89,10 @@ interface TechnicalMetricProps {
 const FRIENDLY_LABELS: Record<string, { friendly: string; explanation: string }> = {
   'Zoning Code': { friendly: 'Property Use', explanation: 'Defines what the land can legally be used for (Residential, Commercial, etc.)' },
   'Tenure Type': { friendly: 'Ownership Type', explanation: 'The legal nature of the property ownership (Freehold, Leasehold, etc.)' },
-  'Cadastral': { friendly: 'Official Records', explanation: 'The official government land registry record for this plot' },
+  'Cadastral': { friendly: 'Parcel Records', explanation: 'Parcel information recorded with this listing; confirm it through the official land service' },
   'Built-up Area': { friendly: 'House Size', explanation: 'The total area of the building footprint' },
   'UPI Number': { friendly: 'Registration ID', explanation: 'Unique Parcel Identifier: The official government ID for this specific plot of land' },
-  'Title Deed Ref': { friendly: 'Ownership Paper', explanation: 'The official document reference number proving legal ownership' },
+  'Title Deed Ref': { friendly: 'Title Reference', explanation: 'A document reference supplied for this listing; verify the underlying title independently' },
   'Lease Duration': { friendly: 'Rental Length', explanation: 'The remaining time on the legal land lease' },
   'Ownership Status': { friendly: 'Title Status', explanation: 'Whether the property is clear of debts or legal disputes' },
   'Terrain Type': { friendly: 'Land Shape', explanation: 'The physical characteristics of the ground (Flat, Sloping, etc.)' },

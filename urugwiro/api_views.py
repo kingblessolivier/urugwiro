@@ -1142,9 +1142,21 @@ def api_public_announcements(request):
 def api_platform_stats(request):
     listings_count = Listing.objects.filter(status='published').count()
     sellers_count = SellerProfile.objects.filter(status='approved').count()
+    verified_count = Listing.objects.filter(
+        status='published', verification_level__in=['verified', 'professional'],
+    ).count()
+    districts_covered = Listing.objects.filter(status='published').exclude(
+        asset__district__isnull=True,
+    ).exclude(asset__district='').values('asset__district').distinct().count()
     return Response({
         'listings_count': listings_count,
-        'sellers_count': sellers_count
+        'sellers_count': sellers_count,
+        'properties_listed': listings_count,
+        'verified_listings': verified_count,
+        'completed_deals': Transaction.objects.filter(status='completed').count(),
+        'active_deals': Transaction.objects.filter(status='pending').count(),
+        'active_users': User.objects.filter(is_active=True).count(),
+        'districts_covered': districts_covered,
     }, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
@@ -1884,6 +1896,7 @@ def update_offer_status(request, pk):
 # ==========================================
 
 @api_view(['GET', 'POST'])
+@transaction.atomic
 def admin_properties_list_create(request):
     err = check_admin_permission(request)
     if err: return err
@@ -1904,10 +1917,10 @@ def admin_properties_list_create(request):
                 seller = SellerProfile.objects.create(
                     user=request.user,
                     name=request.user.get_full_name() or request.user.username,
-                    email=request.user.email or 'admin@urugwiro.rw',
-                    phone_number='Not provided',
+                    email=request.user.email or '',
+                    phone_number='',
                     status='approved',
-                    is_verified=True,
+                    is_verified=False,
                 )
             if not seller:
                 return Response({'error': 'Create a seller profile before adding a property.'}, status=status.HTTP_400_BAD_REQUEST)

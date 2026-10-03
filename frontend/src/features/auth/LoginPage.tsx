@@ -79,25 +79,25 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                                     URUGWIRO
                                 </span>
                                 <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-500 font-bold block">
-                                    Verified Platform
+                                    Marketplace Access
                                 </span>
                             </div>
                         </div>
 
                         <h2 className="font-display text-3xl xl:text-4xl font-bold tracking-tight leading-tight mb-4" style={{ color: 'var(--color-text-main)' }}>
-                            Rwanda's Premier Property Network
+                            Rwanda Property & Asset Marketplace
                         </h2>
 
                         <p className="text-sm leading-relaxed mb-8" style={{ color: 'var(--color-text-muted)' }}>
-                            Access verified residential estates, land parcels, and commercial investments with end-to-end transparency.
+                            Access listings, offers, visits, messages, and visible document-review states from one account.
                         </p>
 
                         {/* Concise Highlights */}
                         <div className="space-y-4">
                             {[
                               { icon: ShieldCheck, title: 'Visible Review Status', desc: 'See whether listing documents are submitted, approved, or still pending.' },
-                              { icon: Lock, title: 'Bank-Grade Escrow', desc: '10% earnest deposits protected in regulated custody.' },
-                              { icon: Sparkles, title: '3D Spatial Digital Twins', desc: 'Interactive virtual showings and LiDAR site scans.' },
+                              { icon: Lock, title: 'Account Security', desc: 'Authenticated access keeps private workspace data scoped to your account.' },
+                              { icon: Sparkles, title: 'Listing Workflows', desc: 'Review properties, schedule visits, exchange messages, and manage offers.' },
                             ].map(({ icon: Icon, title, desc }) => (
                               <div key={title} className="flex items-start gap-3.5 p-3 rounded-2xl border"
                                 style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)' }}>
@@ -117,7 +117,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
                     <div className="pt-8 border-t flex items-center justify-between text-xs" style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-dim)' }}>
                         <div className="flex items-center gap-2">
                             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span>Kigali Central Node: Online</span>
+                            <span>Secure account access</span>
                         </div>
                         <span>UTC+2 Kigali</span>
                     </div>

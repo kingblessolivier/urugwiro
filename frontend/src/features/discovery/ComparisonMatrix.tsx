@@ -51,7 +51,7 @@ const ComparisonMatrix: React.FC<ComparisonMatrixProps> = ({ listings, onRemove,
       <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-bold',
         s.verification === 'verified' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-zinc-500/10 text-zinc-500'
       )}>
-        {s.verification === 'verified' ? 'Verified' : 'Seller-Claimed'}
+        {s.verification === 'verified' ? 'Verified' : 'Not verified'}
       </span>
     ) },
   ];

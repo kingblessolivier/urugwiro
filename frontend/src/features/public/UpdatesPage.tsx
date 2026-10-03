@@ -16,39 +16,6 @@ interface UpdatesPageProps {
   onNavigate?: (view: AppView) => void;
 }
 
-const DEFAULT_UPDATES: UpdateItem[] = [
-  {
-    id: 'up-1',
-    date: '22.09.2026',
-    title: 'Digital contract signing for completed deals',
-    description: 'Buyers, sellers, and agents can now review, sign, and verify statutory conveyance agreements directly on the platform with phone OTP confirmation and SHA-256 tamper-proof timestamps.',
-  },
-  {
-    id: 'up-2',
-    date: '21.09.2026',
-    title: 'Interactive 3D building viewer and cadastral parcel maps',
-    description: 'Explore apartment complexes with floor-by-floor room layouts, view directions, pricing, and exact cadastral parcel boundaries mapped via Leaflet OpenStreetMap.',
-  },
-  {
-    id: 'up-3',
-    date: '18.09.2026',
-    title: 'Direct seller property proposal submission',
-    description: 'Property owners can now submit listings directly for cadastre inspection, title deed matching, and administrative verification.',
-  },
-  {
-    id: 'up-4',
-    date: '15.09.2026',
-    title: 'Kigali Master Plan 2050 zoning validation',
-    description: 'Added automatic zoning checks, building coverage ratio calculations, and wetland buffer zone screening for land listings.',
-  },
-  {
-    id: 'up-5',
-    date: '12.09.2026',
-    title: 'Conveyance pipeline and escrow tracking',
-    description: 'Track deal progress step-by-step from offer acceptance through escrow funding, notary appointment, and official title transfer.',
-  },
-];
-
 const formatDate = (dateStr?: string): string => {
   if (!dateStr) return '';
   if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) return dateStr;
@@ -63,21 +30,17 @@ const formatDate = (dateStr?: string): string => {
 export const UpdatesPage: React.FC<UpdatesPageProps> = ({ onNavigate }) => {
   const [query, setQuery] = useState('');
 
-  const { data: serverUpdates = [], isLoading } = useQuery<UpdateItem[]>({
+  const { data: serverUpdates = [], isLoading, isError } = useQuery<UpdateItem[]>({
     queryKey: ['public-updates'],
     queryFn: async () => {
-      try {
-        const response = await api.public.updates();
-        const data = response.data;
-        return Array.isArray(data) ? data : data.results || [];
-      } catch {
-        return [];
-      }
+      const response = await api.public.updates();
+      const data = response.data;
+      return Array.isArray(data) ? data : data.results || [];
     },
     retry: false,
   });
 
-  const list: UpdateItem[] = serverUpdates.length > 0 ? serverUpdates : DEFAULT_UPDATES;
+  const list: UpdateItem[] = serverUpdates;
 
   const filtered = useMemo(() => {
     if (!query.trim()) return list;
@@ -143,9 +106,13 @@ export const UpdatesPage: React.FC<UpdatesPageProps> = ({ onNavigate }) => {
           <div className="py-20 text-sm font-mono text-zinc-400 text-center">
             Loading updates...
           </div>
+        ) : isError ? (
+          <div className="py-20 text-center text-sm text-red-500">
+            Platform updates could not be loaded. Please try again.
+          </div>
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center text-sm text-zinc-500">
-            No updates found matching "{query}".
+            {query ? `No updates found matching "${query}".` : 'No platform updates have been published yet.'}
           </div>
         ) : (
           <div className="space-y-14">

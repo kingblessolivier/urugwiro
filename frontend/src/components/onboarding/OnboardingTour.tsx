@@ -18,7 +18,7 @@ const TOUR_STEPS: TourStep[] = [
     {
         target: '[data-tour="logo"]',
         title: 'Welcome to Urugwiro',
-        content: 'Your trusted partner for verified real estate across Rwanda. Let us show you around.',
+        content: 'Browse and manage property listings across Rwanda. Let us show you around.',
         position: 'bottom',
     },
     {
@@ -30,13 +30,13 @@ const TOUR_STEPS: TourStep[] = [
     {
         target: '[data-tour="explore"]',
         title: 'Explore Properties',
-        content: 'Browse verified listings with detailed specs, photos, 3D tours, and neighborhood info.',
+        content: 'Browse listings with recorded specifications, photos, locations, and review status.',
         position: 'top',
     },
     {
         target: '[data-tour="sell"]',
         title: 'List Your Property',
-        content: 'List your property for sale or rent. Upload photos, set pricing, and reach verified buyers.',
+        content: 'Submit a property for sale or rent, upload photos, set pricing, and manage buyer interest.',
         position: 'top',
     },
     {

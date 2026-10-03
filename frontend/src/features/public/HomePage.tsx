@@ -54,8 +54,8 @@ const HERO_SLIDES: HeroSlide[] = [
     query: 'house',
     image: '/images/hero/house.jpg',
     title: 'Homes & Villas Across Rwanda',
-    cornerBadge: 'Registry Title Verified',
-    systemExplanation: 'Every residential property is cross-checked with official land registry records to guarantee authentic ownership.',
+    cornerBadge: 'Review Status Visible',
+    systemExplanation: 'Compare listing details and check the recorded document-review status before contacting a seller.',
     watermark: 'ESTATES',
   },
   {
@@ -65,8 +65,8 @@ const HERO_SLIDES: HeroSlide[] = [
     query: 'land',
     image: '/images/hero/land.jpg',
     title: 'Titled Plots Across Rwanda',
-    cornerBadge: 'Official Cadastre Verified',
-    systemExplanation: 'Every parcel is verified against the official national cadastre before being listed for sale.',
+    cornerBadge: 'Parcel Details Available',
+    systemExplanation: 'Review location, area, UPI, and zoning details when they have been supplied for a parcel.',
     watermark: 'CADASTRE',
   },
   {
@@ -75,9 +75,9 @@ const HERO_SLIDES: HeroSlide[] = [
     icon: Car,
     query: 'vehicle',
     image: '/images/hero/car.jpg',
-    title: 'Certified Vehicles, Inspection & History',
-    cornerBadge: 'RRA Customs Cleared',
-    systemExplanation: 'Physical mechanical inspection and verified registration with Rwanda Revenue Authority.',
+    title: 'Vehicles Across Rwanda',
+    cornerBadge: 'Detailed Vehicle Records',
+    systemExplanation: 'Compare seller-supplied specifications, condition, mileage, and document status in one place.',
     watermark: 'EXECUTIVE',
   },
   {
@@ -87,8 +87,8 @@ const HERO_SLIDES: HeroSlide[] = [
     query: 'vehicle',
     image: '/images/hero/motorbike.jpg',
     title: 'Bikes & Fleet Vehicles',
-    cornerBadge: 'Fleet Mobility Certified',
-    systemExplanation: 'Inspected commercial fleets and personal mobility ready for verified ownership transfer.',
+    cornerBadge: 'Fleet Details Available',
+    systemExplanation: 'Browse commercial fleets and personal mobility listings with their recorded specifications.',
     watermark: 'MOBILITY',
   },
 ];
@@ -99,7 +99,7 @@ const HERO_SLIDES: HeroSlide[] = [
 
 const categories = [
   { label: 'Homes & Villas', icon: Home, query: 'house', desc: 'Luxury residences & family homes' },
-  { label: 'Land & Plots', icon: MapIcon, query: 'land', desc: 'Verified land with UPI cadastre' },
+  { label: 'Land & Plots', icon: MapIcon, query: 'land', desc: 'Parcels with location and UPI details' },
   { label: 'Apartments', icon: Building2, query: 'apartment', desc: 'Modern urban living spaces' },
   { label: 'Vehicles', icon: Car, query: 'car', desc: 'Cars, SUVs & motorcycles' },
   { label: 'Commercial', icon: Building2, query: 'commercial', desc: 'Office & retail spaces' },
@@ -107,9 +107,9 @@ const categories = [
 ];
 
 const steps = [
-  { step: '01', title: 'Discover', desc: 'Search verified listings by location, category, or price. Browse homes, land, apartments, and vehicles across Rwanda.' },
-  { step: '02', title: 'Verify', desc: 'Review title documents, cadastral records, and inspection reports. Every listing includes its verification status upfront.' },
-  { step: '03', title: 'Connect & Close', desc: 'Make offers, schedule visits, and connect directly with verified sellers to agree on terms and close deals with confidence.' },
+  { step: '01', title: 'Discover', desc: 'Search listings by location, category, or price. Browse homes, land, apartments, and vehicles across Rwanda.' },
+  { step: '02', title: 'Review', desc: 'Compare specifications and check whether supporting documents are pending, submitted, or verified.' },
+  { step: '03', title: 'Connect', desc: 'Make offers, schedule visits, and message sellers while you perform your own due diligence.' },
 ];
 
 
@@ -407,7 +407,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
                 isDark ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
               )}>
                 <CheckCircle2 size={10} />
-                <span>Verified</span>
+                <span>{heroListing.verification_level === 'verified' ? 'Verified' : 'Marketplace listing'}</span>
               </span>
               <span className="text-[var(--color-text-dim)]">•</span>
               <span className="font-semibold text-[var(--color-text-main)] truncate max-w-[120px] xs:max-w-[180px] sm:max-w-[320px]">{heroListing.title}</span>
@@ -551,7 +551,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
             <div className="space-y-2 sm:space-y-3">
               <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-500">Curated</p>
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Exclusive Listings</h2>
-              <p className="mt-1 text-xs sm:text-sm max-w-xl" style={{ color: 'var(--color-text-dim)' }}>Hand-picked properties with verified cadastral boundaries and titles.</p>
+              <p className="mt-1 text-xs sm:text-sm max-w-xl" style={{ color: 'var(--color-text-dim)' }}>Featured listings selected from the current marketplace inventory.</p>
             </div>
             <button
               onClick={() => onExplore('')}
@@ -588,7 +588,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
                 <Building2 size={32} className="text-[var(--color-text-dim)]" />
               </div>
               <h3 className="text-lg font-bold text-[var(--color-text-main)]">No listings available</h3>
-              <p className="mt-2 text-sm text-[var(--color-text-muted)]">Check back soon for new verified properties across Rwanda.</p>
+              <p className="mt-2 text-sm text-[var(--color-text-muted)]">Check back soon for new listings across Rwanda.</p>
             </div>
           )}
 
@@ -669,7 +669,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
           <div className="relative z-10">
             <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Have a property to sell or rent?</h2>
             <p className="mx-auto mt-3 sm:mt-5 max-w-xl text-xs sm:text-base leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-              Join Rwanda's most trusted marketplace. Submit your property details for physical inspection and connect directly with verified buyers and tenants.
+              Submit your property details for review, manage buyer interest, and keep listing activity in one workspace.
             </p>
             <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button

@@ -305,6 +305,29 @@ class ApiSecurityTests(TestCase):
         self.assertEqual(len(response.data['results']), 20)
         self.assertLessEqual(len(queries), 10)
 
+    def test_public_platform_stats_match_the_live_contract(self):
+        response = self.client.get('/api/platform-stats/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['properties_listed'], 1)
+        self.assertEqual(response.data['verified_listings'], 1)
+        self.assertEqual(response.data['districts_covered'], 1)
+        self.assertEqual(response.data['active_users'], 2)
+
+    def test_admin_listing_creation_does_not_self_verify_owner_profile(self):
+        self.authenticate(self.owner)
+
+        response = self.client.post('/api/admin/properties/', {
+            'title': 'Admin-created draft', 'description': 'Draft listing for review.',
+            'category': 'house', 'purpose': 'sale', 'price': '50000000',
+            'currency': 'RWF', 'address': 'Rwanda', 'status': 'draft',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 201, response.data)
+        profile = SellerProfile.objects.get(user=self.owner)
+        self.assertFalse(profile.is_verified)
+        self.assertEqual(profile.phone_number, '')
+
     def test_seller_cannot_publish_or_self_verify(self):
         self.authenticate(self.seller_user)
         response = self.client.patch(f'/api/seller/listings/{self.draft.pk}/', {
