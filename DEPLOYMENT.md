@@ -24,7 +24,7 @@ pip install -r requirements-production.txt
 $env:DJANGO_DEBUG = 'false'
 python manage.py migrate
 python manage.py collectstatic --noinput
-daphne -b 0.0.0.0 -p 8000 config.asgi:application
+python start_server.py
 ```
 
 The backend uses PostgreSQL when `DATABASE_URL` is present and SQLite otherwise. Keep uploads on a persistent/object-storage volume in production; local `media/` is excluded from the container build.

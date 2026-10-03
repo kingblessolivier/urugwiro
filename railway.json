@@ -5,7 +5,7 @@
   },
   "deploy": {
     "preDeployCommand": ["python manage.py migrate --noinput"],
-    "startCommand": "daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application",
+    "startCommand": "python start_server.py",
     "healthcheckPath": "/api/health/",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
