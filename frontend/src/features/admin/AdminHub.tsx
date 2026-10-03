@@ -6,13 +6,17 @@ import {
 } from 'lucide-react';
 import { api } from '../../api/endpoints';
 import { useQuery } from '@tanstack/react-query';
-import type { AppView } from '../../types/navigation';
+import { hasCapability, type AppView } from '../../types/navigation';
+import { useAuth } from '../../context/AuthContext';
 
 interface AdminHubProps {
   setView: (view: AppView) => void;
 }
 
 export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
+  const { user } = useAuth();
+  const canViewFinance = hasCapability(user, 'finance');
+
   // Fetch data
   const { data: propertiesData, isLoading: isLoadingProps } = useQuery({
     queryKey: ['admin-properties'],
@@ -47,6 +51,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
   const { data: transactionsData, isLoading: isLoadingTransactions } = useQuery({
     queryKey: ['admin-transactions'],
     queryFn: async () => (await api.admin.transactions()).data,
+    enabled: canViewFinance,
   });
 
   const { data: enquiriesData, isLoading: isLoadingEnquiries } = useQuery({
@@ -64,7 +69,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
   const transactions = useMemo(() => Array.isArray(transactionsData) ? transactionsData : transactionsData?.results || [], [transactionsData]);
   const enquiries = useMemo(() => Array.isArray(enquiriesData) ? enquiriesData : enquiriesData?.results || [], [enquiriesData]);
 
-  const isLoading = isLoadingProps || isLoadingSellers || isLoadingCustomers || isLoadingOffers || isLoadingVisits || isLoadingConversations || isLoadingTransactions || isLoadingEnquiries;
+  const isLoading = isLoadingProps || isLoadingSellers || isLoadingCustomers || isLoadingOffers || isLoadingVisits || isLoadingConversations || (canViewFinance && isLoadingTransactions) || isLoadingEnquiries;
 
   // Metrics
   const metrics = useMemo(() => {
@@ -76,13 +81,13 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     
-    const revenueThisMonth = transactions
+    const completedDealsThisMonth = transactions
       .filter((t: any) => {
         if (t.status !== 'completed') return false;
-        const d = new Date(t.created_at || t.date);
+        const d = new Date(t.completed_at || t.created_at);
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       })
-      .reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0);
+      .length;
 
     const pendingVerification = properties.filter((l: any) => l.status === 'under_review').length;
 
@@ -93,7 +98,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
       pendingOffers,
       upcomingVisits,
       activeConversations: conversations.length,
-      revenueThisMonth,
+      completedDealsThisMonth,
       pendingVerification
     };
   }, [properties, sellers, customers, offers, visits, conversations, transactions]);
@@ -128,9 +133,9 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
   // Activity Feed
   const recentActivity = useMemo(() => {
     const activities = [
-      ...properties.map((p: any) => ({ id: `p-${p.id}`, type: 'property', title: `New property: ${p.title || 'Untitled'}`, date: new Date(p.created_at || Date.now()), icon: Building2 })),
-      ...offers.map((o: any) => ({ id: `o-${o.id}`, type: 'offer', title: `New offer: ${o.amount} RWF`, date: new Date(o.created_at || Date.now()), icon: TrendingUp })),
-      ...visits.map((v: any) => ({ id: `v-${v.id}`, type: 'visit', title: `Visit requested for ${v.property_title || 'Property'}`, date: new Date(v.created_at || Date.now()), icon: Calendar })),
+      ...properties.map((p: any) => ({ id: `p-${p.id}`, type: 'property', title: `New property: ${p.title || 'Untitled'}`, date: new Date(p.created_at || 0), icon: Building2 })),
+      ...offers.map((o: any) => ({ id: `o-${o.id}`, type: 'offer', title: `New offer: ${o.amount} RWF`, date: new Date(o.created_at || 0), icon: TrendingUp })),
+      ...visits.map((v: any) => ({ id: `v-${v.id}`, type: 'visit', title: `Visit requested for ${v.property_title || 'Property'}`, date: new Date(v.created_at || 0), icon: Calendar })),
     ];
     
     return activities
@@ -172,7 +177,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
           <KPICard label="Pending Offers" value={metrics.pendingOffers} icon={TrendingUp} />
           <KPICard label="Upcoming Visits" value={metrics.upcomingVisits} icon={Calendar} />
           <KPICard label="Conversations" value={metrics.activeConversations} icon={MessageSquare} />
-          <KPICard label="Revenue (Month)" value={`${(metrics.revenueThisMonth / 1000000).toFixed(1)}M`} icon={DollarSign} />
+          {canViewFinance && <KPICard label="Completed Deals (Month)" value={metrics.completedDealsThisMonth} icon={DollarSign} />}
           <KPICard label="To Verify" value={metrics.pendingVerification} icon={ShieldCheck} />
         </div>
 
@@ -228,19 +233,19 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
                   })}
                 </div>
               </div>
-              <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
-                <h3 className="text-sm font-medium text-[var(--color-text-muted)] mb-4">Financial Overview</h3>
+              {canViewFinance && <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)]">
+                <h3 className="text-sm font-medium text-[var(--color-text-muted)] mb-4">Deal Overview</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-[var(--color-text-main)]">Total Earned</span>
+                    <span className="text-sm text-[var(--color-text-main)]">Completed</span>
                     <span className="text-sm font-bold text-emerald-500">
-                      {((transactions.filter((t: any) => t.status === 'completed').reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0)) / 1000000).toFixed(1)}M
+                      {transactions.filter((t: any) => t.status === 'completed').length}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-[var(--color-text-main)]">Pending Payments</span>
+                    <span className="text-sm text-[var(--color-text-main)]">Pending</span>
                     <span className="text-sm font-bold text-amber-500">
-                      {((transactions.filter((t: any) => t.status === 'pending').reduce((sum: number, t: any) => sum + (Number(t.amount) || 0), 0)) / 1000000).toFixed(1)}M
+                      {transactions.filter((t: any) => t.status === 'pending').length}
                     </span>
                   </div>
                   <div className="pt-3 border-t border-[var(--color-border)] flex justify-between items-center">
@@ -248,7 +253,7 @@ export const AdminHub: React.FC<AdminHubProps> = ({ setView }) => {
                     <span className="text-sm font-medium text-[var(--color-text-main)]">{transactions.length}</span>
                   </div>
                 </div>
-              </div>
+              </div>}
             </div>
           </div>
 

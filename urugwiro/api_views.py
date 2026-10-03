@@ -38,7 +38,8 @@ from .serializers import (
     PropertyInquirySerializer, CustomerSerializer, ConversationSerializer, FollowUpSerializer, VisitCreateSerializer,
     TransactionSerializer, SellerPaymentSerializer, CommissionRuleSerializer, BusinessExpenseSerializer,
     ListingProposalSerializer, PublicListingProposalSerializer, SystemSettingSerializer, SystemLogSerializer, SavedPropertySerializer, ConversationEventSerializer,
-    AdminUserCreateSerializer, AdminUserUpdateSerializer, RegistrationSerializer, SelfProfileSerializer, SellerListingWriteSerializer
+    AdminUserCreateSerializer, AdminUserUpdateSerializer, AnnouncementSerializer, RegistrationSerializer,
+    SelfProfileSerializer, SellerListingWriteSerializer
 )
 
 # Services
@@ -1127,6 +1128,13 @@ def api_contact_submit(request):
 def api_public_updates(request):
     updates = Updates.objects.all().order_by('-created_at')
     return get_paginated_response(updates, UpdatesSerializer, request)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_public_announcements(request):
+    announcements = Announcement.objects.filter(is_active=True)
+    return Response(AnnouncementSerializer(announcements, many=True).data)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -2504,6 +2512,43 @@ def admin_report_summary(request):
 # ==========================================
 # System
 # ==========================================
+
+@api_view(['GET', 'POST'])
+def manage_announcements(request):
+    err = check_admin_permission(request, 'settings')
+    if err:
+        return err
+    if request.method == 'GET':
+        return get_paginated_response(Announcement.objects.all(), AnnouncementSerializer, request)
+
+    serializer = AnnouncementSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
+def manage_announcement_detail(request, pk):
+    err = check_admin_permission(request, 'settings')
+    if err:
+        return err
+    announcement = get_object_or_404(Announcement, pk=pk)
+    if request.method == 'GET':
+        return Response(AnnouncementSerializer(announcement).data)
+    if request.method == 'DELETE':
+        announcement.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    serializer = AnnouncementSerializer(
+        announcement,
+        data=request.data,
+        partial=request.method == 'PATCH',
+    )
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'POST'])
 def manage_system_settings(request):

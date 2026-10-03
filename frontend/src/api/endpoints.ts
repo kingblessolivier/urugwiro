@@ -37,6 +37,7 @@ export const api = {
     public: {
         about: () => apiClient.get('/about/'),
         updates: () => apiClient.get('/updates/'),
+        announcements: () => apiClient.get('/announcements/'),
         platformStats: () => apiClient.get('/platform-stats/'),
         contactSubmit: (data: { name: string; email: string; phone?: string; message: string; subject?: string; listing_id?: string | number }) =>
             apiClient.post('/contact/submit/', data),
@@ -244,7 +245,10 @@ export const api = {
         },
 
         // Announcements
-        announcements: () => apiClient.get('/updates/'),
+        announcements: () => apiClient.get('/admin/announcements/'),
+        createAnnouncement: (data: Record<string, unknown>) => apiClient.post('/admin/announcements/', data),
+        updateAnnouncement: (id: number, data: Record<string, unknown>) => apiClient.patch(`/admin/announcements/${id}/`, data),
+        deleteAnnouncement: (id: number) => apiClient.delete(`/admin/announcements/${id}/`),
 
         // Legacy compatibility
         agents: () => apiClient.get('/admin/sellers/'),

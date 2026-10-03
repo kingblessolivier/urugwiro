@@ -14,7 +14,7 @@ from rest_framework.test import APIClient
 
 from .consumers import ChatConsumer
 from .models import (
-    Asset, CommissionRule, Customer, Listing, ListingProposal, Offer,
+    Announcement, Asset, CommissionRule, Customer, Listing, ListingProposal, Offer,
     ResidentialSpec, SellerPayment, SellerProfile, SystemSetting, Transaction, User,
     VerificationDocument, SystemLog,
 )
@@ -91,6 +91,42 @@ class ApiSecurityTests(TestCase):
         cleared = self.client.delete('/api/admin/system-logs/')
         self.assertEqual(cleared.status_code, 200)
         self.assertFalse(SystemLog.objects.exists())
+
+    def test_announcements_have_restricted_crud_and_public_active_feed(self):
+        finance = User.objects.create_user(
+            username='finance-user', password='Finance-pass-123!', role='finance',
+        )
+        self.authenticate(finance)
+        denied = self.client.post('/api/admin/announcements/', {
+            'text': 'Not allowed', 'icon': 'info', 'is_active': True, 'order': 0,
+        }, format='json')
+        self.assertEqual(denied.status_code, 403)
+
+        self.authenticate(self.owner)
+        created = self.client.post('/api/admin/announcements/', {
+            'text': 'Public notice', 'icon': 'campaign', 'is_active': True, 'order': 2,
+        }, format='json')
+        hidden = Announcement.objects.create(text='Internal draft', is_active=False, order=1)
+        self.assertEqual(created.status_code, 201)
+
+        listed = self.client.get('/api/admin/announcements/')
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(listed.data['count'], 2)
+
+        updated = self.client.patch(
+            f"/api/admin/announcements/{created.data['id']}/",
+            {'order': 0}, format='json',
+        )
+        self.client.force_authenticate(user=None)
+        public = self.client.get('/api/announcements/')
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual([item['text'] for item in public.data], ['Public notice'])
+        self.assertNotIn(hidden.text, [item['text'] for item in public.data])
+
+        self.authenticate(self.owner)
+        deleted = self.client.delete(f'/api/admin/announcements/{hidden.pk}/')
+        self.assertEqual(deleted.status_code, 204)
+        self.assertFalse(Announcement.objects.filter(pk=hidden.pk).exists())
 
     @patch('urugwiro.services.requests.post')
     def test_ai_connection_probe_uses_stored_secret(self, mock_post):

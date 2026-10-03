@@ -8,7 +8,11 @@ import {
   UserCheck, Newspaper, FolderTree, UserRound, Tag
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { type AppView } from '../../types/navigation';
+import {
+  getDefaultDashboardForUser,
+  isViewAllowedForUser,
+  type AppView,
+} from '../../types/navigation';
 import { api } from '../../api/endpoints';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
@@ -28,6 +32,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
   const initial = displayName.slice(0, 1).toUpperCase();
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const canManageOperations = isViewAllowedForUser('admin', user);
+  const defaultDashboard = getDefaultDashboardForUser(user);
 
   const { data: contactsData } = useQuery({
     queryKey: ['chat-contacts-unread'],
@@ -39,6 +45,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
         return [];
       }
     },
+    enabled: canManageOperations,
     refetchInterval: 15000,
   });
 
@@ -46,7 +53,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
     ? contactsData.reduce((acc, c) => acc + (c.unread_count || 0), 0)
     : 0;
 
-  const NAV_SECTIONS: SidebarSection[] = [
+  const allNavSections: SidebarSection[] = [
     {
       title: 'Platform',
       items: [
@@ -76,6 +83,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
       ],
     },
   ];
+
+  const NAV_SECTIONS = allNavSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => isViewAllowedForUser(item.view as AppView, user)),
+    }))
+    .filter((section) => section.items.length > 0);
 
   const isNavActive = (itemView: string) => {
     if (currentView === itemView) return true;
@@ -148,14 +162,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
         activeView={currentView}
         onNavigate={(v) => onNavigate(v as AppView)}
         brandName="Urugwiro"
-        roleChip="Admin"
-        brandSubtitle="Sovereign Command Center"
+        roleChip={user?.role || 'Admin'}
+        brandSubtitle="Administration"
         userInitial={initial}
         userName={displayName}
         userRole={user?.role || 'Administrator'}
         storageKey="urugwiro_admin_sidebar_collapsed"
         onPublicClick={() => onNavigate('home')}
-        onBrandClick={() => onNavigate('admin')}
+        onBrandClick={() => onNavigate(defaultDashboard)}
         accentTone="emerald"
       />
 
@@ -170,12 +184,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ currentView, onNavigat
           showMenuButton
           menuOpen={isMobileOpen}
           onMenuToggle={() => setIsMobileOpen(!isMobileOpen)}
-          primaryAction={{
+          primaryAction={canManageOperations ? {
             label: 'New Listing',
             icon: Plus,
             onClick: handleQuickAdd,
             tone: 'emerald',
-          }}
+          } : undefined}
           avatar={{
             initial,
             name: displayName,

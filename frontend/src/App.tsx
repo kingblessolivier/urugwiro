@@ -299,14 +299,14 @@ function RoutedApp() {
       <Route path="/admin/visits" element={<AdminRoute view="admin-offers"><AdminOffers key="visits" initialTab="visits" /></AdminRoute>} />
       <Route path="/admin/verification" element={<AdminRoute view="admin-verification"><VerificationWorkspace /></AdminRoute>} />
       <Route path="/admin/reports" element={<AdminRoute view="admin-reports"><AdminReports /></AdminRoute>} />
-      <Route path="/admin/transactions" element={<AdminRoute view="admin-reports"><AdminReports /></AdminRoute>} />
-      <Route path="/admin/revenue" element={<AdminRoute view="admin-reports"><AdminReports /></AdminRoute>} />
-      <Route path="/admin/seller-payments" element={<AdminRoute view="admin-reports"><AdminReports /></AdminRoute>} />
-      <Route path="/admin/expenses" element={<AdminRoute view="admin-reports"><AdminReports /></AdminRoute>} />
-      <Route path="/admin/documents" element={<AdminRoute view="admin-reports"><AdminReports /></AdminRoute>} />
-      <Route path="/admin/updates" element={<AdminRoute view="admin-settings"><AnnouncementManager /></AdminRoute>} />
-      <Route path="/admin/categories" element={<AdminListingsRoute />} />
-      <Route path="/admin/activity-log" element={<AdminRoute view="admin-settings"><SystemLogsPage /></AdminRoute>} />
+      <Route path="/admin/transactions" element={<Navigate to="/admin/reports" replace />} />
+      <Route path="/admin/revenue" element={<Navigate to="/admin/reports" replace />} />
+      <Route path="/admin/seller-payments" element={<Navigate to="/admin/reports" replace />} />
+      <Route path="/admin/expenses" element={<Navigate to="/admin/reports" replace />} />
+      <Route path="/admin/documents" element={<Navigate to="/admin/reports" replace />} />
+      <Route path="/admin/updates" element={<AdminRoute view="admin-updates"><AnnouncementManager /></AdminRoute>} />
+      <Route path="/admin/categories" element={<Navigate to="/admin/settings" replace />} />
+      <Route path="/admin/activity-log" element={<AdminRoute view="admin-activity-log"><SystemLogsPage /></AdminRoute>} />
       <Route path="/admin/settings" element={<AdminRoute view="admin-settings"><SystemSettings /></AdminRoute>} />
 
       {/* Owner */}

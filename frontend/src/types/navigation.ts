@@ -96,6 +96,44 @@ export interface UserRoleLike {
   is_superuser?: boolean;
 }
 
+export type PlatformCapability = 'operations' | 'finance' | 'accounts' | 'settings';
+
+const ROLE_CAPABILITIES: Record<string, readonly PlatformCapability[]> = {
+  admin: ['operations', 'finance', 'accounts', 'settings'],
+  owner: ['operations', 'finance', 'accounts', 'settings'],
+  staff: ['operations'],
+  finance: ['finance'],
+};
+
+const ADMIN_VIEW_CAPABILITIES: Partial<Record<AppView, PlatformCapability>> = {
+  'admin-transactions': 'finance',
+  'admin-revenue': 'finance',
+  'admin-seller-payments': 'finance',
+  'admin-expenses': 'finance',
+  'admin-reports': 'finance',
+  'admin-documents': 'finance',
+  'admin-users': 'accounts',
+  'admin-updates': 'settings',
+  'admin-categories': 'settings',
+  'admin-activity-log': 'settings',
+  'admin-settings': 'settings',
+};
+
+export function hasCapability(
+  user: UserRoleLike | null | undefined,
+  capability: PlatformCapability,
+): boolean {
+  if (!user) return false;
+  if (user.is_superuser) return true;
+  const role = (user.role || '').toLowerCase();
+  return ROLE_CAPABILITIES[role]?.includes(capability) ?? false;
+}
+
+export function getCapabilityForView(view: AppView): PlatformCapability | null {
+  if (!isAdminView(view)) return null;
+  return ADMIN_VIEW_CAPABILITIES[view] || 'operations';
+}
+
 /**
  * Returns the human-friendly name of a view.
  */
@@ -190,14 +228,18 @@ export function getRequiredRoleForView(view: AppView): string {
   if (isPublicView(view) || isAuthView(view)) {
     return 'Public';
   }
+  if (view === 'owner-dashboard') {
+    return 'Owner';
+  }
   if (isAdminView(view)) {
-    return 'Admin';
+    const capability = getCapabilityForView(view);
+    if (capability === 'finance') return 'Finance, Admin, or Owner';
+    if (capability === 'accounts') return 'Admin or Owner';
+    if (capability === 'settings') return 'Admin or Owner';
+    return 'Operations, Admin, or Owner';
   }
   if (isSellerView(view)) {
     return 'Seller';
-  }
-  if (view === 'owner-dashboard') {
-    return 'Owner';
   }
   return 'Authenticated';
 }
@@ -215,28 +257,18 @@ export function isViewAllowedForUser(view: AppView, user: UserRoleLike | null | 
   }
 
   const role = (user.role || '').toLowerCase();
-  const isSuper = Boolean(user.is_superuser);
-  const isStaff = Boolean(user.is_staff);
-  const isAdmin = role === 'admin' || role === 'owner' || role === 'finance' || role === 'staff' || isStaff || isSuper;
 
-  // Platform Admins/Owners/Staff have full access
-  if (isAdmin) {
-    return true;
-  }
-
-  // Admin views can only be viewed by Admin/Staff/Owner/Finance
-  if (isAdminView(view)) {
-    return false;
-  }
-
-  // Owner dashboard
   if (view === 'owner-dashboard') {
-    return role === 'owner' || isAdmin;
+    return role === 'owner' || Boolean(user.is_superuser);
   }
 
-  // Seller Studio
+  if (isAdminView(view)) {
+    const capability = getCapabilityForView(view);
+    return capability ? hasCapability(user, capability) : false;
+  }
+
   if (isSellerView(view)) {
-    return role === 'seller' || isAdmin;
+    return role === 'seller' || hasCapability(user, 'operations');
   }
 
   return true;
@@ -252,12 +284,14 @@ export function getDefaultDashboardForUser(user: UserRoleLike | null | undefined
 
   const role = (user.role || '').toLowerCase();
   const isSuper = Boolean(user.is_superuser);
-  const isStaff = Boolean(user.is_staff);
 
   if (role === 'owner') {
     return 'owner-dashboard';
   }
-  if (role === 'admin' || role === 'staff' || role === 'finance' || isStaff || isSuper) {
+  if (role === 'finance') {
+    return 'admin-reports';
+  }
+  if (role === 'admin' || role === 'staff' || isSuper) {
     return 'admin';
   }
   if (role === 'seller') {

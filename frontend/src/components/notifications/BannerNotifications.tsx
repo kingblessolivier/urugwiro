@@ -1,41 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+    AlertTriangle, BadgeCheck, BadgePercent, CalendarClock,
+    Home, Info, Megaphone, PartyPopper, Star, X,
+} from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../api/endpoints';
 import { cn } from '../../lib/utils';
 
 interface BannerNotification {
-    id: string;
-    type: 'info' | 'warning' | 'success';
-    message: string;
-    link?: string;
+    id: number;
+    text: string;
+    icon: string;
 }
 
 export const BannerNotifications: React.FC = () => {
-    const [banners, setBanners] = useState<BannerNotification[]>([]);
-
-    useEffect(() => {
-        // In production, fetch from API
-        // Placeholder: show welcome banner for new users
+    const [dismissedIds, setDismissedIds] = useState<number[]>(() => {
         try {
-            const dismissed = localStorage.getItem('urugwiro_banner_dismissed');
-            if (!dismissed) {
-                setBanners([
-                    {
-                        id: 'welcome',
-                        type: 'info',
-                        message: 'Welcome to Urugwiro! Explore verified properties across Rwanda.',
-                        link: '/about',
-                    },
-                ]);
-            }
+            const stored = JSON.parse(localStorage.getItem('urugwiro_dismissed_announcements') || '[]');
+            return Array.isArray(stored) ? stored.filter(Number.isInteger) : [];
         } catch {
-            // localStorage not available
+            return [];
         }
-    }, []);
+    });
 
-    const dismissBanner = (id: string) => {
-        setBanners((prev) => prev.filter((b) => b.id !== id));
+    const { data = [] } = useQuery({
+        queryKey: ['public-announcements'],
+        queryFn: async () => {
+            const response = await api.public.announcements();
+            return Array.isArray(response.data) ? response.data as BannerNotification[] : [];
+        },
+        staleTime: 60_000,
+        retry: false,
+    });
+
+    const banners = data.filter((banner) => !dismissedIds.includes(banner.id));
+
+    const dismissBanner = (id: number) => {
+        const next = [...dismissedIds, id];
+        setDismissedIds(next);
         try {
-            localStorage.setItem('urugwiro_banner_dismissed', id);
+            localStorage.setItem('urugwiro_dismissed_announcements', JSON.stringify(next));
         } catch {
             // localStorage not available
         }
@@ -43,40 +47,38 @@ export const BannerNotifications: React.FC = () => {
 
     if (banners.length === 0) return null;
 
-    const iconMap = {
+    const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+        campaign: Megaphone,
+        home_work: Home,
+        verified: BadgeCheck,
+        star: Star,
         info: Info,
         warning: AlertTriangle,
-        success: CheckCircle2,
+        celebration: PartyPopper,
+        local_offer: BadgePercent,
+        schedule: CalendarClock,
     };
 
-    const styleMap = {
-        info: 'bg-blue-50 border-blue-200 text-blue-800',
-        warning: 'bg-amber-50 border-amber-200 text-amber-800',
-        success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
-    };
+    const styleFor = (icon: string) => icon === 'warning'
+        ? 'bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-100'
+        : icon === 'verified'
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-900 dark:bg-emerald-950 dark:border-emerald-800 dark:text-emerald-100'
+            : 'bg-blue-50 border-blue-200 text-blue-900 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-100';
 
     return (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[9998] w-full max-w-lg px-4 space-y-2" role="alert" aria-live="polite">
             {banners.map((banner) => {
-                const Icon = iconMap[banner.type];
+                const Icon = iconMap[banner.icon] || Info;
                 return (
                     <div
                         key={banner.id}
                         className={cn(
                             'flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg animate-in slide-in-from-top-2 duration-300',
-                            styleMap[banner.type]
+                            styleFor(banner.icon)
                         )}
                     >
                         <Icon size={18} className="shrink-0" aria-hidden="true" />
-                        <p className="flex-1 text-xs font-medium leading-relaxed">{banner.message}</p>
-                        {banner.link && (
-                            <a
-                                href={banner.link}
-                                className="text-xs font-bold underline shrink-0 hover:opacity-80 transition-opacity"
-                            >
-                                Learn more
-                            </a>
-                        )}
+                        <p className="flex-1 text-xs font-medium leading-relaxed">{banner.text}</p>
                         <button
                             type="button"
                             onClick={() => dismissBanner(banner.id)}

@@ -37,6 +37,7 @@ urlpatterns = [
     path('api/about/', api_views.api_about, name='api_about'),
     path('api/contact/submit/', api_views.api_contact_submit, name='api_contact_submit'),
     path('api/updates/', api_views.api_public_updates, name='api_public_updates'),
+    path('api/announcements/', api_views.api_public_announcements, name='api_public_announcements'),
     path('api/platform-stats/', api_views.api_platform_stats, name='api_platform_stats'),
     path('api/valuation/estimate/', api_views.valuation_estimate, name='api_valuation'),
     path('api/ai/listing-narrative/', api_views.ai_listing_narrative, name='api_ai_listing_narrative'),
@@ -134,6 +135,8 @@ urlpatterns = [
     path('api/admin/settings/', api_views.manage_system_settings, name='api_admin_settings'),
     path('api/admin/settings/test-ai/', api_views.test_system_ai_connection, name='api_admin_test_ai'),
     path('api/admin/system-logs/', api_views.manage_system_logs, name='api_admin_system_logs'),
+    path('api/admin/announcements/', api_views.manage_announcements, name='api_admin_announcements'),
+    path('api/admin/announcements/<int:pk>/', api_views.manage_announcement_detail, name='api_admin_announcement_detail'),
 
     # ─── Chat ───
     path('api/chat/contacts/', views.chat_contacts_api, name='api_chat_contacts'),
