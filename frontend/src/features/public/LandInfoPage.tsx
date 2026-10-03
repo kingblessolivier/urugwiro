@@ -1,97 +1,153 @@
-import React, { useState } from 'react';
-import { BookOpen, ChevronRight, Search, ArrowLeft } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import {
+  ArrowLeft, BookOpen, Building2, CircleDollarSign, ExternalLink,
+  FileCheck2, Landmark, Map, Scale, Search, ShieldCheck,
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-interface Article {
+interface Guide {
   id: string;
   title: string;
   category: string;
-  excerpt: string;
-  content: string;
-  readTime: string;
+  summary: string;
+  checks: string[];
+  source: string;
+  sourceUrl: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
-const ARTICLES: Article[] = [
+const GUIDES: Guide[] = [
   {
-    id: 'land-registration-basics',
-    title: 'Land Registration in Rwanda: A Complete Guide',
-    category: 'Registration',
-    excerpt: 'Learn how to register your land with the Rwanda Land Management and Use Authority (RLMUA).',
-    content: 'Land registration in Rwanda is managed by the Rwanda Land Management and Use Authority (RLMUA). The process involves submitting your title deed, proof of identity, and payment of registration fees. Once registered, your land receives a Unique Parcel Identifier (UPI) number that serves as its official government ID.',
-    readTime: '5 min read',
+    id: 'verify-parcel-records',
+    title: 'Verify the parcel and registered owner',
+    category: 'Title & Records',
+    summary: 'Start with the official land record and the parcel UPI before relying on a listing, copy of a title, or verbal representation.',
+    checks: [
+      'Confirm the parcel UPI through an official land service.',
+      'Check that the registered owner matches the seller or authorized representative.',
+      'Resolve caveats, mortgages, boundary issues, and identity mismatches before payment.',
+    ],
+    source: 'National Land Authority land information portal',
+    sourceUrl: 'https://landinformation.lands.rw/',
+    icon: FileCheck2,
   },
   {
-    id: 'ownership-types',
-    title: 'Understanding Land Ownership Types',
-    category: 'Ownership',
-    excerpt: 'Freehold vs Leasehold: What you need to know about land tenure in Rwanda.',
-    content: 'Rwanda recognizes several land tenure types: Freehold (permanent ownership), Leasehold (long-term lease, typically 49-99 years), and Customary (traditional land rights). Each type has different rights and restrictions. Freehold is the most common for residential and commercial properties.',
-    readTime: '4 min read',
+    id: 'title-transfer',
+    title: 'Use the official title-transfer process',
+    category: 'Transfer',
+    summary: 'Voluntary-sale title transfers are submitted through IremboGov and handled by the National Land Authority.',
+    checks: [
+      'Review the current Irembo requirements before the parties sign or pay.',
+      'Ensure the land has no outstanding tax obligations blocking transfer.',
+      'Use the sector land manager or a qualified private notary offered in the official process.',
+    ],
+    source: 'IremboGov voluntary-sale title transfer guide',
+    sourceUrl: 'https://support.irembo.gov.rw/en/support/solutions/articles/47001210595-how-to-apply-for-title-transfer-voluntary-sale-update',
+    icon: Landmark,
   },
   {
-    id: 'land-use-zoning',
-    title: 'Land Use and Zoning Regulations',
+    id: 'land-use',
+    title: 'Confirm permitted land use',
     category: 'Land Use',
-    excerpt: 'What you can and cannot build on your land according to Rwandan zoning laws.',
-    content: 'Rwanda zoning laws classify land into Residential (R1, R2, R3), Commercial (C1, C2), Industrial (I1, I2), and Agricultural zones. Each zone has specific building restrictions including maximum floor area ratio (FAR), building coverage ratio (BCR), and maximum height. Always check zoning before purchasing land.',
-    readTime: '6 min read',
+    summary: 'A parcel title does not by itself confirm that a planned home, business, subdivision, or development is permitted.',
+    checks: [
+      'Check the intended use against the current national and local land-use plans.',
+      'Confirm access, infrastructure constraints, and required development approvals.',
+      'Obtain professional planning advice for a project before committing funds.',
+    ],
+    source: 'National Land Authority land transactions guidance',
+    sourceUrl: 'https://www.lands.rw/land-transactions',
+    icon: Map,
   },
   {
-    id: 'land-disputes',
-    title: 'Resolving Land Disputes',
-    category: 'Disputes',
-    excerpt: 'How to handle boundary disputes, inheritance conflicts, and ownership claims.',
-    content: 'Land disputes in Rwanda can be resolved through mediation, the Land Commission, or the court system. Common disputes include boundary disagreements, inheritance conflicts, and overlapping claims. Always conduct a thorough land search before purchasing to avoid disputes.',
-    readTime: '5 min read',
-  },
-  {
-    id: 'land-taxes',
-    title: 'Land Taxes and Fees',
+    id: 'property-tax',
+    title: 'Check tax status and current rates',
     category: 'Taxes',
-    excerpt: 'Property tax rates, transfer fees, and other costs associated with land ownership.',
-    content: 'Landowners in Rwanda are subject to annual property tax (typically 0.1% of land value), transfer tax (2% of sale value), and notary fees. First-time buyers may qualify for tax exemptions. Always budget for these additional costs when purchasing land.',
-    readTime: '4 min read',
+    summary: 'Immovable-property tax depends on the property type, use, value, location, and applicable exemptions; a single percentage does not describe every property.',
+    checks: [
+      'Confirm outstanding obligations before starting a transfer.',
+      'Use the current RRA guidance and applicable district or City of Kigali rate.',
+      'Ask a qualified tax professional to review unusual ownership or use cases.',
+    ],
+    source: 'Rwanda Revenue Authority immovable-property tax guidance',
+    sourceUrl: 'https://www.rra.gov.rw/en/domestic-tax-services/local-government-taxes/default-title',
+    icon: CircleDollarSign,
   },
   {
-    id: 'buying-land-safely',
-    title: 'How to Buy Land Safely in Rwanda',
-    category: 'Ownership',
-    excerpt: 'Due diligence steps to ensure you are buying legitimate, dispute-free land.',
-    content: 'Before buying land: 1) Conduct a land search at RLMUA, 2) Verify the title deed authenticity, 3) Check for any encumbrances or mortgages, 4) Visit the land with a surveyor, 5) Use a licensed notary for the transaction. Never buy land without completing these steps.',
-    readTime: '7 min read',
+    id: 'boundaries',
+    title: 'Inspect boundaries and site conditions',
+    category: 'Title & Records',
+    summary: 'The physical site, occupied boundaries, access, and registered parcel information should agree before a transaction proceeds.',
+    checks: [
+      'Visit the parcel and compare visible boundaries with official records.',
+      'Use a qualified surveyor when boundaries or measurements are uncertain.',
+      'Document access, neighboring claims, structures, and material discrepancies.',
+    ],
+    source: 'National Land Authority',
+    sourceUrl: 'https://www.lands.rw/',
+    icon: Building2,
+  },
+  {
+    id: 'disputes',
+    title: 'Escalate disputes through official channels',
+    category: 'Disputes',
+    summary: 'Do not try to solve ownership, inheritance, caveat, or boundary disputes only through informal assurances from transaction parties.',
+    checks: [
+      'Preserve title records, contracts, payment evidence, and communications.',
+      'Use official land-dispute services and obtain independent legal advice.',
+      'Pause payment or transfer activity until the relevant issue is resolved.',
+    ],
+    source: 'National Land Authority land information portal',
+    sourceUrl: 'https://landinformation.lands.rw/',
+    icon: Scale,
   },
 ];
 
-const CATEGORIES = ['All', 'Registration', 'Ownership', 'Land Use', 'Disputes', 'Taxes'];
+const CATEGORIES = ['All', 'Title & Records', 'Transfer', 'Land Use', 'Taxes', 'Disputes'];
 
 const LandInfoPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null);
 
-  const filteredArticles = ARTICLES.filter((article) => {
-    const matchesCategory = selectedCategory === 'All' || article.category === selectedCategory;
-    const matchesSearch = !searchQuery || article.title.toLowerCase().includes(searchQuery.toLowerCase()) || article.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredGuides = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return GUIDES.filter((guide) => {
+      const matchesCategory = selectedCategory === 'All' || guide.category === selectedCategory;
+      const matchesSearch = !query || [guide.title, guide.summary, ...guide.checks]
+        .some((value) => value.toLowerCase().includes(query));
+      return matchesCategory && matchesSearch;
+    });
+  }, [searchQuery, selectedCategory]);
 
-  if (selectedArticle) {
+  if (selectedGuide) {
+    const Icon = selectedGuide.icon;
     return (
       <div className="min-h-screen bg-[var(--color-bg-deep)] text-[var(--color-text-main)]">
-        <div className="mx-auto max-w-3xl px-4 py-8">
-          <button
-            onClick={() => setSelectedArticle(null)}
-            className="flex items-center gap-2 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] transition mb-6 cursor-pointer"
-          >
-            <ArrowLeft size={16} /> Back to articles
+        <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+          <button type="button" onClick={() => setSelectedGuide(null)} className="mb-8 flex items-center gap-2 text-sm font-medium text-[var(--color-text-muted)] transition hover:text-[var(--color-text-main)]">
+            <ArrowLeft size={16} /> Back to land guidance
           </button>
           <article>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">{selectedArticle.category}</span>
-            <h1 className="text-2xl font-bold mt-2 mb-4">{selectedArticle.title}</h1>
-            <p className="text-xs text-[var(--color-text-dim)] mb-6">{selectedArticle.readTime}</p>
-            <div className="prose prose-sm max-w-none">
-              <p className="text-sm leading-relaxed text-[var(--color-text-muted)]">{selectedArticle.content}</p>
+            <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-[var(--color-brand-emerald)]">
+              <Icon size={21} />
             </div>
+            <p className="text-xs font-bold uppercase text-[var(--color-brand-emerald)]">{selectedGuide.category}</p>
+            <h1 className="mt-2 text-3xl font-bold">{selectedGuide.title}</h1>
+            <p className="mt-4 text-base leading-7 text-[var(--color-text-muted)]">{selectedGuide.summary}</p>
+            <h2 className="mt-8 text-lg font-bold">Due-diligence checklist</h2>
+            <ul className="mt-4 space-y-3">
+              {selectedGuide.checks.map((check) => (
+                <li key={check} className="flex items-start gap-3 text-sm leading-6 text-[var(--color-text-muted)]">
+                  <ShieldCheck size={17} className="mt-1 shrink-0 text-[var(--color-brand-emerald)]" />
+                  <span>{check}</span>
+                </li>
+              ))}
+            </ul>
+            <a href={selectedGuide.sourceUrl} target="_blank" rel="noreferrer" className="mt-8 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
+              Open official source <ExternalLink size={15} />
+            </a>
+            <p className="mt-3 text-xs text-[var(--color-text-dim)]">Source: {selectedGuide.source}</p>
           </article>
         </div>
       </div>
@@ -100,73 +156,61 @@ const LandInfoPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-deep)] text-[var(--color-text-main)]">
-      <div className="mx-auto max-w-5xl px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-4">
-            <BookOpen size={32} className="text-emerald-500" />
+      <section className="border-b border-[var(--color-border)]">
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+          <div className="max-w-3xl">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-[var(--color-brand-emerald)]">
+              <BookOpen size={22} />
+            </div>
+            <h1 className="text-3xl font-bold sm:text-4xl">Rwanda Land Due Diligence</h1>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--color-text-muted)]">
+              Practical checks for land records, transfer, permitted use, tax, boundaries, and disputes, with links to the responsible public authorities.
+            </p>
+            <p className="mt-3 text-xs text-[var(--color-text-dim)]">Official sources reviewed 3 October 2026. This is general information, not legal or tax advice.</p>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Land Information Center</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-2 max-w-xl mx-auto">
-            Educational resources about land registration, ownership, zoning, and legal processes in Rwanda.
-          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <div className="relative mb-5 max-w-2xl">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)]" />
+          <input type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search land guidance" className="h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] pl-10 pr-3 text-sm text-[var(--color-text-main)] outline-none focus:border-emerald-500" />
         </div>
 
-        {/* Search */}
-        <div className="relative mb-6">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-dim)]" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search articles..."
-            className="w-full pl-11 pr-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] text-sm text-[var(--color-text-main)] outline-none focus:border-emerald-500/50"
-          />
-        </div>
-
-        {/* Categories */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={cn(
-                'px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer',
-                selectedCategory === cat
-                  ? 'bg-emerald-500 text-white'
-                  : 'border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-emerald-500/30'
-              )}
-            >
-              {cat}
-            </button>
+        <div className="mb-8 flex flex-wrap gap-2" aria-label="Guide categories">
+          {CATEGORIES.map((category) => (
+            <button key={category} type="button" onClick={() => setSelectedCategory(category)} className={cn(
+              'rounded-lg border px-3 py-2 text-xs font-semibold transition',
+              selectedCategory === category
+                ? 'border-emerald-600 bg-emerald-600 text-white'
+                : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-emerald-500/50 hover:text-[var(--color-text-main)]',
+            )}>{category}</button>
           ))}
         </div>
 
-        {/* Articles Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredArticles.map((article) => (
-            <button
-              key={article.id}
-              onClick={() => setSelectedArticle(article)}
-              className="text-left rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 transition-all hover:border-emerald-500/30 hover:shadow-lg cursor-pointer"
-            >
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">{article.category}</span>
-              <h3 className="text-sm font-bold mt-2 mb-2 line-clamp-2">{article.title}</h3>
-              <p className="text-xs text-[var(--color-text-muted)] line-clamp-2 mb-3">{article.excerpt}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[var(--color-text-dim)]">{article.readTime}</span>
-                <ChevronRight size={14} className="text-[var(--color-text-dim)]" />
-              </div>
-            </button>
-          ))}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredGuides.map((guide) => {
+            const Icon = guide.icon;
+            return (
+              <button key={guide.id} type="button" onClick={() => setSelectedGuide(guide)} className="group min-h-56 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 text-left transition hover:border-emerald-500/40">
+                <div className="flex items-start justify-between gap-4">
+                  <Icon size={20} className="text-[var(--color-brand-emerald)]" />
+                  <span className="text-xs font-semibold text-[var(--color-text-dim)]">{guide.category}</span>
+                </div>
+                <h2 className="mt-5 text-lg font-bold">{guide.title}</h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{guide.summary}</p>
+                <span className="mt-5 inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-brand-emerald)]">Review checklist <ExternalLink size={13} className="transition group-hover:translate-x-0.5" /></span>
+              </button>
+            );
+          })}
         </div>
 
-        {filteredArticles.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-sm text-[var(--color-text-muted)]">No articles found matching your search.</p>
+        {filteredGuides.length === 0 && (
+          <div className="py-16 text-center">
+            <p className="text-sm text-[var(--color-text-muted)]">No guidance matches this search.</p>
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 };

@@ -9,20 +9,12 @@ interface AboutPageProps {
 }
 
 const values = [
-  { title: 'Integrity', text: 'Every listing, every transaction, and every interaction built on honesty and transparency.', icon: ShieldCheck },
+  { title: 'Integrity', text: 'Designing marketplace records and workflows around clear ownership, review, and accountability.', icon: ShieldCheck },
   { title: 'Useful Technology', text: 'Building practical search, document review, comparable pricing, and market reporting tools.', icon: Lightbulb },
   { title: 'Customer Focus', text: 'We measure success by whether people can make better, more informed decisions.', icon: Target },
   { title: 'Collaboration', text: 'Working with owners, buyers, agents, and professionals as one unified marketplace.', icon: Users },
-  { title: 'Excellence', text: 'Listing quality, media standards, and support held to the highest professional bar.', icon: CheckCircle2 },
+  { title: 'Quality', text: 'Improving listing information, media, and operational support through consistent standards.', icon: CheckCircle2 },
   { title: 'Community', text: 'Built for Rwanda first, with the vision to expand across the African continent.', icon: HeartHandshake },
-];
-
-const milestones = [
-  { year: '2020', title: 'Founded in Kigali', text: 'Urugwiro started from a need to bring clarity and trust to property management and discovery in Rwanda.' },
-  { year: '2021', title: 'Platform Launch', text: 'First-generation listing tools and tenant management system went live on the digital platform.' },
-  { year: '2022', title: 'Marketplace Expansion', text: 'Expanded beyond property management into a full marketplace covering land, vehicles, and services.' },
-  { year: '2023', title: 'Marketplace Tools', text: 'Added structured listings, search, document submission, and comparable-price analysis.' },
-  { year: '2024', title: 'Trust Infrastructure', text: 'Expanded staff review workflows, seller records, transaction tracking, and customer operations.' },
 ];
 
 const team = [
@@ -34,16 +26,16 @@ const team = [
 const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => (
   <div style={{ background: 'var(--color-bg-deep)', color: 'var(--color-text-main)' }} className="transition-colors duration-300">
     <PageHero
-      eyebrow="About"
-      title="Building Rwanda's most trusted property marketplace."
-      description="Urugwiro is where trust meets technology — a premium platform for discovering property, land, and vehicles with full transparency and verification."
+      eyebrow="About the platform"
+      title="Urugwiro"
+      description="A Rwanda-focused marketplace for discovering property and other assets, supported by structured information and practical transaction workflows."
     />
 
     {/* Mission & Vision */}
     <section className="mx-auto grid max-w-7xl gap-5 px-5 py-20 md:grid-cols-2 lg:px-8">
       {[
-        { icon: Target, title: 'Our Mission', text: "To simplify property discovery and management across Rwanda, creating a high-trust experience for buyers, sellers, tenants, and professionals. We replace uncertainty with structured information and verified data." },
-        { icon: Eye, title: 'Our Vision', text: "To become Africa's gold standard for verified asset transactions — where every property, land parcel, and vehicle listing is backed by authentic documentation and intelligent market insight." },
+        { icon: Target, title: 'Our Mission', text: 'To make asset discovery and marketplace operations clearer for buyers, sellers, tenants, and professionals across Rwanda.' },
+        { icon: Eye, title: 'Our Vision', text: 'To build dependable tools for informed asset decisions, careful document review, and efficient transaction coordination.' },
       ].map(({ icon: Icon, title, text }) => (
         <article key={title}
           className="rounded-2xl border p-8 transition-all hover:border-emerald-500/30 oneui-card"
@@ -55,31 +47,6 @@ const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => (
           <p className="mt-4 leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>{text}</p>
         </article>
       ))}
-    </section>
-
-    {/* Timeline */}
-    <section className="transition-colors duration-300"
-      style={{ background: 'var(--color-section-alt)', borderTop: '1px solid var(--color-section-alt-border)', borderBottom: '1px solid var(--color-section-alt-border)' }}>
-      <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8">
-        <h2 className="text-3xl font-bold tracking-tight mb-12" style={{ color: 'var(--color-text-main)' }}>Our Journey</h2>
-        <div className="space-y-0">
-          {milestones.map((item, i) => (
-            <div key={item.year} className="relative flex gap-6">
-              <div className="flex flex-col items-center">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 text-xs font-bold text-emerald-500">
-                  {item.year.slice(2)}
-                </div>
-                {i < milestones.length - 1 && <div className="w-px flex-1 my-1" style={{ background: 'var(--color-border)' }} />}
-              </div>
-              <div className="pb-10">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-500">{item.year}</p>
-                <h3 className="mt-1 text-lg font-bold" style={{ color: 'var(--color-text-main)' }}>{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed max-w-lg" style={{ color: 'var(--color-text-muted)' }}>{item.text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </section>
 
     {/* Values */}
