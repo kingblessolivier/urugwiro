@@ -3,9 +3,12 @@ import { Upload, Trash2, GripVertical, Image as ImageIcon, Film, Box, X } from '
 import { Button } from '../../../components/ui/Button';
 import { api } from '../../../api/endpoints';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { uploadMediaToCloudinary } from '../../../lib/cloudinary';
+import { resolveImageUrl } from '../../../lib/imageUrl';
 
 interface ListingMedia {
   id?: string | number;
+  url?: string;
   file?: string;
   media_type?: 'image' | 'video' | '360' | '3d' | 'model_3d' | 'cadastral_sketch';
   category?: string;
@@ -24,8 +27,8 @@ export const AdminMediaManager: React.FC<AdminMediaManagerProps> = ({ listingId,
   const [isUploading, setIsUploading] = useState(false);
 
   const uploadMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
-      const res = await api.admin.uploadMedia(listingId, formData);
+    mutationFn: async (data: { url: string; media_type: 'image' | 'video' }) => {
+      const res = await api.admin.uploadMedia(listingId, data);
       return res.data;
     },
     onSuccess: () => {
@@ -51,13 +54,14 @@ export const AdminMediaManager: React.FC<AdminMediaManagerProps> = ({ listingId,
     if (!e.target.files || e.target.files.length === 0) return;
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', e.target.files[0]);
-
     try {
-      await uploadMutation.mutateAsync(formData);
+      const uploaded = await uploadMediaToCloudinary(e.target.files[0]);
+      await uploadMutation.mutateAsync({ url: uploaded.url, media_type: uploaded.mediaType });
+    } catch (error: any) {
+      alert(`Upload failed: ${error?.message || 'Unknown error'}`);
     } finally {
       setIsUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -80,18 +84,27 @@ export const AdminMediaManager: React.FC<AdminMediaManagerProps> = ({ listingId,
           <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-colors">
             <Upload size={14} /> {isUploading ? 'Uploading...' : 'Upload Media'}
           </div>
-          <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
+          <input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
         </label>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {media.map((item, index) => (
           <div key={item.id} className="group relative aspect-square rounded-xl border border-white/10 bg-black overflow-hidden">
-            <img
-              src={item.file}
-              alt={item.caption}
-              className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-            />
+            {item.media_type === 'video' ? (
+              <video
+                src={resolveImageUrl(item.url || item.file) || ''}
+                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                muted
+                preload="metadata"
+              />
+            ) : (
+              <img
+                src={resolveImageUrl(item.url || item.file) || ''}
+                alt={item.caption || `Media ${index + 1}`}
+                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+              />
+            )}
 
             {/* Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-between">

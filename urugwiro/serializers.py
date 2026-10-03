@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
+from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
+from urllib.parse import urlparse
 from PIL import Image, UnidentifiedImageError
 from .models import (
     Listing, ListingMedia, Asset, ResidentialSpec, CommercialSpec, LandSpec,
@@ -99,7 +101,8 @@ def validate_uploaded_file(value, *, max_size, allowed_types):
 class ListingMediaSerializer(serializers.ModelSerializer):
     class Meta:
         model = ListingMedia
-        fields = ['id', 'file', 'media_type', 'category', 'caption', 'room_name', 'order', 'uploaded_at']
+        fields = ['id', 'file', 'url', 'media_type', 'category', 'caption', 'room_name', 'order', 'uploaded_at']
+        read_only_fields = ['id', 'uploaded_at']
 
     def validate_file(self, value):
         return validate_uploaded_file(
@@ -113,8 +116,23 @@ class ListingMediaSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         value = attrs.get('file')
+        url = attrs.get('url', getattr(self.instance, 'url', ''))
         media_type = attrs.get('media_type', getattr(self.instance, 'media_type', 'image'))
         content_type = getattr(value, 'content_type', '') if value else ''
+        if not value and not url and not getattr(self.instance, 'file', None):
+            raise serializers.ValidationError('Provide a media file or Cloudinary URL.')
+        if attrs.get('url'):
+            parsed = urlparse(attrs['url'])
+            if parsed.scheme != 'https' or parsed.hostname != 'res.cloudinary.com':
+                raise serializers.ValidationError({'url': 'Media URL must be a secure Cloudinary delivery URL.'})
+            path_parts = [part for part in parsed.path.split('/') if part]
+            expected_cloud = getattr(settings, 'CLOUDINARY_CLOUD_NAME', '')
+            if expected_cloud and (not path_parts or path_parts[0] != expected_cloud):
+                raise serializers.ValidationError({'url': 'Media URL does not belong to the configured Cloudinary account.'})
+            if len(path_parts) < 3 or path_parts[1] not in {'image', 'video'} or path_parts[2] != 'upload':
+                raise serializers.ValidationError({'url': 'Unsupported Cloudinary media URL.'})
+            media_type = 'video' if path_parts[1] == 'video' else 'image'
+            attrs['media_type'] = media_type
         if value and media_type == 'image' and not content_type.startswith('image/'):
             raise serializers.ValidationError({'file': 'Image media requires an image file.'})
         if value and media_type == 'video' and not content_type.startswith('video/'):

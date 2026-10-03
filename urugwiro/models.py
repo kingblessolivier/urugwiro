@@ -375,7 +375,8 @@ class ListingMedia(models.Model):
         ('floor_plan', 'Floor Plan'),
     ]
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='media')
-    file = models.FileField(upload_to='listing_media/')
+    file = models.FileField(upload_to='listing_media/', blank=True)
+    url = models.URLField(max_length=1000, blank=True)
     media_type = models.CharField(max_length=30, choices=MEDIA_TYPES, default='image')
     category = models.CharField(max_length=50, blank=True, help_text="e.g. Interior, Exterior, Drone")
     caption = models.CharField(max_length=200, blank=True)

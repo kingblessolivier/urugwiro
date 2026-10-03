@@ -3,9 +3,11 @@ import { Upload, Trash2, Image as ImageIcon, Film, Box } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../api/endpoints';
 import { resolveImageUrl } from '../../../lib/imageUrl';
+import { uploadMediaToCloudinary } from '../../../lib/cloudinary';
 
 interface ListingMedia {
   id?: string | number;
+  url?: string;
   file?: string;
   media_type?: 'image' | 'video' | '360' | '3d' | 'model_3d' | 'cadastral_sketch' | 'floor_plan' | string;
   category?: string;
@@ -31,7 +33,7 @@ export const SellerMediaManager: React.FC<SellerMediaManagerProps> = ({ listingI
   };
 
   const uploadMutation = useMutation({
-    mutationFn: async (formData: FormData) => api.seller.uploadMedia(listingId, formData),
+    mutationFn: async (data: { url: string; media_type: 'image' | 'video' }) => api.seller.uploadMedia(listingId, data),
     onSuccess: invalidate,
     onError: (err: any) => alert(`Upload failed: ${err?.response?.data?.error || err.message}`),
   });
@@ -45,10 +47,11 @@ export const SellerMediaManager: React.FC<SellerMediaManagerProps> = ({ listingI
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', e.target.files[0]);
     try {
-      await uploadMutation.mutateAsync(formData);
+      const uploaded = await uploadMediaToCloudinary(e.target.files[0]);
+      await uploadMutation.mutateAsync({ url: uploaded.url, media_type: uploaded.mediaType });
+    } catch (error: any) {
+      alert(`Upload failed: ${error?.message || 'Unknown error'}`);
     } finally {
       setIsUploading(false);
       e.target.value = '';
@@ -87,11 +90,20 @@ export const SellerMediaManager: React.FC<SellerMediaManagerProps> = ({ listingI
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {media.map((item, index) => (
             <div key={item.id} className="group relative aspect-square rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] overflow-hidden">
-              <img
-                src={resolveImageUrl(item.file) || ''}
-                alt={item.caption || `Media ${index + 1}`}
-                className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
-              />
+              {item.media_type === 'video' ? (
+                <video
+                  src={resolveImageUrl(item.url || item.file) || ''}
+                  className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                  muted
+                  preload="metadata"
+                />
+              ) : (
+                <img
+                  src={resolveImageUrl(item.url || item.file) || ''}
+                  alt={item.caption || `Media ${index + 1}`}
+                  className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                />
+              )}
               <div className="absolute top-2 left-2 p-1 rounded-md bg-black/60 backdrop-blur-md text-[#fff]">
                 {getMediaTypeIcon(item.media_type)}
               </div>

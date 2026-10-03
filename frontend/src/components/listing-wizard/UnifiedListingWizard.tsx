@@ -4,6 +4,7 @@ import { cn } from '../../lib/utils';
 import { api } from '../../api/endpoints';
 import apiClient from '../../api/client';
 import type { AppView } from '../../types/navigation';
+import { uploadMediaToCloudinary } from '../../lib/cloudinary';
 
 import StageProgressBar from './StageProgressBar';
 import CategorySelector from './CategorySelector';
@@ -114,7 +115,8 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
   const [heroPreview, setHeroPreview] = useState<string | null>(null);
   const [gallery, setGallery] = useState<File[]>([]);
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
-  const [videoUrl, setVideoUrl] = useState('');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
 
   // Stage 4: Trust Submission
   const [trustFiles, setTrustFiles] = useState<{ titleDeed: File | null; idDocument: File | null; proofOfOwnership: File | null }>({
@@ -129,6 +131,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [submitProgress, setSubmitProgress] = useState('');
 
   // ─── Validation ───
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -241,6 +244,14 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
     });
   };
 
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (videoPreview) URL.revokeObjectURL(videoPreview);
+    setVideoFile(file);
+    setVideoPreview(URL.createObjectURL(file));
+  };
+
   // Trust file handlers
   const handleTrustFileUpload = (field: keyof typeof trustFiles) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -277,6 +288,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
     if (!category || !subtype) return;
     setIsSubmitting(true);
     setSubmitError('');
+    setSubmitProgress('Creating listing...');
 
     try {
       const fd = new FormData();
@@ -334,11 +346,6 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
         }
       }
 
-      // Media
-      if (heroImage) fd.append('mainImage', heroImage);
-      gallery.forEach((file, i) => fd.append(`gallery_${i}`, file));
-      if (videoUrl) fd.append('videoUrl', videoUrl);
-
       // Trust documents
       if (trustFiles.titleDeed) fd.append('title_deed', trustFiles.titleDeed);
       if (trustFiles.idDocument) fd.append('id_document', trustFiles.idDocument);
@@ -351,17 +358,21 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
           });
       const createResponse = await createRequest;
       const createdListingId = createResponse.data?.id;
-      if (createdListingId && (heroImage || gallery.length > 0)) {
+      const mediaFiles = [heroImage, ...gallery, videoFile].filter(Boolean) as File[];
+      if (createdListingId && mediaFiles.length > 0) {
         const uploadMedia = listedByRole === 'admin' ? api.admin.uploadMedia : api.seller.uploadMedia;
-        const files = [heroImage, ...gallery].filter(Boolean) as File[];
-        for (const file of files) {
-          const mediaForm = new FormData();
-          mediaForm.append('file', file);
-          mediaForm.append('media_type', 'image');
-          await uploadMedia(createdListingId, mediaForm);
+        for (let index = 0; index < mediaFiles.length; index += 1) {
+          setSubmitProgress(`Uploading media ${index + 1} of ${mediaFiles.length}...`);
+          const uploaded = await uploadMediaToCloudinary(mediaFiles[index]);
+          await uploadMedia(createdListingId, {
+            url: uploaded.url,
+            media_type: uploaded.mediaType,
+            order: index,
+          });
         }
       }
 
+      setSubmitProgress('Finalizing...');
       setSubmitSuccess(true);
       setTimeout(() => {
         if (onSuccess) onSuccess();
@@ -377,6 +388,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
       setSubmitError(responseData?.error || responseData?.detail || fieldErrors || err.message || 'We could not add this property. Please try again.');
     } finally {
       setIsSubmitting(false);
+      setSubmitProgress('');
     }
   };
 
@@ -630,10 +642,30 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
               </div>
             </div>
 
-            {/* Video URL */}
+            {/* Video */}
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Video Tour URL (optional)</label>
-              <input type="url" className={inputClass} style={inputStyle} value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/..." />
+              <label className="text-[11px] font-bold uppercase tracking-wider block mb-1.5" style={{ color: 'var(--color-text-muted)' }}>Video tour (optional)</label>
+              {videoPreview ? (
+                <div className="relative overflow-hidden rounded-xl border border-[var(--color-border)] bg-black">
+                  <video src={videoPreview} controls className="aspect-video w-full object-contain" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      URL.revokeObjectURL(videoPreview);
+                      setVideoFile(null);
+                      setVideoPreview(null);
+                    }}
+                    className="absolute right-2 top-2 rounded-md bg-black/70 px-2 py-1 text-xs font-bold text-white"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-input-bg)] px-4 py-3 text-sm text-[var(--color-text-muted)]">
+                  <Upload size={16} /> Select video
+                  <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
+                </label>
+              )}
             </div>
           </div>
         );
@@ -940,7 +972,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
                 : 'bg-white/[0.06] text-zinc-600 cursor-not-allowed',
             )}
           >
-            {isSubmitting ? 'Submitting...' : <><Send size={16} /> {listedByRole === 'admin' ? 'Add property' : 'Submit listing'}</>}
+            {isSubmitting ? (submitProgress || 'Submitting...') : <><Send size={16} /> {listedByRole === 'admin' ? 'Add property' : 'Submit listing'}</>}
           </button>
         )}
       </div>

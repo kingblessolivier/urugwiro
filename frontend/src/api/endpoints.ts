@@ -2,6 +2,15 @@ import apiClient from './client';
 import type { Listing, Review, ReviewSummary, Offer, AIAnalysisResult, PaginatedResponse, ListingsListParams } from '../types';
 import type { ListingCategory, ListingPurpose } from '../types/listing';
 
+export interface ListingMediaUrlPayload {
+    url: string;
+    media_type: 'image' | 'video';
+    category?: string;
+    caption?: string;
+    room_name?: string;
+    order?: number;
+}
+
 export const api = {
     // Auth
     auth: {
@@ -97,10 +106,8 @@ export const api = {
         updateListing: (id: string | number, data: Record<string, unknown>) => apiClient.put(`/seller/listings/${id}/`, data),
         deleteListing: (id: string | number) => apiClient.delete(`/seller/listings/${id}/`),
         toggleStatus: (id: string | number, status?: string) => apiClient.post(`/seller/listings/${id}/status/`, { status }),
-        uploadMedia: (listingId: string | number, formData: FormData) =>
-            apiClient.post(`/seller/listings/${listingId}/media/`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            }),
+        uploadMedia: (listingId: string | number, data: ListingMediaUrlPayload) =>
+            apiClient.post(`/seller/listings/${listingId}/media/`, data),
         deleteMedia: (mediaId: string | number) => apiClient.delete(`/seller/media/${mediaId}/`),
         updateMedia: (id: string | number, data: Record<string, unknown>) => apiClient.put(`/seller/media/${id}/`, data),
         reviews: () => apiClient.get('/seller/reviews/'),
@@ -152,10 +159,8 @@ export const api = {
         updateProperty: (id: number | string, data: Record<string, unknown>) => apiClient.patch(`/admin/properties/${id}/`, data),
         deleteProperty: (id: number | string) => apiClient.delete(`/admin/listings/${id}/`),
         deleteListing: (id: number | string) => apiClient.delete(`/admin/listings/${id}/`),
-        uploadMedia: (listingId: string | number, formData: FormData) =>
-            apiClient.post(`/admin/properties/${listingId}/media/`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            }),
+        uploadMedia: (listingId: string | number, data: ListingMediaUrlPayload) =>
+            apiClient.post(`/admin/properties/${listingId}/media/`, data),
         deleteMedia: (mediaId: string | number) =>
             apiClient.delete(`/admin/media/${mediaId}/`),
         updateMedia: (id: string | number, data: Record<string, unknown>) =>
