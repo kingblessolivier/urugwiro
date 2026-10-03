@@ -64,6 +64,7 @@ if DEBUG:
     INSTALLED_APPS.append('debug_toolbar')
 
 MIDDLEWARE = [
+    'urugwiro.middleware.HealthCheckMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'urugwiro.security_middleware.SecurityHeadersMiddleware',  # Security headers
