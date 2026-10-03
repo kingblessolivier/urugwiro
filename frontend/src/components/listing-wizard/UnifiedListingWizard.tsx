@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { ArrowLeft, ArrowRight, Rocket, ShieldCheck, Sparkles, Check, Upload, FileText, Eye, AlertCircle, Crown, Star } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Send, ShieldCheck, Sparkles, Check, Upload, FileText, Eye, AlertCircle, Crown, Star } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { api } from '../../api/endpoints';
 import apiClient from '../../api/client';
@@ -27,9 +27,9 @@ const TOTAL_STAGES = 5;
 
 // ─── Initial State ───
 const initialLocation: LocationData = {
-  province: 'Kigali City',
-  district: 'Gasabo',
-  sector: 'Kimihurura',
+  province: '',
+  district: '',
+  sector: '',
   cell: '',
   village: '',
   address: '',
@@ -39,33 +39,33 @@ const initialLocation: LocationData = {
 };
 
 const initialSpecs: SpecsData = {
-  bedrooms: '3', bathrooms: '2', builtAreaSqm: '', compoundSizeSqm: '', yearBuilt: '',
-  isFurnished: false, hasSwimmingPool: false, hasStaffQuarters: false, hasGarden: true,
-  hasWaterTank: true, waterTankLiters: '5000', hasGenerator: false, generatorKva: '15',
-  hasSolarWater: false, hasThreePhase: false, hasFiber: true, hasCctv: false,
-  parkingSpaces: '2', securityType: 'Perimeter Wall', electricityMeter: 'Cash Power Prepaid', roadAccess: 'Tarmac',
-  kitchenType: 'Open', masterPlanZoning: '', balcony: false,
+  bedrooms: '', bathrooms: '', builtAreaSqm: '', compoundSizeSqm: '', yearBuilt: '',
+  isFurnished: false, hasSwimmingPool: false, hasStaffQuarters: false, hasGarden: false,
+  hasWaterTank: false, waterTankLiters: '', hasGenerator: false, generatorKva: '',
+  hasSolarWater: false, hasThreePhase: false, hasFiber: false, hasCctv: false,
+  parkingSpaces: '', securityType: '', electricityMeter: '', roadAccess: '',
+  kitchenType: '', masterPlanZoning: '', balcony: false,
   floorNumber: '', unitNumber: '', unitOrientation: '', balconySqm: '', parkingSlot: '',
   hasElevator: false, serviceCharge: '',
-  sellingMode: 'per_unit', totalBuildingFloors: 3, floorPlan: [] as FloorPlan[],
-  plotSizeSqm: '', zoningCode: 'R1', landUse: 'Residential', tenure: 'EmphyteuticLease',
-  leaseYears: '49', far: '1.5', bcr: '50', maxFloors: 'G+2', terrain: 'Gentle Slope',
-  slopePercent: '5', landRoadType: 'Tarmac', waterOnsite: true, electricityOnsite: true, wetlandBuffer: false,
-  titleDeedNumber: '', soilType: '', drainageSystem: '', isEncumbranceFree: true,
-  waterLineDistance: '', powerPoleDistance: '', hasFiberConduit: false, roadType: 'Tarmac',
-  make: '', model: '', year: '2022', mileage: '', engineCc: '', horsepower: '',
-  transmission: 'Automatic', fuelType: 'Petrol', drivetrain: '4WD', bodyType: 'SUV',
-  seats: '5', condition: 'Foreign Used (Clean)', plateNumber: '', plateType: 'Private',
-  vinChassis: '', rraCustoms: 'DutyPaid', hasAc: true, hasLeather: true, hasSunroof: false,
-  hasReverseCamera: true, includesHelmet: false, hasDeliveryRack: false,
+  sellingMode: 'per_unit', totalBuildingFloors: 0, floorPlan: [] as FloorPlan[],
+  plotSizeSqm: '', zoningCode: '', landUse: '', tenure: '',
+  leaseYears: '', far: '', bcr: '', maxFloors: '', terrain: '',
+  slopePercent: '', landRoadType: '', waterOnsite: false, electricityOnsite: false, wetlandBuffer: false,
+  titleDeedNumber: '', soilType: '', drainageSystem: '', isEncumbranceFree: false,
+  waterLineDistance: '', powerPoleDistance: '', hasFiberConduit: false, roadType: '',
+  make: '', model: '', year: '', mileage: '', engineCc: '', horsepower: '',
+  transmission: '', fuelType: '', drivetrain: '', bodyType: '',
+  seats: '', condition: '', plateNumber: '', plateType: '',
+  vinChassis: '', rraCustoms: '', hasAc: false, hasLeather: false, hasSunroof: false,
+  hasReverseCamera: false, includesHelmet: false, hasDeliveryRack: false,
   hasServiceHistory: false, includesDriver: false, controleTechniqueExpiry: '', insuranceExpiry: '',
-  commercialFloors: '4', grossArea: '', commercialZoning: 'Commercial C1',
-  hasCommercialElevator: true, hasLoadingBay: false,
+  commercialFloors: '', grossArea: '', commercialZoning: '',
+  hasCommercialElevator: false, hasLoadingBay: false,
   powerCapacity: '', parkingSpacesCommercial: '', footTrafficScore: '', hasCommercialGenerator: false,
   buildingUse: '', ceilingHeight: '', hasShowroom: false, hasWarehouse: false, hasOfficeSpace: false, netArea: '',
   starRating: 0, totalRooms: 0, conferenceHallsCount: 0,
-  hasRestaurantBar: false, commercialLicenseNumber: '', managementType: 'Independent',
-  occupancyRate: '', hasCommercialLicense: true, hasHotelPool: false, hasSpa: false, hasGym: false,
+  hasRestaurantBar: false, commercialLicenseNumber: '', managementType: '',
+  occupancyRate: '', hasCommercialLicense: false, hasHotelPool: false, hasSpa: false, hasGym: false,
   includesBreakfast: false, averageDailyRate: '', totalKeys: '',
 };
 
@@ -80,6 +80,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
   const [subtype, setSubtype] = useState<string | null>(null);
   const [location, setLocation] = useState<LocationData>(initialLocation);
   const [specs, setSpecs] = useState<SpecsData>(initialSpecs);
+  const [locationCoordinatesSet, setLocationCoordinatesSet] = useState(false);
 
   // Stage 2: Pricing (merged into Specs)
   const [title, setTitle] = useState('');
@@ -198,7 +199,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
   }, [category, subtype, title, price, location, specs, heroImage, gallery, confirmed]);
 
   const handleNext = () => {
-    if (isStageValid(stage) && stage < TOTAL_STAGES) {
+    if (validateStage(stage) && stage < TOTAL_STAGES) {
       setStage((s) => s + 1);
     }
   };
@@ -206,6 +207,9 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
 
   // Location updater
   const updateLocation = (updates: Partial<LocationData>) => {
+    if (updates.latitude !== undefined || updates.longitude !== undefined) {
+      setLocationCoordinatesSet(true);
+    }
     setLocation((prev) => ({ ...prev, ...updates }));
   };
 
@@ -279,7 +283,6 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
       fd.append('title', title);
       fd.append('description', description);
       fd.append('purpose', purpose);
-      fd.append('listed_by_role', listedByRole);
       fd.append('price', price);
       fd.append('currency', currency);
       fd.append('negotiable', String(isNegotiable));
@@ -289,11 +292,12 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
       }
 
       if (listedByRole === 'admin') {
+        fd.append('listed_by_role', listedByRole);
         fd.append('status', adminStatus);
         fd.append('is_featured', String(adminFeatured));
         if (sellerId) fd.append('seller_id', sellerId);
       } else {
-        fd.append('status', 'published');
+        fd.append('status', 'submitted');
       }
 
       // Calculate total area
@@ -312,8 +316,10 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
       fd.append('cell', location.cell);
       fd.append('village', location.village);
       fd.append('address', location.address);
-      fd.append('latitude', String(location.latitude));
-      fd.append('longitude', String(location.longitude));
+      if (locationCoordinatesSet) {
+        fd.append('latitude', String(location.latitude));
+        fd.append('longitude', String(location.longitude));
+      }
       if (location.upiNumber) fd.append('upi_number', location.upiNumber);
 
       // Specs — append all relevant fields
@@ -637,7 +643,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
           <div className="space-y-5">
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Trust & Verification</h2>
-              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Upload documents to get verified (optional — you can skip and publish as &quot;Seller-Claimed&quot;)</p>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>Upload supporting documents for review. Uploading a file does not verify the listing automatically.</p>
             </div>
 
             <div className="rounded-2xl border p-5 space-y-4" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-surface)' }}>
@@ -701,7 +707,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
               <input type="checkbox" checked={trustSkipped} onChange={(e) => setTrustSkipped(e.target.checked)}
                 className="w-4 h-4 rounded border accent-emerald-500" />
               <span className="text-xs font-medium" style={{ color: 'var(--color-text-main)' }}>
-                Skip for now — I&apos;ll verify later (listing will be &quot;Seller-Claimed&quot;)
+                Submit without documents for now
               </span>
             </label>
           </div>
@@ -715,10 +721,10 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
                 <Check size={32} className="text-emerald-500" />
               </div>
               <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-main)' }}>
-                {listedByRole === 'admin' ? 'Property added successfully' : 'Listing published successfully'}
+                {listedByRole === 'admin' ? 'Property added successfully' : 'Listing submitted successfully'}
               </h2>
               <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                {listedByRole === 'admin' ? 'The property is now in your admin inventory.' : 'Your listing is now live on Urugwiro.'}
+                {listedByRole === 'admin' ? 'The property is now in your admin inventory.' : 'Your listing is awaiting platform review.'}
               </p>
             </div>
           );
@@ -733,7 +739,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
             )}
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Live Preview</h2>
-              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>This is how buyers will see your listing</p>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>This is how the listing can appear after approval</p>
             </div>
 
             {/* Visual Preview Card */}
@@ -755,7 +761,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
                 {trustFiles.titleDeed && (
                   <div className="absolute top-3 right-3">
                     <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                      Verified
+                      Documents attached
                     </span>
                   </div>
                 )}
@@ -850,7 +856,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
               <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)}
                 className="w-4 h-4 rounded border accent-emerald-500" />
               <span className="text-xs font-medium" style={{ color: 'var(--color-text-main)' }}>
-                I confirm all details are accurate and ready to publish
+                I confirm these details are accurate and ready for review
               </span>
             </label>
           </div>
@@ -934,7 +940,7 @@ export const UnifiedListingWizard: React.FC<UnifiedListingWizardProps> = ({
                 : 'bg-white/[0.06] text-zinc-600 cursor-not-allowed',
             )}
           >
-            {isSubmitting ? 'Publishing...' : <><Rocket size={16} /> Publish Listing</>}
+            {isSubmitting ? 'Submitting...' : <><Send size={16} /> {listedByRole === 'admin' ? 'Add property' : 'Submit listing'}</>}
           </button>
         )}
       </div>

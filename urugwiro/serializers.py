@@ -163,6 +163,7 @@ class ListingSerializer(serializers.ModelSerializer):
     is_liked = serializers.SerializerMethodField()
     inquiries_count = serializers.SerializerMethodField()
     conversations_count = serializers.SerializerMethodField()
+    offers_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Listing
@@ -172,7 +173,7 @@ class ListingSerializer(serializers.ModelSerializer):
             'address', 'asset', 'status', 'verification_level',
             'is_featured', 'listed_by_role', 'views_count', 'slug', 'media',
             'seller', 'seller_name', 'seller_phone', 'seller_user_id',
-            'likes_count', 'is_liked', 'inquiries_count', 'conversations_count',
+            'likes_count', 'is_liked', 'inquiries_count', 'conversations_count', 'offers_count',
             'date_listed', 'date_updated',
         ]
         read_only_fields = ['views_count', 'date_listed', 'date_updated', 'slug']
@@ -191,6 +192,9 @@ class ListingSerializer(serializers.ModelSerializer):
 
     def get_conversations_count(self, obj):
         return obj.conversations.count()
+
+    def get_offers_count(self, obj):
+        return obj.offers.count()
 
 
 class ListingCreateSerializer(serializers.ModelSerializer):
@@ -712,6 +716,22 @@ class PropertyInquirySerializer(serializers.ModelSerializer):
         fields = [
             'id', 'listing', 'listing_title', 'name', 'email', 'phone',
             'location', 'message', 'is_read', 'created_at',
+        ]
+
+
+class SellerListingDetailSerializer(ListingSerializer):
+    """Seller-owned listing detail with the real related workflow records."""
+
+    inquiries = PropertyInquirySerializer(many=True, read_only=True)
+    offers = OfferSerializer(many=True, read_only=True)
+    visits = VisitSerializer(source='property_visits', many=True, read_only=True)
+    verification_documents = VerificationDocumentSerializer(
+        source='verification_docs', many=True, read_only=True,
+    )
+
+    class Meta(ListingSerializer.Meta):
+        fields = ListingSerializer.Meta.fields + [
+            'inquiries', 'offers', 'visits', 'verification_documents',
         ]
 
 

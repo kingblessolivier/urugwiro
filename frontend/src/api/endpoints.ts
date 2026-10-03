@@ -117,7 +117,6 @@ export const api = {
         conversationDetail: (id: string) => apiClient.get(`/seller/conversations/${id}/`),
         addConversationEvent: (id: string, data: Record<string, unknown>) => apiClient.post(`/seller/conversations/${id}/events/`, data),
         earnings: () => apiClient.get('/seller/earnings/'),
-        assignAgent: (id: string | number, data: { agent_id: number | string }) => apiClient.post(`/seller/listings/${id}/assign-agent/`, data),
         generateNarrative: (data: { title: string; category: string; subType: string; city: string; district: string; price: string; description?: string }) =>
             apiClient.post('/ai/listing-narrative/', data),
     },

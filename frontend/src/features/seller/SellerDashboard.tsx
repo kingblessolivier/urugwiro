@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Package, MessageSquare, HandCoins,
-  ShieldCheck, TrendingUp, Bell, LogOut, Plus,
+  ShieldCheck, Bell, LogOut, Plus,
   ArrowUpRight, Search, Sparkles, CheckCircle2,
   Clock, MapPin, Building,
   ArrowRight, ExternalLink, Menu, X,
@@ -22,6 +22,7 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/endpoints';
 import { DataTable } from '../../components/ui/DataTable';
 import { StatusBadge } from '../../components/ui/StatusBadge';
+import { listingStatusLabel } from './listingStatus';
 
 export type SellerTab = 'overview' | 'listings' | 'leads' | 'visits' | 'inquiries' | 'offers' | 'messages' | 'new-listing' | 'ratings' | 'earnings';
 
@@ -42,11 +43,10 @@ interface ListingItem {
   views: number;
   inquiries: number;
   offers: number;
-  status: 'Active' | 'Under Offer' | 'Pending Verification' | 'Sold';
+  status: string;
   upiNumber?: string;
   image: string;
   verified: boolean;
-  updatedAt: string;
 }
 
 export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, onListingClick, initialTab = 'overview', hideShell = false }) => {
@@ -135,24 +135,24 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
         id: String(item.id),
         title: item.title || 'Untitled Property',
         category: cat,
-        location: item.address || item.district || 'Kigali, Rwanda',
+        location: item.address || item.asset?.district || 'Location not provided',
         price: Number(item.price) || 0,
         currency: item.currency || 'RWF',
         views: item.views_count || item.views || 0,
         inquiries: item.inquiries_count || 0,
         offers: item.offers_count || 0,
-        status: item.status === 'listed' ? 'Active' : (item.status === 'sold' ? 'Sold' : 'Pending Verification'),
+        status: item.status || 'draft',
         upiNumber: upi,
         image: img,
-        verified: item.is_verified || Boolean(item.verification_level && item.verification_level !== 'none'),
-        updatedAt: item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Recent',
+        verified: item.verification_level === 'verified',
       };
     });
   }, [rawListings]);
 
-  const totalValue = listings.reduce((acc, curr) => acc + curr.price, 0);
   const totalInquiries = listings.reduce((acc, curr) => acc + curr.inquiries, 0);
-  const totalOffers = rawOffers.length;
+  const openOffers = rawOffers.filter((offer: any) => ['new', 'reviewing', 'negotiating'].includes(offer.status));
+  const totalOffers = openOffers.length;
+  const publishedListings = listings.filter((listing) => listing.status === 'published').length;
 
   // 4. Live booked property visits for seller
   const { data: rawVisits = [] } = useQuery({
@@ -257,7 +257,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
     {
       label: 'Customers',
       items: [
-        { id: 'leads', label: 'Leads & Inquiries', icon: Users, badge: totalLeads > 0 ? `${totalLeads} Active` : undefined, highlight: true },
+        { id: 'leads', label: 'Leads & Inquiries', icon: Users, badge: totalLeads > 0 ? `${totalLeads}` : undefined, highlight: true },
         { id: 'visits', label: 'Visits & Showings', icon: Calendar, badge: totalVisits > 0 ? `${totalVisits}` : undefined },
         { id: 'inquiries', label: 'Inquiries', icon: MessageSquare, badge: totalInquiries > 0 ? `${totalInquiries}` : undefined },
         { id: 'messages', label: 'Messages', icon: Mail, badge: unreadMessagesCount > 0 ? `${unreadMessagesCount} New` : undefined },
@@ -266,7 +266,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
     {
       label: 'Sales & Feedback',
       items: [
-        { id: 'offers', label: 'Offers & Prices', icon: HandCoins, badge: totalOffers > 0 ? `${totalOffers} Active` : undefined },
+        { id: 'offers', label: 'Offers & Prices', icon: HandCoins, badge: totalOffers > 0 ? `${totalOffers} Open` : undefined },
         { id: 'ratings', label: 'Ratings & Reviews', icon: Star },
       ],
     },
@@ -404,12 +404,12 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
               <div className="w-9 h-9 rounded-lg bg-[var(--color-accent-soft-bg)] border border-emerald-500/30 flex items-center justify-center font-bold text-[var(--color-brand-emerald)] text-xs">
                 {displayName.slice(0, 2).toUpperCase()}
               </div>
-              <CheckCircle2 size={12} className="absolute -bottom-1 -right-1 text-[var(--color-brand-emerald)] bg-[var(--color-bg-elevated)] rounded-full" />
+              {user?.seller_is_verified && <CheckCircle2 size={12} className="absolute -bottom-1 -right-1 text-[var(--color-brand-emerald)] bg-[var(--color-bg-elevated)] rounded-full" />}
             </div>
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-[var(--color-text-main)] truncate">{displayName}</p>
-                <p className="text-[10px] text-[var(--color-text-muted)] truncate">{displayRole} • {user?.email || 'Verified Account'}</p>
+                <p className="text-[10px] text-[var(--color-text-muted)] truncate">{displayRole} • {user?.email || 'No email provided'}</p>
               </div>
             )}
           </div>
@@ -685,17 +685,17 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 hover:border-emerald-500/30 transition-all group">
                   <div className="flex items-center justify-between text-[var(--color-text-dim)] mb-3">
-                    <span className="text-xs uppercase tracking-wider font-semibold">Gross Portfolio</span>
+                    <span className="text-xs uppercase tracking-wider font-semibold">Listing Portfolio</span>
                     <span className="p-2 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] group-hover:bg-emerald-600 group-hover:text-[#fff] transition-colors">
                       <Building size={16} />
                     </span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-bold font-mono text-[var(--color-text-main)]">
-                    {totalValue > 0 ? `${(totalValue / 1000000).toLocaleString(undefined, { maximumFractionDigits: 1 })}M` : '0'} <span className="text-xs text-[var(--color-text-muted)] font-sans">RWF</span>
+                    {listings.length} <span className="text-xs text-[var(--color-text-muted)] font-sans">total</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-brand-emerald)] mt-2 font-medium">
-                    <TrendingUp size={12} />
-                    <span>{listings.length} live {listings.length === 1 ? 'property' : 'properties'}</span>
+                    <Eye size={12} />
+                    <span>{publishedListings} public {publishedListings === 1 ? 'listing' : 'listings'}</span>
                   </div>
                 </div>
 
@@ -923,7 +923,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                                 <h4 className="font-semibold text-sm text-[var(--color-text-main)] line-clamp-1">{item.title}</h4>
                                 {item.verified && (
                                   <Badge variant="text" tone="emerald" className="text-[9px] py-0 px-1.5 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/30">
-                                    RLMUA
+                                    Verified
                                   </Badge>
                                 )}
                               </div>
@@ -944,10 +944,10 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                               </span>
                               <span className={cn(
                                 "text-[10px] font-semibold px-2 py-0.5 rounded-full inline-block mt-1",
-                                item.status === 'Active' ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)]" :
-                                item.status === 'Under Offer' ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400" : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]"
+                                item.status === 'published' ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)]" :
+                                item.status === 'under_offer' ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400" : "bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)]"
                               )}>
-                                {item.status}
+                                {listingStatusLabel(item.status)}
                               </span>
                             </div>
 
@@ -972,22 +972,24 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate, on
                     <div className="flex items-center justify-between">
                       <h4 className="font-bold text-[var(--color-text-main)] text-sm flex items-center gap-2">
                         <ShieldCheck size={16} className="text-[var(--color-brand-emerald)]" />
-                        Seller Verification
+                        Seller Account
                       </h4>
-                      <span className="text-xs font-mono text-[var(--color-brand-emerald)] font-bold">Verified</span>
+                      <span className="text-xs font-mono text-[var(--color-text-muted)] font-bold">
+                        {user?.seller_is_verified ? 'Verified' : 'Not verified'}
+                      </span>
                     </div>
 
                     <div className="space-y-2.5 text-xs">
                       <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
                         <span className="text-[var(--color-text-muted)]">Profile Status</span>
-                        <span className="text-[var(--color-brand-emerald)] font-semibold flex items-center gap-1">
-                          <CheckCircle2 size={12} /> Active
+                        <span className="text-[var(--color-text-main)] font-semibold capitalize">
+                          {user?.seller_status || 'Not configured'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
                         <span className="text-[var(--color-text-muted)]">ID / Identity</span>
-                        <span className="text-[var(--color-brand-emerald)] font-semibold flex items-center gap-1">
-                          <CheckCircle2 size={12} /> Confirmed
+                        <span className={cn('font-semibold', user?.seller_is_verified ? 'text-[var(--color-brand-emerald)]' : 'text-[var(--color-text-muted)]')}>
+                          {user?.seller_is_verified ? 'Verified' : 'Pending verification'}
                         </span>
                       </div>
                     </div>

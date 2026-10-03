@@ -1,18 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Building2, MapPin, Zap, Layers, FileText, Archive,
-  ShieldCheck, User, ListChecks, Save, Trash2
+  ShieldCheck, ListChecks
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { api } from '../../../api/endpoints';
-import { resolveImageUrl } from '../../../lib/imageUrl';
 import { AdminEditableSection } from '../../admin/components/AdminEditableSection';
 import {
   ResidentialSpecsForm, LandSpecsForm, VehicleSpecsForm,
   CommercialSpecsForm, HotelSpecsForm,
 } from '../../admin/components/AdminSpecFields';
 import { SellerMediaManager } from './SellerMediaManager';
+import { listingStatusLabel, sellerStatusAction } from '../listingStatus';
 
 interface SellerPropertyEditorProps {
   listingId: string | number;
@@ -26,7 +26,6 @@ const labelCls = 'text-[10px] uppercase font-bold text-[var(--color-text-dim)]';
 
 const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, onBack, onChanged }) => {
   const queryClient = useQueryClient();
-  const [sellerNote, setSellerNote] = useState('');
 
   const { data: listing, isLoading, refetch } = useQuery({
     queryKey: ['seller-listing-detail', String(listingId)],
@@ -59,11 +58,6 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
     onError: (err: any) => alert(`Archive failed: ${err?.response?.data?.message || err.message}`),
   });
 
-  const saveNoteMutation = useMutation({
-    mutationFn: async (note: string) => api.seller.updateListing(listingId, { seller_notes: note }),
-    onSuccess: invalidate,
-  });
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-[var(--color-text-muted)] text-sm">
@@ -85,6 +79,7 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
 
   const asset = listing.asset || {};
   const category = (listing.category || '').toLowerCase();
+  const statusAction = sellerStatusAction(listing.status);
 
   const specForm = () => {
     if (category === 'house' || category === 'apartment') {
@@ -114,7 +109,7 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <h1 className="text-xl sm:text-2xl font-bold text-[var(--color-text-main)] truncate">{listing.title}</h1>
               <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-[var(--color-brand-emerald)] dark:border-emerald-500/20 text-[10px] font-bold uppercase">
-                {listing.status}
+                {listingStatusLabel(listing.status)}
               </span>
             </div>
             <p className="text-xs text-[var(--color-text-dim)] font-mono">
@@ -124,22 +119,20 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <select
-            value={listing.status}
-            onChange={(e) => updateMutation.mutate({ status: e.target.value })}
-            className="px-3 py-2 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-text-main)] outline-none focus:border-emerald-500/50 cursor-pointer"
-            title="Change listing status"
-          >
-            <option value="listed">Listed (Active)</option>
-            <option value="under_negotiation">Under Negotiation</option>
-            <option value="sold">Sold</option>
-            <option value="withdrawn">Withdrawn</option>
-          </select>
+          {statusAction && statusAction.nextStatus === 'submitted' && (
+            <Button
+              disabled={updateMutation.isPending}
+              onClick={() => updateMutation.mutate({ status: statusAction.nextStatus })}
+              className="text-xs font-bold rounded-xl px-3 py-2 cursor-pointer"
+            >
+              {updateMutation.isPending ? 'Submitting...' : statusAction.label}
+            </Button>
+          )}
           <Button
             variant="ghost"
             disabled={archiveMutation.isPending}
             onClick={() => {
-              if (confirm('Archive / unlist this property? It will be withdrawn from the public marketplace.')) {
+              if (confirm('Archive this property? It will no longer appear on the public marketplace.')) {
                 archiveMutation.mutate();
               }
             }}
@@ -162,7 +155,6 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
               title: listing.title || '',
               price: listing.price ?? '',
               currency: listing.currency || 'RWF',
-              status: listing.status || 'listed',
               purpose: listing.purpose || 'sale',
               category: listing.category || 'house',
               address: listing.address || '',
@@ -198,15 +190,6 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
                         <option value="RWF">RWF</option>
                         <option value="USD">USD</option>
                         <option value="EUR">EUR</option>
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className={labelCls}>Status</label>
-                      <select value={data.status} onChange={(e) => setData({ ...data, status: e.target.value })} className={inputCls}>
-                        <option value="listed">Listed</option>
-                        <option value="under_negotiation">Under Negotiation</option>
-                        <option value="sold">Sold</option>
-                        <option value="withdrawn">Withdrawn</option>
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
@@ -281,7 +264,7 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
                     </div>
                     <div className="flex flex-col gap-1">
                       <span className={labelCls}>Status</span>
-                      <span className="text-sm text-[var(--color-text-main)] capitalize">{listing.status}</span>
+                      <span className="text-sm text-[var(--color-text-main)]">{listingStatusLabel(listing.status)}</span>
                     </div>
                     <div className="flex flex-col gap-1">
                       <span className={labelCls}>Category</span>
@@ -426,9 +409,8 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
             title="Legal & Verification"
             icon={ShieldCheck}
             data={{
-              verification_level: listing.verification_level || 'none',
-              upi_number: asset.upi_number || '',
-              title_deed_number: asset.title_deed_number || '',
+              upi_number: asset.land_spec?.upi_number || '',
+              title_deed_number: asset.land_spec?.title_deed_number || '',
             }}
             onSave={async (d) => { await updateMutation.mutateAsync(d); }}
           >
@@ -436,19 +418,6 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
               <div className="space-y-4">
                 {isEditing ? (
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label className={labelCls}>Verification Level</label>
-                      <select
-                        value={data.verification_level}
-                        onChange={(e) => setData({ ...data, verification_level: e.target.value })}
-                        className={inputCls}
-                      >
-                        <option value="none">None</option>
-                        <option value="submitted">Submitted</option>
-                        <option value="verified">Verified</option>
-                        <option value="professional">Professional</option>
-                      </select>
-                    </div>
                     <div className="flex flex-col gap-1.5">
                       <label className={labelCls}>UPI Number</label>
                       <input
@@ -470,15 +439,15 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
                   <div className="grid grid-cols-2 gap-y-4 gap-x-8">
                     <div className="flex flex-col gap-1">
                       <span className={labelCls}>Verification Level</span>
-                      <span className="text-sm font-bold text-[var(--color-brand-emerald)]">{listing.verification_level}</span>
+                      <span className="text-sm font-bold text-[var(--color-text-main)] capitalize">{listing.verification_level || 'none'}</span>
                     </div>
                     <div className="flex flex-col gap-1">
                       <span className={labelCls}>UPI Number</span>
-                      <span className="text-sm font-mono text-[var(--color-text-muted)]">{asset.upi_number || '—'}</span>
+                      <span className="text-sm font-mono text-[var(--color-text-muted)]">{asset.land_spec?.upi_number || '—'}</span>
                     </div>
                     <div className="flex flex-col gap-1">
                       <span className={labelCls}>Title Deed</span>
-                      <span className="text-sm font-mono text-[var(--color-text-muted)]">{asset.title_deed_number || '—'}</span>
+                      <span className="text-sm font-mono text-[var(--color-text-muted)]">{asset.land_spec?.title_deed_number || '—'}</span>
                     </div>
                   </div>
                 )}
@@ -502,35 +471,6 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
             />
           </div>
 
-          {/* Agent Management */}
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 space-y-4 shadow-[var(--shadow-depth-1)]">
-            <div className="flex items-center gap-2">
-              <User size={16} className="text-[var(--color-brand-emerald)]" />
-              <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Assigned Agent</h3>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
-              <div className="h-10 w-10 rounded-full bg-emerald-50 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-700 dark:text-emerald-400 font-bold">
-                {listing.owner?.full_name ? listing.owner.full_name[0].toUpperCase() : 'A'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-[var(--color-text-main)] truncate">{listing.owner?.full_name || 'No agent assigned'}</p>
-                <p className="text-[10px] text-[var(--color-text-dim)] uppercase font-bold">Primary Contact</p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              className="w-full py-2 text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-brand-emerald)] border border-[var(--color-border)] rounded-xl cursor-pointer"
-              onClick={() => {
-                const newAgentId = prompt('Enter new Agent ID:');
-                if (newAgentId) {
-                  api.seller.assignAgent(listingId, { agent_id: Number(newAgentId) });
-                }
-              }}
-            >
-              Reassign Agent
-            </Button>
-          </div>
-
           {/* Engagement Stats */}
           <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 space-y-4 shadow-[var(--shadow-depth-1)]">
             <div className="flex items-center gap-2">
@@ -548,35 +488,9 @@ const SellerPropertyEditor: React.FC<SellerPropertyEditorProps> = ({ listingId, 
               </div>
             </div>
             <div className="p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-center">
-              <p className="text-[10px] text-[var(--color-text-dim)] uppercase font-bold">Engagement Rate</p>
-              <p className="text-lg font-mono font-bold text-[var(--color-brand-emerald)]">
-                {listing.visits_count && listing.inquiries_count
-                  ? ((listing.inquiries_count / listing.visits_count) * 100).toFixed(1) + '%'
-                  : '0.0%'}
-              </p>
+              <p className="text-[10px] text-[var(--color-text-dim)] uppercase font-bold">Saved</p>
+              <p className="text-lg font-mono font-bold text-[var(--color-brand-emerald)]">{listing.likes_count || 0}</p>
             </div>
-          </div>
-
-          {/* Seller Notes */}
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5 space-y-4 shadow-[var(--shadow-depth-1)]">
-            <div className="flex items-center gap-2">
-              <FileText size={16} className="text-[var(--color-brand-emerald)]" />
-              <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Seller Notes</h3>
-            </div>
-            <textarea
-              value={sellerNote}
-              onChange={e => setSellerNote(e.target.value)}
-              className="w-full h-32 p-3 rounded-xl bg-[var(--color-input-bg)] border border-[var(--color-border)] text-xs text-[var(--color-text-muted)] outline-none focus:border-emerald-500/50 resize-none"
-              placeholder="Add internal notes about this property..."
-            />
-            <Button
-              variant="ghost"
-              className="w-full py-2 text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-brand-emerald)] border border-[var(--color-border)] rounded-xl cursor-pointer flex items-center justify-center gap-2"
-              onClick={() => saveNoteMutation.mutate(sellerNote)}
-              disabled={saveNoteMutation.isPending}
-            >
-              {saveNoteMutation.isPending ? 'Saving...' : <><Save size={14} /> Save Note</>}
-            </Button>
           </div>
         </div>
       </div>

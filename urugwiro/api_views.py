@@ -39,7 +39,7 @@ from .serializers import (
     TransactionSerializer, SellerPaymentSerializer, CommissionRuleSerializer, BusinessExpenseSerializer,
     ListingProposalSerializer, PublicListingProposalSerializer, SystemSettingSerializer, SystemLogSerializer, SavedPropertySerializer, ConversationEventSerializer,
     AdminUserCreateSerializer, AdminUserUpdateSerializer, AnnouncementSerializer, RegistrationSerializer,
-    SelfProfileSerializer, SellerListingWriteSerializer
+    SelfProfileSerializer, SellerListingDetailSerializer, SellerListingWriteSerializer
 )
 
 # Services
@@ -1285,7 +1285,7 @@ def seller_listing_detail_manage(request, pk):
     listing = get_object_or_404(Listing, pk=pk, seller=profile)
     
     if request.method == 'GET':
-        return Response(ListingSerializer(listing, context={'request': request}).data)
+        return Response(SellerListingDetailSerializer(listing, context={'request': request}).data)
     elif request.method in ['PUT', 'PATCH']:
         serializer = SellerListingWriteSerializer(listing, data=request.data, partial=True)
         if serializer.is_valid():

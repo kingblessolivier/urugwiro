@@ -15,6 +15,7 @@ from rest_framework.test import APIClient
 from .consumers import ChatConsumer
 from .models import (
     Announcement, Asset, CommissionRule, Customer, Listing, ListingProposal, Message, Offer,
+    PropertyInquiry, Visit,
     ResidentialSpec, SellerPayment, SellerProfile, SystemSetting, Transaction, User,
     VerificationDocument, SystemLog,
 )
@@ -324,6 +325,32 @@ class ApiSecurityTests(TestCase):
         self.asset.refresh_from_db()
         self.assertEqual(response.status_code, 400)
         self.assertEqual(self.asset.district, 'Gasabo')
+
+    def test_seller_listing_detail_exposes_owned_workflow_records(self):
+        customer = Customer.objects.create(
+            full_name='Interested customer', phone='0788111222', email='buyer@example.com',
+        )
+        inquiry = PropertyInquiry.objects.create(
+            listing=self.published, name=customer.full_name, phone=customer.phone,
+            email=customer.email, message='Please share viewing times.',
+        )
+        offer = Offer.objects.create(
+            listing=self.published, seller=self.seller, customer=customer,
+            asking_price=self.published.price, offered_amount=95_000_000, currency='RWF',
+        )
+        visit = Visit.objects.create(
+            listing=self.published, seller=self.seller, customer=customer,
+            preferred_date=timezone.localdate(), phone=customer.phone,
+        )
+        self.authenticate(self.seller_user)
+
+        response = self.client.get(f'/api/seller/listings/{self.published.pk}/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['inquiries'][0]['id'], inquiry.pk)
+        self.assertEqual(response.data['offers'][0]['id'], offer.pk)
+        self.assertEqual(response.data['visits'][0]['id'], visit.pk)
+        self.assertEqual(response.data['offers_count'], 1)
 
     def test_logout_revokes_refresh_token(self):
         response = self.client.post('/api/auth/login/', {
