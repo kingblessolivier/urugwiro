@@ -142,5 +142,6 @@ urlpatterns = [
     path('api/chat/new-users/', views.chat_new_users_api, name='api_chat_new_users'),
 
     # ─── Reports ───
+    path('api/reports/summary/', api_views.admin_report_summary, name='api_reports_summary'),
     path('api/reports/export/<str:report_type>/', views.admin_reports_export, name='api_reports_export'),
 ]

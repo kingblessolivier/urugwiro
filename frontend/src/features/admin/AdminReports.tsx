@@ -1,448 +1,250 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { BarChart3, Building2, Download, FileSpreadsheet, HandCoins, RefreshCw, ShieldCheck, Users } from 'lucide-react';
 import {
-  TrendingUp, Users, Building2, ShieldCheck,
-  ArrowUpRight, Download, PieChart, BarChart3,
-  Calendar, CheckCircle2, Clock, AlertCircle, FileText
-} from 'lucide-react';
-import { Badge } from '../../components/ui/Badge';
-import { cn } from '../../lib/utils';
-import { api } from '../../api/endpoints';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
+  ArcElement, BarElement, CategoryScale, Chart as ChartJS, Legend,
+  LinearScale, LineElement, PointElement, Tooltip,
 } from 'chart.js';
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import { api } from '../../api/endpoints';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend
-);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend);
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const CHART_COLORS = ['#059669', '#2563eb', '#d97706', '#dc2626', '#7c3aed', '#0891b2'];
+
+interface CurrencyTotal {
+  currency: string;
+  transaction_volume: number;
+  completed_revenue: number;
+}
+
+interface MonthlyRevenue {
+  currency: string;
+  month: number;
+  amount: number;
+}
+
+interface ReportSummary {
+  year: number;
+  generated_at: string;
+  metrics: {
+    transactions: number;
+    listings: number;
+    verified_listings: number;
+    offers: number;
+    pending_offers: number;
+  };
+  currency_totals: CurrencyTotal[];
+  monthly_revenue: MonthlyRevenue[];
+  monthly_users: number[];
+  asset_classes: Record<string, number>;
+  transaction_statuses: Record<string, number>;
+  offer_statuses: Record<string, number>;
+}
+
+const REPORT_TYPES = [
+  ['listings', 'Listings'], ['customers', 'Customers'], ['conversations', 'Conversations'],
+  ['visits', 'Visits'], ['offers', 'Offers'], ['transactions', 'Transactions'], ['expenses', 'Expenses'],
+] as const;
+
+const formatAmount = (amount: number, currency: string) =>
+  `${new Intl.NumberFormat('en-RW', { maximumFractionDigits: 0 }).format(amount)} ${currency}`;
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { position: 'bottom' as const, labels: { color: '#71717a', boxWidth: 12 } } },
+  scales: {
+    y: { beginAtZero: true, grid: { color: 'rgba(113,113,122,0.14)' }, ticks: { color: '#71717a' } },
+    x: { grid: { display: false }, ticks: { color: '#71717a' } },
+  },
+};
 
 const AdminReports: React.FC = () => {
-  // 1. Live Deals (Transactions)
-  const { data: dealsData } = useQuery({
-    queryKey: ['reports-deals'],
-    queryFn: async () => {
-      try {
-        const res = await api.admin.transactions();
-        const data = res.data?.results || res.data || [];
-        return Array.isArray(data) ? data : [];
-      } catch {
-        return [];
-      }
-    },
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [exporting, setExporting] = useState<string | null>(null);
+  const [exportError, setExportError] = useState('');
+
+  const summaryQuery = useQuery({
+    queryKey: ['admin-report-summary', year],
+    queryFn: async () => (await api.reports.summary(year)).data as ReportSummary,
   });
 
-  // 2. Live Listings
-  const { data: listingsData } = useQuery({
-    queryKey: ['reports-listings'],
-    queryFn: async () => {
-      try {
-        const res = await api.listings.list();
-        const data = res.data?.results || res.data || [];
-        return Array.isArray(data) ? data : [];
-      } catch {
-        return [];
-      }
-    },
-  });
-
-  // 3. Live Offers
-  const { data: offersData } = useQuery({
-    queryKey: ['reports-offers'],
-    queryFn: async () => {
-      try {
-        const res = await api.admin.offers();
-        const data = res.data?.results || res.data || [];
-        return Array.isArray(data) ? data : [];
-      } catch {
-        return [];
-      }
-    },
-  });
-
-  // 4. Live Users
-  const { data: usersData } = useQuery({
-    queryKey: ['reports-users'],
-    queryFn: async () => {
-      try {
-        const res = await api.admin.users.list({ page_size: 100 });
-        const data = res.data?.results || res.data || [];
-        return Array.isArray(data) ? data : [];
-      } catch {
-        return [];
-      }
-    },
-  });
-
-  const deals = dealsData || [];
-  const listings = listingsData || [];
-  const offers = offersData || [];
-  const users = usersData || [];
-
-  const totalDealsVolume = useMemo(() => {
-    return deals.reduce((acc: number, d: any) => acc + Number(d.agreed_price || 0), 0);
-  }, [deals]);
-
-  // Dynamic Monthly Revenue Aggregation from settled deals
+  const summary = summaryQuery.data;
   const revenueData = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const monthlySum = new Array(12).fill(0);
-
-    deals.forEach((d: any) => {
-      if (d.current_stage === 'settled_closed' || d.current_stage === 'closed' || d.escrow_status === 'released_to_seller') {
-        const dateStr = d.updated_at || d.created_at;
-        if (dateStr) {
-          const dt = new Date(dateStr);
-          if (dt.getFullYear() === currentYear) {
-            monthlySum[dt.getMonth()] += Number(d.agreed_price || 0);
-          }
-        }
-      }
-    });
-
+    const currencies = [...new Set(summary?.monthly_revenue.map((row) => row.currency) || [])];
     return {
       labels: MONTH_LABELS,
-      datasets: [
-        {
-          label: 'Monthly Revenue (RWF)',
-          data: monthlySum,
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          fill: true,
-          tension: 0.4,
-          pointRadius: 4,
-        },
-      ],
+      datasets: currencies.map((currency, index) => ({
+        label: `${currency} commission`,
+        data: MONTH_LABELS.map((_, monthIndex) => summary?.monthly_revenue.find(
+          (row) => row.currency === currency && row.month === monthIndex + 1,
+        )?.amount || 0),
+        borderColor: CHART_COLORS[index % CHART_COLORS.length],
+        backgroundColor: `${CHART_COLORS[index % CHART_COLORS.length]}22`,
+        tension: 0.3,
+      })),
     };
-  }, [deals]);
+  }, [summary]);
 
-  // Dynamic User Signups Aggregation
-  const userData = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const monthlyUsers = new Array(12).fill(0);
+  const userData = {
+    labels: MONTH_LABELS,
+    datasets: [{
+      label: 'New users',
+      data: summary?.monthly_users || new Array(12).fill(0),
+      backgroundColor: '#2563ebaa',
+      borderRadius: 4,
+    }],
+  };
 
-    users.forEach((u: any) => {
-      if (u.date_joined) {
-        const dt = new Date(u.date_joined);
-        if (dt.getFullYear() === currentYear) {
-          monthlyUsers[dt.getMonth()] += 1;
-        }
-      }
-    });
+  const assetLabels = ['house', 'land', 'car', 'motorbike', 'hotel', 'commercial', 'service'];
+  const assetData = {
+    labels: assetLabels.map((label) => label === 'house' ? 'Homes' : label.charAt(0).toUpperCase() + label.slice(1)),
+    datasets: [{
+      data: assetLabels.map((label) => summary?.asset_classes[label] || 0),
+      backgroundColor: assetLabels.map((_, index) => CHART_COLORS[index % CHART_COLORS.length]),
+      borderWidth: 0,
+    }],
+  };
 
-    return {
-      labels: MONTH_LABELS,
-      datasets: [
-        {
-          label: 'New Users',
-          data: monthlyUsers,
-          backgroundColor: 'rgba(16, 185, 129, 0.7)',
-          borderRadius: 6,
-        },
-      ],
-    };
-  }, [users]);
+  const transactionData = {
+    labels: ['Completed', 'Pending', 'Cancelled'],
+    datasets: [{
+      data: ['completed', 'pending', 'cancelled'].map((status) => summary?.transaction_statuses[status] || 0),
+      backgroundColor: ['#059669', '#d97706', '#dc2626'],
+      borderWidth: 0,
+    }],
+  };
 
-  // Dynamic Property Type Distribution
-  const propTypeData = useMemo(() => {
-    let homes = 0;
-    let land = 0;
-    let vehicles = 0;
-    let commercial = 0;
-    let services = 0;
+  const offerStatuses = summary?.offer_statuses || {};
+  const acceptedOffers = offerStatuses.accepted || 0;
+  const activeOffers = (offerStatuses.new || 0) + (offerStatuses.reviewing || 0) + (offerStatuses.negotiating || 0);
+  const offerTotal = summary?.metrics.offers || 0;
+  const kpis = summary ? [
+    { label: 'Transactions', value: summary.metrics.transactions, icon: HandCoins },
+    { label: 'Listings', value: summary.metrics.listings, icon: Building2 },
+    { label: 'Verified listings', value: summary.metrics.verified_listings, icon: ShieldCheck },
+    { label: 'Offers', value: summary.metrics.offers, icon: Users },
+  ] : [];
 
-    listings.forEach((l: any) => {
-      const cat = (l.category || l.listing_type || '').toLowerCase();
-      if (cat.includes('land') || cat.includes('plot')) land += 1;
-      else if (cat.includes('car') || cat.includes('vehic') || cat.includes('motor')) vehicles += 1;
-      else if (cat.includes('commercial') || cat.includes('hotel') || cat.includes('office')) commercial += 1;
-      else if (cat.includes('service')) services += 1;
-      else homes += 1;
-    });
+  const downloadReport = async (type: string) => {
+    setExporting(type);
+    setExportError('');
+    try {
+      const response = await api.reports.download(type);
+      const url = URL.createObjectURL(response.data as Blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `${type}_report.csv`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError('The report could not be downloaded. Check your access and try again.');
+    } finally {
+      setExporting(null);
+    }
+  };
 
-    const hasData = homes + land + vehicles + commercial + services > 0;
+  if (summaryQuery.isLoading) {
+    return <div className="flex min-h-[50vh] items-center justify-center text-sm text-[var(--color-text-muted)]">Loading financial reports...</div>;
+  }
 
-    return {
-      labels: ['Homes', 'Land', 'Vehicles', 'Commercial', 'Services'],
-      datasets: [
-        {
-          data: hasData ? [homes, land, vehicles, commercial, services] : [1, 0, 0, 0, 0],
-          backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'],
-          borderWidth: 0,
-        },
-      ],
-    };
-  }, [listings]);
-
-  // Dynamic Transaction Status Distribution
-  const dealStatusData = useMemo(() => {
-    let completed = 0;
-    let pending = 0;
-    let cancelled = 0;
-
-    deals.forEach((d: any) => {
-      const st = (d.status || '').toLowerCase();
-      if (st === 'completed') completed += 1;
-      else if (st === 'cancelled') cancelled += 1;
-      else pending += 1;
-    });
-
-    const hasData = completed + pending + cancelled > 0;
-
-    return {
-      labels: ['Completed', 'Pending / In Progress', 'Cancelled'],
-      datasets: [
-        {
-          data: hasData ? [completed, pending, cancelled] : [0, 0, 0],
-          backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
-          borderWidth: 0,
-        },
-      ],
-    };
-  }, [deals]);
-
-  // Dynamic Offers Status Breakdown
-  const offerStats = useMemo(() => {
-    const total = offers.length;
-    const accepted = offers.filter((o: any) => (o.status || '').toLowerCase() === 'accepted').length;
-    const pending = offers.filter((o: any) => (o.status || '').toLowerCase() === 'pending').length;
-    const rejected = offers.filter((o: any) => ['rejected', 'declined'].includes((o.status || '').toLowerCase())).length;
-
-    const acceptedPct = total > 0 ? Math.round((accepted / total) * 100) : 0;
-    const pendingPct = total > 0 ? Math.round((pending / total) * 100) : 0;
-
-    return { total, accepted, pending, rejected, acceptedPct, pendingPct };
-  }, [offers]);
-
-  const kpis = [
-    {
-      label: 'Transaction Volume',
-      value: totalDealsVolume > 0 ? `${(totalDealsVolume / 1000000).toFixed(1)}M RWF` : '0 RWF',
-      sub: `${deals.length} Total Transactions`,
-      icon: TrendingUp,
-      color: 'text-emerald-700 dark:text-emerald-400',
-      bg: 'bg-emerald-50 dark:bg-emerald-500/10'
-    },
-    {
-      label: 'Total Properties',
-      value: listings.length.toString(),
-      sub: `${listings.filter((listing: any) => ['verified', 'professional'].includes(listing.verification_level)).length} verified`,
-      icon: Building2,
-      color: 'text-blue-700 dark:text-blue-400',
-      bg: 'bg-blue-50 dark:bg-blue-500/10'
-    },
-    {
-      label: 'Purchase Offers',
-      value: offers.length.toString(),
-      sub: `${offers.filter((o: any) => o.status === 'pending').length} Pending review`,
-      icon: Users,
-      color: 'text-purple-700 dark:text-purple-400',
-      bg: 'bg-purple-50 dark:bg-purple-500/10'
-    },
-  ];
-
-  const reportTypes = [
-    { id: 'listings', label: 'Listings' },
-    { id: 'customers', label: 'Customers' },
-    { id: 'conversations', label: 'Conversations' },
-    { id: 'visits', label: 'Visits' },
-    { id: 'offers', label: 'Offers' },
-    { id: 'transactions', label: 'Transactions' },
-    { id: 'expenses', label: 'Expenses' },
-  ];
+  if (summaryQuery.isError || !summary) {
+    return (
+      <div className="mx-auto max-w-xl p-8 text-center">
+        <h1 className="text-xl font-bold">Reports are unavailable</h1>
+        <p className="mt-2 text-sm text-[var(--color-text-muted)]">The reporting API did not return a usable summary.</p>
+        <button type="button" onClick={() => summaryQuery.refetch()} className="mt-5 inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-bold">
+          <RefreshCw size={15} /> Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-8 lg:p-12 bg-transparent min-h-screen text-[var(--color-text-main)] animate-in fade-in duration-300">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-          <div className="space-y-2">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[var(--color-brand-emerald)] mb-2">Live Reports</p>
-            <h1 className="text-4xl font-bold tracking-tight text-[var(--color-text-main)]">Reports & <span className="text-[var(--color-brand-emerald)]">Analytics</span></h1>
+    <div className="mx-auto max-w-7xl space-y-8 p-6 text-[var(--color-text-main)] lg:p-10">
+      <header className="flex flex-col justify-between gap-5 border-b border-[var(--color-border)] pb-6 lg:flex-row lg:items-end">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-brand-emerald)]">Finance & Operations</p>
+          <h1 className="mt-1 text-3xl font-bold">Reports & Analytics</h1>
+          <p className="mt-2 text-sm text-[var(--color-text-muted)]">Commission revenue is reported separately for each currency and only after transaction completion.</p>
+        </div>
+        <label className="text-xs font-bold text-[var(--color-text-muted)]">Reporting year
+          <input type="number" min="2000" max={new Date().getFullYear() + 1} value={year} onChange={(event) => setYear(Number(event.target.value))} className="ml-3 w-24 rounded-lg border border-[var(--color-border)] bg-[var(--color-input-bg)] px-3 py-2 text-sm text-[var(--color-text-main)]" />
+        </label>
+      </header>
+
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="Platform totals">
+        {kpis.map(({ label, value, icon: Icon }) => (
+          <div key={label} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5">
+            <Icon size={18} className="text-[var(--color-brand-emerald)]" />
+            <p className="mt-4 text-2xl font-bold font-mono">{value}</p>
+            <p className="mt-1 text-xs text-[var(--color-text-muted)]">{label}</p>
           </div>
-          <div className="flex flex-wrap gap-2.5">
-            {reportTypes.map(report => (
-              <a
-                key={report.id}
-                href={`/api/reports/export/${report.id}/`}
-                target="_blank"
-                rel="noreferrer"
-                className="px-4 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:border-emerald-500/40 flex items-center gap-2 text-xs font-bold uppercase tracking-wider transition-all"
-              >
-                <Download size={13} /> Export {report.label}
-              </a>
+        ))}
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center gap-2"><HandCoins size={18} className="text-[var(--color-brand-emerald)]" /><h2 className="text-lg font-bold">Currency totals</h2></div>
+        {summary.currency_totals.length ? (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {summary.currency_totals.map((row) => (
+              <div key={row.currency} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-5">
+                <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-dim)]">{row.currency}</p>
+                <dl className="mt-4 grid grid-cols-2 gap-4">
+                  <div><dt className="text-xs text-[var(--color-text-muted)]">Transaction volume</dt><dd className="mt-1 text-lg font-bold">{formatAmount(row.transaction_volume, row.currency)}</dd></div>
+                  <div><dt className="text-xs text-[var(--color-text-muted)]">Completed commission</dt><dd className="mt-1 text-lg font-bold text-[var(--color-brand-emerald)]">{formatAmount(row.completed_revenue, row.currency)}</dd></div>
+                </dl>
+              </div>
+            ))}
+          </div>
+        ) : <p className="text-sm text-[var(--color-text-muted)]">No transactions have been recorded.</p>}
+      </section>
+
+      <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6">
+          <h2 className="flex items-center gap-2 text-base font-bold"><BarChart3 size={17} className="text-[var(--color-brand-emerald)]" /> Monthly completed commission</h2>
+          <div className="mt-6 h-[300px]"><Line data={revenueData} options={chartOptions} /></div>
+        </div>
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6">
+          <h2 className="flex items-center gap-2 text-base font-bold"><Users size={17} className="text-blue-500" /> User signups</h2>
+          <div className="mt-6 h-[300px]"><Bar data={userData} options={chartOptions} /></div>
+        </div>
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6">
+          <h2 className="text-base font-bold">Asset classes</h2>
+          <div className="mt-6 h-[260px]"><Doughnut data={assetData} options={{ responsive: true, maintainAspectRatio: false, plugins: chartOptions.plugins }} /></div>
+        </div>
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6">
+          <h2 className="text-base font-bold">Transaction status</h2>
+          <div className="mt-6 h-[260px]"><Doughnut data={transactionData} options={{ responsive: true, maintainAspectRatio: false, plugins: chartOptions.plugins }} /></div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6">
+          <h2 className="text-base font-bold">Offer status</h2>
+          <dl className="mt-5 space-y-4">
+            <div className="flex justify-between"><dt className="text-sm text-[var(--color-text-muted)]">Accepted</dt><dd className="font-bold">{acceptedOffers}</dd></div>
+            <div className="flex justify-between"><dt className="text-sm text-[var(--color-text-muted)]">Active review</dt><dd className="font-bold">{activeOffers}</dd></div>
+            <div className="flex justify-between border-t border-[var(--color-border)] pt-4"><dt className="text-sm text-[var(--color-text-muted)]">Total</dt><dd className="font-bold">{offerTotal}</dd></div>
+          </dl>
+        </div>
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-surface)] p-6">
+          <div className="flex items-center gap-2"><FileSpreadsheet size={18} className="text-[var(--color-brand-emerald)]" /><h2 className="text-base font-bold">CSV exports</h2></div>
+          <p className="mt-2 text-sm text-[var(--color-text-muted)]">Downloads use your authenticated session and include all records for the selected dataset.</p>
+          {exportError && <p className="mt-3 text-sm text-rose-500">{exportError}</p>}
+          <div className="mt-5 flex flex-wrap gap-2">
+            {REPORT_TYPES.map(([type, label]) => (
+              <button key={type} type="button" disabled={Boolean(exporting)} onClick={() => downloadReport(type)} className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-2 text-xs font-bold text-[var(--color-text-muted)] hover:border-emerald-500/40 hover:text-[var(--color-text-main)] disabled:opacity-50">
+                <Download size={13} /> {exporting === type ? 'Preparing...' : label}
+              </button>
             ))}
           </div>
         </div>
-
-        {/* KPI Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {kpis.map((kpi, i) => (
-            <div key={i} className="p-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] transition-all hover:border-emerald-500/30">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-[var(--color-text-dim)] text-sm font-medium uppercase tracking-widest">{kpi.label}</p>
-                  <h3 className="text-3xl font-bold text-[var(--color-text-main)] mt-1 font-mono">{kpi.value}</h3>
-                  <p className="text-xs text-[var(--color-text-dim)] mt-2">{kpi.sub}</p>
-                </div>
-                <div className={cn("p-3 rounded-xl border border-[var(--color-border)]", kpi.bg, kpi.color)}>
-                  {React.createElement(kpi.icon as any, { size: 24 })}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Main Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          {/* Revenue Chart */}
-          <div className="p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)]">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
-                  <TrendingUp size={20} />
-                </div>
-                <h3 className="text-xl font-bold text-[var(--color-text-main)]">Monthly Revenue</h3>
-              </div>
-              <Badge variant="text" tone="neutral" className="text-[10px] uppercase tracking-widest">Real Database Records</Badge>
-            </div>
-            <div className="h-[300px]">
-              <Line data={revenueData} options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                  y: { grid: { color: 'rgba(113,113,122,0.15)' }, ticks: { color: '#71717a' } },
-                  x: { grid: { display: false }, ticks: { color: '#71717a' } }
-                }
-              }} />
-            </div>
-          </div>
-
-          {/* User Growth Chart */}
-          <div className="p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)]">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
-                  <Users size={20} />
-                </div>
-                <h3 className="text-xl font-bold text-[var(--color-text-main)]">User Signups Growth</h3>
-              </div>
-              <Badge variant="text" tone="neutral" className="text-[10px] uppercase tracking-widest">By Month ({new Date().getFullYear()})</Badge>
-            </div>
-            <div className="h-[300px]">
-              <Bar data={userData} options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                  y: { grid: { color: 'rgba(113,113,122,0.15)' }, ticks: { color: '#71717a' } },
-                  x: { grid: { display: false }, ticks: { color: '#71717a' } }
-                }
-              }} />
-            </div>
-          </div>
-        </div>
-
-        {/* Distribution Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Property Types */}
-          <div className="p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] lg:col-span-1">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 rounded-lg bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400">
-                <PieChart size={20} />
-              </div>
-              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Asset Classes</h3>
-            </div>
-            <div className="h-[250px] relative">
-              <Doughnut data={propTypeData} options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { size: 11 } } } }
-              }} />
-            </div>
-          </div>
-
-          {/* Transaction Stages */}
-          <div className="p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] lg:col-span-1">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
-                <ShieldCheck size={20} />
-              </div>
-              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Transaction Stages</h3>
-            </div>
-            <div className="h-[250px] relative">
-              <Doughnut data={dealStatusData} options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { size: 11 } } } }
-              }} />
-            </div>
-          </div>
-
-          {/* Offers & Negotiations */}
-          <div className="p-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] shadow-[var(--shadow-depth-1)] lg:col-span-1">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 rounded-lg bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
-                <TrendingUp size={20} />
-              </div>
-              <h3 className="text-xl font-bold text-[var(--color-text-main)]">Offers & Negotiations</h3>
-            </div>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-[var(--color-text-muted)]">Accepted Offers</span>
-                  <span className="text-[var(--color-text-main)] font-bold">{offerStats.accepted} / {offerStats.total}</span>
-                </div>
-                <div className="h-2 w-full bg-[var(--color-bg-elevated)] rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-600 dark:bg-emerald-500" style={{ width: `${offerStats.acceptedPct}%` }} />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-[var(--color-text-muted)]">Under Review (Pending)</span>
-                  <span className="text-[var(--color-text-main)] font-bold">{offerStats.pending} / {offerStats.total}</span>
-                </div>
-                <div className="h-2 w-full bg-[var(--color-bg-elevated)] rounded-full overflow-hidden">
-                  <div className="h-full bg-amber-500" style={{ width: `${offerStats.pendingPct}%` }} />
-                </div>
-              </div>
-              <div className="pt-6 grid grid-cols-3 gap-4 text-center">
-                <div className="p-3 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)]">
-                  <div className="text-lg font-bold text-[var(--color-text-main)] font-mono">{offerStats.total}</div>
-                  <div className="text-[10px] uppercase text-[var(--color-text-dim)]">Total</div>
-                </div>
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20">
-                  <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400 font-mono">{offerStats.accepted}</div>
-                  <div className="text-[10px] uppercase text-emerald-700/70 dark:text-emerald-500/70">Accepted</div>
-                </div>
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20">
-                  <div className="text-lg font-bold text-amber-700 dark:text-amber-400 font-mono">{offerStats.pending}</div>
-                  <div className="text-[10px] uppercase text-amber-700/70 dark:text-amber-500/70">Pending</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 };

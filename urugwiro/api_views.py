@@ -6,6 +6,7 @@ import requests
 from django.core.cache import cache
 from django.db import connection, transaction
 from django.db.models import Q, Sum, Count, Avg, F, Exists, OuterRef
+from django.db.models.functions import ExtractMonth
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError
@@ -2421,6 +2422,82 @@ def owner_dashboard_metrics(request):
         'revenue': float(total_revenue),
         'expenses': float(total_expenses),
         'total_listings': total_listings,
+    })
+
+
+@api_view(['GET'])
+def admin_report_summary(request):
+    err = check_admin_permission(request, 'finance')
+    if err:
+        return err
+    from django.utils import timezone
+
+    current_year = timezone.now().year
+    try:
+        year = int(request.query_params.get('year', current_year))
+    except (TypeError, ValueError):
+        return Response({'error': 'Year must be a number'}, status=status.HTTP_400_BAD_REQUEST)
+    if year < 2000 or year > current_year + 1:
+        return Response({'error': 'Year is outside the supported range'}, status=status.HTTP_400_BAD_REQUEST)
+
+    transaction_totals = list(Transaction.objects.values('currency').annotate(
+        transaction_volume=Sum('agreed_price'),
+        completed_revenue=Sum('commission_amount', filter=Q(status='completed')),
+    ).order_by('currency'))
+    monthly_revenue = list(
+        Transaction.objects.filter(status='completed', completed_at__year=year)
+        .annotate(month=ExtractMonth('completed_at'))
+        .values('currency', 'month')
+        .annotate(amount=Sum('commission_amount'))
+        .order_by('currency', 'month')
+    )
+    monthly_users = {
+        row['month']: row['count']
+        for row in User.objects.filter(date_joined__year=year)
+        .annotate(month=ExtractMonth('date_joined'))
+        .values('month').annotate(count=Count('id'))
+    }
+    asset_classes = {
+        row['category']: row['count']
+        for row in Listing.objects.values('category').annotate(count=Count('id'))
+    }
+    transaction_statuses = {
+        row['status']: row['count']
+        for row in Transaction.objects.values('status').annotate(count=Count('id'))
+    }
+    offer_statuses = {
+        row['status']: row['count']
+        for row in Offer.objects.values('status').annotate(count=Count('id'))
+    }
+
+    return Response({
+        'year': year,
+        'generated_at': timezone.now().isoformat(),
+        'metrics': {
+            'transactions': Transaction.objects.count(),
+            'listings': Listing.objects.count(),
+            'verified_listings': Listing.objects.filter(
+                verification_level__in=['verified', 'professional'],
+            ).count(),
+            'offers': Offer.objects.count(),
+            'pending_offers': Offer.objects.filter(
+                status__in=['new', 'reviewing', 'negotiating'],
+            ).count(),
+        },
+        'currency_totals': [{
+            'currency': row['currency'],
+            'transaction_volume': float(row['transaction_volume'] or 0),
+            'completed_revenue': float(row['completed_revenue'] or 0),
+        } for row in transaction_totals],
+        'monthly_revenue': [{
+            'currency': row['currency'],
+            'month': row['month'],
+            'amount': float(row['amount'] or 0),
+        } for row in monthly_revenue],
+        'monthly_users': [monthly_users.get(month, 0) for month in range(1, 13)],
+        'asset_classes': asset_classes,
+        'transaction_statuses': transaction_statuses,
+        'offer_statuses': offer_statuses,
     })
 
 

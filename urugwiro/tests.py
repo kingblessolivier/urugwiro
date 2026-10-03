@@ -9,6 +9,7 @@ from django.db import connection
 from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import resolve
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from .consumers import ChatConsumer
@@ -373,6 +374,45 @@ class ApiSecurityTests(TestCase):
         self.assertEqual(listed.data['results'][0]['full_name'], 'CRM Customer')
         self.assertEqual(listed.data['results'][0]['conversations_count'], 0)
         self.assertLessEqual(len(captured), 6)
+
+    def test_report_summary_uses_commission_revenue_and_currency_segments(self):
+        rule = CommissionRule.objects.create(
+            name='Report commission', rule_type='percentage', percentage=5,
+            is_default=True, is_active=True,
+        )
+        Transaction.objects.create(
+            listing=self.published, seller=self.seller, transaction_type='sale',
+            agreed_price=100_000_000, currency='RWF', commission_rule=rule,
+            status='completed', completed_at=timezone.now(),
+        )
+        self.authenticate(self.owner)
+
+        response = self.client.get(f'/api/reports/summary/?year={timezone.now().year}')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['metrics']['transactions'], 1)
+        self.assertEqual(response.data['currency_totals'], [{
+            'currency': 'RWF',
+            'transaction_volume': 100_000_000.0,
+            'completed_revenue': 5_000_000.0,
+        }])
+        self.assertEqual(sum(row['amount'] for row in response.data['monthly_revenue']), 5_000_000.0)
+
+    def test_csv_exports_require_permission_and_escape_formulas(self):
+        Customer.objects.create(
+            full_name='=HYPERLINK("https://example.invalid")',
+            phone='0788555555', source='website',
+        )
+        self.authenticate(self.owner)
+        exported = self.client.get('/api/reports/export/customers/')
+        unknown = self.client.get('/api/reports/export/not-a-report/')
+        self.client.force_authenticate(user=None)
+        anonymous = self.client.get('/api/reports/export/customers/')
+
+        self.assertEqual(exported.status_code, 200)
+        self.assertIn("'=HYPERLINK", exported.content.decode('utf-8'))
+        self.assertEqual(unknown.status_code, 400)
+        self.assertIn(anonymous.status_code, (401, 403))
 
     def test_admin_cannot_manage_owner_or_assign_protected_role(self):
         admin = User.objects.create_user(

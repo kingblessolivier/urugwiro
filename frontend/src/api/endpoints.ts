@@ -276,6 +276,7 @@ export const api = {
 
     // Reports & CSV Exports
     reports: {
-        exportUrl: (reportType: string) => `/api/reports/export/${reportType}/`,
+        summary: (year?: number) => apiClient.get('/reports/summary/', { params: { year } }),
+        download: (reportType: string) => apiClient.get(`/reports/export/${reportType}/`, { responseType: 'blob' }),
     },
 };

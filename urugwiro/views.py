@@ -9,13 +9,19 @@ from .models import (
     SellerPayment, BusinessExpense, SavedProperty, PropertyInquiry,
     Message, User
 )
+from .permissions import has_capability
 
 
-def is_admin(user):
-    return user.is_authenticated and (
-        getattr(user, 'role', None) in ['admin', 'Admin'] or
-        user.is_staff or user.is_superuser
-    )
+def can_export_reports(user):
+    return has_capability(user, 'finance')
+
+
+def csv_safe(value):
+    """Prevent exported user-controlled values from becoming spreadsheet formulas."""
+    text = '' if value is None else str(value)
+    if text.startswith(('=', '+', '-', '@', '\t', '\r')):
+        return f"'{text}"
+    return text
 
 
 # ─── Chat API (kept from legacy) ───
@@ -149,50 +155,50 @@ def chat_new_users_api(request):
 @api_view(['GET'])
 def admin_reports_export(request, report_type):
     """Export report data as CSV."""
-    if not is_admin(request.user):
-        return Response({'error': 'Admin access required'}, status=403)
+    if not can_export_reports(request.user):
+        return Response({'error': 'Finance reporting access required'}, status=403)
     
-    response = HttpResponse(content_type='text/csv')
+    supported = {'listings', 'customers', 'conversations', 'visits', 'offers', 'transactions', 'expenses'}
+    if report_type not in supported:
+        return Response({'error': 'Unsupported report type'}, status=400)
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = f'attachment; filename="{report_type}_report.csv"'
     writer = csv.writer(response)
     
     if report_type == 'listings':
         writer.writerow(['ID', 'Title', 'Category', 'Purpose', 'Price', 'Currency', 'Status', 'Seller', 'Date Listed'])
         for l in Listing.objects.select_related('seller').all():
-            writer.writerow([l.id, l.title, l.category, l.purpose, l.price, l.currency, l.status, l.seller.name if l.seller else '', l.date_listed.strftime('%Y-%m-%d')])
+            writer.writerow([csv_safe(value) for value in [l.id, l.title, l.category, l.purpose, l.price, l.currency, l.status, l.seller.name if l.seller else '', l.date_listed.strftime('%Y-%m-%d')]])
     
     elif report_type == 'customers':
         writer.writerow(['ID', 'Name', 'Phone', 'Email', 'Location', 'Source', 'Created'])
         for c in Customer.objects.all():
-            writer.writerow([str(c.id), c.full_name, c.phone, c.email, c.location, c.source, c.created_at.strftime('%Y-%m-%d')])
+            writer.writerow([csv_safe(value) for value in [str(c.id), c.full_name, c.phone, c.email, c.location, c.source, c.created_at.strftime('%Y-%m-%d')]])
     
     elif report_type == 'conversations':
         writer.writerow(['ID', 'Customer', 'Listing', 'Seller', 'Status', 'Source', 'Created'])
         for c in Conversation.objects.select_related('customer', 'listing', 'seller').all():
-            writer.writerow([str(c.id), c.customer.full_name, c.listing.title, c.seller.name, c.status, c.source, c.created_at.strftime('%Y-%m-%d')])
+            writer.writerow([csv_safe(value) for value in [str(c.id), c.customer.full_name, c.listing.title, c.seller.name, c.status, c.source, c.created_at.strftime('%Y-%m-%d')]])
     
     elif report_type == 'visits':
         writer.writerow(['ID', 'Customer', 'Listing', 'Date', 'Time', 'Status', 'Phone'])
         for v in Visit.objects.select_related('customer', 'listing').all():
-            writer.writerow([v.id, v.customer.full_name, v.listing.title, v.preferred_date, v.preferred_time or '', v.status, v.phone])
+            writer.writerow([csv_safe(value) for value in [v.id, v.customer.full_name, v.listing.title, v.preferred_date, v.preferred_time or '', v.status, v.phone]])
     
     elif report_type == 'offers':
-        writer.writerow(['ID', 'Listing', 'Customer', 'Offered Amount', 'Asking Price', 'Status', 'Date'])
+        writer.writerow(['ID', 'Listing', 'Customer', 'Offered Amount', 'Asking Price', 'Currency', 'Status', 'Date'])
         for o in Offer.objects.select_related('listing', 'customer').all():
-            writer.writerow([o.id, o.listing.title, o.customer.full_name, o.offered_amount, o.asking_price, o.status, o.created_at.strftime('%Y-%m-%d')])
+            writer.writerow([csv_safe(value) for value in [o.id, o.listing.title, o.customer.full_name, o.offered_amount, o.asking_price, o.currency, o.status, o.created_at.strftime('%Y-%m-%d')]])
     
     elif report_type == 'transactions':
-        writer.writerow(['ID', 'Listing', 'Seller', 'Customer', 'Type', 'Agreed Price', 'Commission', 'Seller Amount', 'Status', 'Date'])
+        writer.writerow(['ID', 'Listing', 'Seller', 'Customer', 'Type', 'Agreed Price', 'Currency', 'Commission', 'Seller Amount', 'Status', 'Date'])
         for t in Transaction.objects.select_related('listing', 'seller', 'customer').all():
-            writer.writerow([str(t.id), t.listing.title, t.seller.name, t.customer.full_name if t.customer else '', t.transaction_type, t.agreed_price, t.commission_amount, t.seller_amount, t.status, t.created_at.strftime('%Y-%m-%d')])
+            writer.writerow([csv_safe(value) for value in [str(t.id), t.listing.title, t.seller.name, t.customer.full_name if t.customer else '', t.transaction_type, t.agreed_price, t.currency, t.commission_amount, t.seller_amount, t.status, t.created_at.strftime('%Y-%m-%d')]])
     
     elif report_type == 'expenses':
-        writer.writerow(['ID', 'Category', 'Amount', 'Date', 'Vendor', 'Description'])
+        writer.writerow(['ID', 'Category', 'Amount', 'Currency', 'Date', 'Vendor', 'Description'])
         for e in BusinessExpense.objects.all():
-            writer.writerow([e.id, e.category, e.amount, e.date, e.vendor, e.description])
-    
-    else:
-        writer.writerow(['Error'])
-        writer.writerow([f'Unknown report type: {report_type}'])
+            writer.writerow([csv_safe(value) for value in [e.id, e.category, e.amount, e.currency, e.date, e.vendor, e.description]])
     
     return response
