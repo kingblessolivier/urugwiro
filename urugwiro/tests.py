@@ -474,14 +474,35 @@ class ApiSecurityTests(TestCase):
             username='other', email='other@example.com', password='Other-pass-123!'
         )
         self.authenticate(account)
-        response = self.client.post('/api/admin/offers/', {
+        response = self.client.post('/api/consumer/offers/', {
             'listing': self.published.pk, 'amount': 91_000_000,
-            'name': 'Guest', 'phone': guest.phone,
+            'name': 'Guest', 'phone': guest.phone, 'seller': self.owner.pk,
+            'asking_price': 1,
         }, format='json')
         guest.refresh_from_db()
         self.assertEqual(response.status_code, 201)
         self.assertIsNone(guest.user_id)
         self.assertNotEqual(str(response.data['customer']), str(guest.pk))
+        created = Offer.objects.get(pk=response.data['id'])
+        self.assertEqual(created.customer.user_id, account.pk)
+        self.assertEqual(created.seller_id, self.seller.pk)
+        self.assertEqual(created.asking_price, self.published.price)
+
+    def test_offer_creation_requires_account_and_rejects_self_offer(self):
+        anonymous = self.client.post('/api/consumer/offers/', {
+            'listing': self.published.pk, 'amount': 90_000_000,
+        }, format='json')
+        admin_route = self.client.post('/api/admin/offers/', {
+            'listing': self.published.pk, 'amount': 90_000_000,
+        }, format='json')
+        self.authenticate(self.seller_user)
+        own_offer = self.client.post('/api/consumer/offers/', {
+            'listing': self.published.pk, 'amount': 90_000_000,
+        }, format='json')
+
+        self.assertIn(anonymous.status_code, (401, 403))
+        self.assertIn(admin_route.status_code, (401, 403, 405))
+        self.assertEqual(own_offer.status_code, 400)
 
     def test_saved_properties_returns_public_listing_contract(self):
         customer = User.objects.create_user(username='saver', password='Saver-pass-123!')

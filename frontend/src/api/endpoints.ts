@@ -59,6 +59,8 @@ export const api = {
     consumer: {
         dashboard: () => apiClient.get('/consumer/dashboard/'),
         offers: () => apiClient.get('/consumer/offers/'),
+        createOffer: (data: { listing: number | string; amount: number; notes?: string }) =>
+            apiClient.post<Offer>('/consumer/offers/', data),
         visits: () => apiClient.get('/consumer/visits/'),
         bookVisit: (data: { listing_id: number | string; scheduled_date?: string; preferred_date?: string; notes?: string }) =>
             apiClient.post('/consumer/visits/book/', data),
@@ -69,7 +71,6 @@ export const api = {
     // Offers (Convenience alias)
     offers: {
         list: (params?: Record<string, string>) => apiClient.get<Offer[]>('/admin/offers/', { params }),
-        create: (data: { listing: number | string; amount: number; notes?: string }) => apiClient.post<Offer>('/admin/offers/', data),
         updateStatus: (id: number | string, data: { status: string; counter_amount?: number; offered_amount?: number; message?: string }) => apiClient.put<Offer>(`/admin/offers/${id}/`, data),
     },
 

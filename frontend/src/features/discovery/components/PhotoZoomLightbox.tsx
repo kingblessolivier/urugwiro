@@ -79,29 +79,6 @@ export function getMediaUrl(
   return raw;
 }
 
-/** Luxury hi-res fallback image pool — used if backend media is missing or
- *  the only URL it provided is a tiny 600-pixel placeholder.  Always returns
- *  estate-appropriate Unsplash 4K photography with explicit w=2560, q=90, dpr=2.
- */
-const FALLBACK_POOL = [
-  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c',
-  'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9',
-  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750',
-  'https://images.unsplash.com/photo-1613490493576-7fde63acd811',
-  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c',
-  'https://images.unsplash.com/photo-1605146769289-440113cc3d00',
-];
-export function getHiResFallback(index = 0, hero = true): string {
-  const base = FALLBACK_POOL[index % FALLBACK_POOL.length];
-  const params = new URLSearchParams({
-    auto: 'format', fit: 'crop',
-    w: hero ? '2560' : '1600',
-    q: hero ? '92' : '85',
-  });
-  if (hero) params.set('dpr', '2');
-  return `${base}?${params.toString()}`;
-}
-
 export function getMediaCaption(item: MediaItem | string | undefined | null): string {
   if (!item || typeof item === 'string') return '';
   return item.caption || item.category || item.room_name || '';

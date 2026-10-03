@@ -3,11 +3,11 @@ import {
   ArrowLeft, MapPin, Heart, Share2, Phone, Calendar, MessageCircle,
   HandCoins, Star, BedDouble, Bath, Maximize, Car, Gauge, Fuel, Users,
   Landmark, CheckCircle2, X, Send, Building2, ShieldCheck, Home,
-  Layers, Globe, UserCircle2, StarHalf, Sparkles, Waves, Trees, Leaf,
+  Layers, Globe, UserCircle2, StarHalf, Sparkles, Trees,
   Droplets, Zap, Wifi, Camera, Waves as WavesIcon, Shield, KeyRound,
-  Truck, Grid3X3, Armchair, Flower2, ThermometerSun, Sun, Music,
-  Cctv, Warehouse, Factory, GraduationCap, Bus, ShoppingCart, Train,
-  Check, Info, Map as MapIcon, Camera as CameraIcon, Film, Compass,
+  Truck, Grid3X3, Armchair, Flower2, ThermometerSun, Sun,
+  Cctv, Warehouse, Factory,
+  Check, Map as MapIcon, Camera as CameraIcon, Film, Compass,
   Crown, Award, CircleDot, Eye, Copy, ChevronRight, ChevronLeft,
   Navigation, ExternalLink,
 } from 'lucide-react';
@@ -26,19 +26,18 @@ const defaultIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 import { Button } from '../../components/ui/Button';
-import { cn, logError, logInfo, logWarn } from '../../lib/utils';
+import { cn, logError, logWarn } from '../../lib/utils';
 import { api } from '../../api/endpoints';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
-import { PhotoZoomLightbox, getMediaUrl, getHiResFallback } from './components/PhotoZoomLightbox';
-import { SpecDomain, TechnicalMetric, AtAGlanceGrid, type AtAGlanceFact } from './components/TechnicalSpecs';
+import { PhotoZoomLightbox, getMediaUrl } from './components/PhotoZoomLightbox';
+import { AtAGlanceGrid, type AtAGlanceFact } from './components/TechnicalSpecs';
 import {
   detectListingKind,
   formatMoney,
   purposeLabel,
   priceSuffix,
   locationText,
-  locationParts,
   highlightFacts,
   specGroups,
   amenities,
@@ -205,7 +204,6 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
   const [activeRail, setActiveRail] = useState<string>('overview');
   const [upiFlash, setUpiFlash] = useState(false);
 
-  const sectionRefs = useRef<Partial<Record<string, HTMLElement | null>>>({});
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   const { data: listing, isLoading, error: listingError, refetch: refetchListing } = useQuery({
@@ -214,7 +212,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
     retry: 2,
   });
 
-  const { data: reviewData, error: reviewError, refetch: refetchReviews } = useQuery({
+  const { data: reviewData } = useQuery({
     queryKey: ['listing-reviews', listingId],
     queryFn: async () => (await api.listings.reviews(listingId)).data,
     enabled: Boolean(listingId),
@@ -248,7 +246,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
   }, [user]);
 
   const offerMutation = useMutation({
-    mutationFn: (data: any) => api.offers.create(data),
+    mutationFn: (data: any) => api.consumer.createOffer(data),
     onSuccess: () => {
       setOfferOpen(false);
       flash('Your price was sent to the seller.');
@@ -300,6 +298,14 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
     }
   };
 
+  const openOffer = () => {
+    if (!user) {
+      flash('Sign in to make an offer.');
+      return;
+    }
+    setOfferOpen(true);
+  };
+
   const handleGuestSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -349,7 +355,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
         logWarn('[addRecentlyViewed] failed silently', e);
       }
     }
-  }, [listing, listingId, likesCount]);
+  }, [listing, listingId]);
 
   // ── Derived polymorphic data ──────────────────────────────────────────
 
@@ -367,25 +373,18 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
   const currency = listing?.currency || 'RWF';
   const formattedPrice = useMemo(() => formatMoney(price, currency), [price, currency]);
   const locationStr = listing ? locationText(listing as any) : 'Rwanda';
-  const locParts = listing ? locationParts(listing as any) : [];
   const seller = listing ? sellerDisplay(listing as any) : { name: 'Private seller', phone: '' };
   const phone = listing?.owner_phone || (listing as any)?.asset?.contact_phone || seller.phone || '';
   const verification = listing ? verificationCopy(listing.verification_level as string) : null;
 
-  const rawMedia = Array.isArray(listing?.media) ? listing.media : [];
+  const rawMedia = useMemo(() => (Array.isArray(listing?.media) ? listing.media : []), [listing?.media]);
   const images: string[] = useMemo(() => {
     let imgs = rawMedia
       .filter((m: any) => !m.media_type || m.media_type === 'image')
       .map((m: any) => getMediaUrl(m))
       .filter(Boolean);
-    if (imgs.length === 0) {
-      const seed = (listing?.title || 'urugwiro')
-        .split('')
-        .reduce((a: number, c: string) => a + c.charCodeAt(0), 0);
-      imgs = [0, 1, 2, 3, 4].map((i) => getHiResFallback(seed + i, i === 0));
-    }
     return imgs;
-  }, [rawMedia, listing?.title]);
+  }, [rawMedia]);
 
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
@@ -435,10 +434,6 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
   const hasVideo = rawMedia.some((m: any) => m.media_type === 'video');
   const asset = (listing?.asset as any) || {};
   const landSpec = asset.land_spec || {};
-  const resSpec = asset.residential_spec || {};
-  const vehSpec = asset.vehicle_spec || {};
-  const hotelSpec = asset.hotel_spec || {};
-  const commSpec = asset.commercial_spec || {};
   const hasUPI = Boolean(landSpec.upi_number || asset.upi_number);
   const hasCoords = Boolean(asset.latitude && asset.longitude);
 
@@ -748,6 +743,16 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
                 )}
               </div>
 
+              {images.length === 0 ? (
+                <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] text-center">
+                  <div>
+                    <CameraIcon size={32} className="mx-auto text-[var(--color-text-dim)]" />
+                    <p className="mt-3 text-sm font-semibold text-[var(--color-text-main)]">No property photos uploaded</p>
+                    <p className="mt-1 text-xs text-[var(--color-text-muted)]">Ask the seller for current photos before arranging a visit.</p>
+                  </div>
+                </div>
+              ) : (
+              <>
               {/* Desktop Gallery (lg+): 1 main + 4 thumbs (2x2) */}
               <div className="hidden lg:grid ld-gallery-layout">
                 <button
@@ -872,6 +877,8 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
                   </div>
                 )}
               </div>
+              </>
+              )}
 
               {/* Media pills row */}
               <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -1008,7 +1015,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
                   <Calendar size={18} /> Book a visit
                 </button>
                 <button
-                  onClick={() => setOfferOpen(true)}
+                  onClick={openOffer}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3.5 text-sm font-bold transition oneui-press cursor-pointer"
                   style={{
                     background: 'var(--color-bg-elevated)',
@@ -1619,7 +1626,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
 
               <div className="mt-5 space-y-2.5">
                 <button
-                  onClick={() => setOfferOpen(true)}
+                  onClick={openOffer}
                   className="ld-gold-btn w-full inline-flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold cursor-pointer oneui-press"
                 >
                   <HandCoins size={17} /> Make an offer
@@ -1713,7 +1720,7 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
               )}
             </div>
             <button
-              onClick={() => setOfferOpen(true)}
+              onClick={openOffer}
               className="shrink-0 inline-flex items-center gap-1.5 rounded-2xl border px-3 py-2 text-[11px] font-bold oneui-press"
               style={{
                 borderColor: 'rgba(212,175,55,0.5)',
@@ -1983,13 +1990,15 @@ const ListingDetail: React.FC<ListingDetailProps> = ({ listingId, onBack, onList
         </Modal>
       )}
 
-      <PhotoZoomLightbox
-        isOpen={lightboxOpen}
-        onClose={() => setLightboxOpen(false)}
-        media={images}
-        initialIndex={activeImage}
-        listingTitle={listing.title}
-      />
+      {images.length > 0 && (
+        <PhotoZoomLightbox
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          media={images}
+          initialIndex={activeImage}
+          listingTitle={listing.title}
+        />
+      )}
     </div>
   );
 };

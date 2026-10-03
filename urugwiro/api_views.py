@@ -1559,14 +1559,63 @@ def consumer_dashboard_metrics(request):
         'my_visits': visits_count
     })
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
+@transaction.atomic
 def consumer_offers_list(request):
     customer = getattr(request.user, 'customer_profile', None)
-    if not customer:
-        return Response([])
-    offers = Offer.objects.filter(customer=customer).order_by('-created_at')
-    return get_paginated_response(offers, OfferSerializer, request)
+    if request.method == 'GET':
+        if not customer:
+            return Response([])
+        offers = Offer.objects.filter(customer=customer).order_by('-created_at')
+        return get_paginated_response(offers, OfferSerializer, request)
+
+    listing_id = request.data.get('listing') or request.data.get('listing_id')
+    listing = get_object_or_404(Listing, pk=listing_id, status='published')
+    if listing.seller.user_id == request.user.id:
+        return Response({'error': 'You cannot make an offer on your own listing.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    amount = parse_decimal(request.data.get('amount') or request.data.get('offered_amount'))
+    if amount is None or amount <= 0 or amount >= Decimal('10000000000000'):
+        return Response({'error': 'Enter a valid positive offer amount.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    customer = customer or create_customer_for_intake(
+        request,
+        request.user.get_full_name() or request.user.username,
+        getattr(request.user, 'phone_number', '') or '',
+        request.user.email or '',
+    )
+    conversation, _ = Conversation.objects.get_or_create(
+        customer=customer, listing=listing, seller=listing.seller,
+    )
+    offer = Offer.objects.create(
+        listing=listing,
+        customer=customer,
+        seller=listing.seller,
+        conversation=conversation,
+        asking_price=listing.price,
+        offered_amount=amount,
+        currency=listing.currency,
+        message=request.data.get('notes') or request.data.get('message', ''),
+        status='new',
+    )
+    ConversationEvent.objects.create(
+        conversation=conversation,
+        event_type='offer_made',
+        channel='website',
+        description=f'Offer submitted: {amount:,.0f} {listing.currency}',
+        performed_by=request.user,
+    )
+    if listing.seller.user_id:
+        from .consumers import push_notification
+        push_notification(
+            recipient=listing.seller.user,
+            actor=request.user,
+            notification_type='offer',
+            message=f'New offer received for {listing.title}',
+            link='/seller/offers/',
+        )
+    return Response(OfferSerializer(offer).data, status=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -1823,61 +1872,12 @@ def admin_likes_list(request):
     likes = SavedProperty.objects.all().order_by('-saved_at')
     return get_paginated_response(likes, SavedPropertySerializer, request)
 
-@api_view(['GET', 'POST'])
-@permission_classes([AllowAny])
+@api_view(['GET'])
 def list_create_offers(request):
-    if request.method == 'GET':
-        err = check_admin_permission(request)
-        if err: return err
-        offers = Offer.objects.all().order_by('-created_at')
-        return get_paginated_response(offers, OfferSerializer, request)
-    elif request.method == 'POST':
-        listing_id = request.data.get('listing') or request.data.get('listing_id')
-        if not listing_id:
-            return Response({'error': 'Listing ID is required'}, status=status.HTTP_400_BAD_REQUEST)
-        listing = get_object_or_404(Listing, pk=listing_id)
-        
-        amount = request.data.get('amount') or request.data.get('offered_amount')
-        if not amount:
-            return Response({'error': 'Offer amount is required'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        message = request.data.get('notes') or request.data.get('message', '')
-        name = request.data.get('name') or (request.user.get_full_name() if request.user.is_authenticated else '') or 'Customer'
-        phone = request.data.get('phone') or getattr(request.user, 'phone_number', '')
-        email = request.data.get('email') or (request.user.email if request.user.is_authenticated else '')
-        
-        customer = create_customer_for_intake(request, name, phone, email)
-            
-        conversation = None
-        if listing.seller:
-            conversation, _ = Conversation.objects.get_or_create(
-                customer=customer,
-                listing=listing,
-                seller=listing.seller
-            )
-            
-        offer = Offer.objects.create(
-            listing=listing,
-            customer=customer,
-            seller=listing.seller,
-            conversation=conversation,
-            asking_price=listing.price or 0,
-            offered_amount=amount,
-            currency=listing.currency or 'RWF',
-            message=message,
-            status='new'
-        )
-        
-        if conversation:
-            ConversationEvent.objects.create(
-                conversation=conversation,
-                event_type='offer_made',
-                channel='website',
-                description=f"Offer submitted: {float(amount):,.0f} {listing.currency or 'RWF'}",
-                performed_by=request.user if request.user.is_authenticated else None
-            )
-            
-        return Response(OfferSerializer(offer).data, status=status.HTTP_201_CREATED)
+    err = check_admin_permission(request)
+    if err: return err
+    offers = Offer.objects.all().order_by('-created_at')
+    return get_paginated_response(offers, OfferSerializer, request)
 
 
 @api_view(['PUT'])
