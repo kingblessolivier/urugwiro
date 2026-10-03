@@ -1,20 +1,24 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
+  Bath,
+  BedDouble,
   Building2,
+  CalendarCheck,
   Car,
-  Home,
-  Map as MapIcon,
-  Search,
   CheckCircle2,
-  ChevronDown,
-  Users,
-  Globe,
-  Key,
-  Bike,
-  ChevronLeft,
   ChevronRight,
+  Compass,
+  Heart,
+  Home,
+  Landmark,
+  MapPin,
+  Search,
+  ShieldCheck,
+  Store,
+  Trees,
+  Users,
 } from 'lucide-react';
 
 import { ListingCard } from '../../components/ui/ListingCard';
@@ -23,8 +27,6 @@ import { Button } from '../../components/ui/Button';
 import { SkeletonGrid, ErrorState } from '../../components/ui/Dashboard';
 import { api } from '../../api/endpoints';
 import type { AppView } from '../../types/navigation';
-import { cn } from '../../lib/utils';
-import { useTheme } from '../../context/ThemeContext';
 import { useSavedListings } from '../../hooks/useSavedListings';
 
 interface HomePageProps {
@@ -34,147 +36,63 @@ interface HomePageProps {
   onListingClick?: (id: string) => void;
 }
 
-interface HeroSlide {
-  id: string;
-  pillLabel: string;
-  icon: React.ElementType;
-  query: string;
-  image: string;
-  title: string;
-  cornerBadge: string;
-  systemExplanation: string;
-  watermark: string;
-}
+const HERO_IMAGE = '/images/hero/house.jpg';
 
-const HERO_SLIDES: HeroSlide[] = [
-  {
-    id: 'house',
-    pillLabel: 'Homes & Villas',
-    icon: Home,
-    query: 'house',
-    image: '/images/hero/house.jpg',
-    title: 'Homes & Villas Across Rwanda',
-    cornerBadge: 'Review Status Visible',
-    systemExplanation: 'Compare listing details and check the recorded document-review status before contacting a seller.',
-    watermark: 'ESTATES',
-  },
-  {
-    id: 'land',
-    pillLabel: 'Titled Land',
-    icon: MapIcon,
-    query: 'land',
-    image: '/images/hero/land.jpg',
-    title: 'Titled Plots Across Rwanda',
-    cornerBadge: 'Parcel Details Available',
-    systemExplanation: 'Review location, area, UPI, and zoning details when they have been supplied for a parcel.',
-    watermark: 'CADASTRE',
-  },
-  {
-    id: 'car',
-    pillLabel: 'Executive SUVs',
-    icon: Car,
-    query: 'vehicle',
-    image: '/images/hero/car.jpg',
-    title: 'Vehicles Across Rwanda',
-    cornerBadge: 'Detailed Vehicle Records',
-    systemExplanation: 'Compare seller-supplied specifications, condition, mileage, and document status in one place.',
-    watermark: 'EXECUTIVE',
-  },
-  {
-    id: 'motorbike',
-    pillLabel: 'Bikes & Fleets',
-    icon: Bike,
-    query: 'vehicle',
-    image: '/images/hero/motorbike.jpg',
-    title: 'Bikes & Fleet Vehicles',
-    cornerBadge: 'Fleet Details Available',
-    systemExplanation: 'Browse commercial fleets and personal mobility listings with their recorded specifications.',
-    watermark: 'MOBILITY',
-  },
+const categoryCards = [
+  { label: 'Homes', query: 'house', icon: Home, image: '/images/hero/house.jpg', detail: 'Family houses, villas, and townhomes' },
+  { label: 'Land', query: 'land', icon: Trees, image: '/images/hero/land.jpg', detail: 'Plots, parcels, and titled land' },
+  { label: 'Apartments', query: 'apartment', icon: Building2, image: '/images/hero/house.jpg', detail: 'Urban apartments and rentals' },
+  { label: 'Vehicles', query: 'car', icon: Car, image: '/images/hero/car.jpg', detail: 'Cars, SUVs, motorbikes, and fleets' },
 ];
 
+const quickSearches = ['Kigali', 'Land', 'Rentals', 'Apartments', 'SUV', 'Commercial'];
 
-
-
-
-const categories = [
-  { label: 'Homes & Villas', icon: Home, query: 'house', desc: 'Luxury residences & family homes' },
-  { label: 'Land & Plots', icon: MapIcon, query: 'land', desc: 'Parcels with location and UPI details' },
-  { label: 'Apartments', icon: Building2, query: 'apartment', desc: 'Modern urban living spaces' },
-  { label: 'Vehicles', icon: Car, query: 'car', desc: 'Cars, SUVs & motorcycles' },
-  { label: 'Commercial', icon: Building2, query: 'commercial', desc: 'Office & retail spaces' },
-  { label: 'Rentals', icon: Key, query: 'rent', desc: 'Short & long-term rentals' },
+const customerSteps = [
+  { title: 'Find the right match', desc: 'Search by location, price, type, or keyword and compare listings without jumping between tools.', icon: Compass },
+  { title: 'Review the essentials', desc: 'Check photos, price, location, specifications, seller details, and verification status before you act.', icon: ShieldCheck },
+  { title: 'Move when ready', desc: 'Save favorites, message the seller, book a visit, or submit an offer from the listing page.', icon: CalendarCheck },
 ];
 
-const steps = [
-  { step: '01', title: 'Discover', desc: 'Search listings by location, category, or price. Browse homes, land, apartments, and vehicles across Rwanda.' },
-  { step: '02', title: 'Review', desc: 'Compare specifications and check whether supporting documents are pending, submitted, or verified.' },
-  { step: '03', title: 'Connect', desc: 'Make offers, schedule visits, and message sellers while you perform your own due diligence.' },
+const trustItems = [
+  { title: 'Clear listing details', desc: 'Listings are organized around price, location, category, media, and available documentation.', icon: CheckCircle2 },
+  { title: 'Customer workspace', desc: 'Signed-in customers can track saved properties, offers, and scheduled visits from their dashboard.', icon: Heart },
+  { title: 'Seller visibility', desc: 'Contact options and seller context stay close to the listing so customers know who they are contacting.', icon: Store },
 ];
-
-
 
 const mapApiListing = (item: any): ListingCardData => {
   const media = Array.isArray(item.media) ? item.media : [];
-  const asset = (item.asset as Record<string, unknown> | undefined) || {};
+  const asset = (item.asset as Record<string, any> | undefined) || {};
   const locationParts = [asset.district, asset.province, item.location].filter(Boolean);
+  const residential = asset.residential_spec || {};
+  const specs = {
+    ...(residential.bedrooms ? { beds: residential.bedrooms } : {}),
+    ...(residential.bathrooms ? { baths: residential.bathrooms } : {}),
+  };
+
   return {
     id: String(item.id ?? item.slug ?? ''),
     title: String(item.title ?? asset.name ?? 'Listing'),
     price: Number(item.price) || 0,
     currency: String(item.currency ?? 'RWF'),
-    location: locationParts.length ? locationParts.join(', ') : 'Rwanda',
-    listing_type: String(item.listing_type ?? item.type ?? 'Listing'),
+    location: locationParts.length ? locationParts.join(', ') : item.address || 'Rwanda',
+    listing_type: String(item.listing_type ?? item.category ?? item.type ?? 'Listing'),
     verification_level: (item.verification_level as ListingCardData['verification_level']) || 'none',
     media,
-    specs: (item.specs as ListingCardData['specs']) || undefined,
+    specs: Object.keys(specs).length ? specs : undefined,
+    views: Number(item.views_count || item.views || 0),
+    status: item.status || 'Available',
     is_liked: Boolean(item.is_liked),
   };
 };
 
 const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onListingClick }) => {
-  const { isDark } = useTheme();
   const [query, setQuery] = useState('');
-  const [activeSlide, setActiveSlide] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const touchStartXRef = useRef<number | null>(null);
-
   const { savedIds, toggleSaved } = useSavedListings();
-
-  useEffect(() => {
-    if (isPaused) return;
-    const interval = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length);
-    }, 6500);
-    return () => clearInterval(interval);
-  }, [isPaused]);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsPaused(true);
-    touchStartXRef.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    setIsPaused(false);
-    if (touchStartXRef.current === null) return;
-    const touchEndX = e.changedTouches[0].clientX;
-    const deltaX = touchStartXRef.current - touchEndX;
-    if (Math.abs(deltaX) > 40) {
-      if (deltaX > 0) {
-        setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length);
-      } else {
-        setActiveSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
-      }
-    }
-    touchStartXRef.current = null;
-  };
-
-  const currentSlide = HERO_SLIDES[activeSlide];
 
   const listingsQuery = useQuery({
     queryKey: ['homepage-listings'],
     queryFn: async () => {
-      const response = await api.listings.list({ sort: 'newest' });
+      const response = await api.listings.list({ sort: 'newest', page_size: 12 });
       const payload = response.data;
       const rows = Array.isArray(payload) ? payload : payload?.results || [];
       return rows.map(mapApiListing).filter((listing: ListingCardData) => listing.id);
@@ -184,323 +102,146 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
 
   const statsQuery = useQuery({
     queryKey: ['homepage-platform-stats'],
-    queryFn: async () => {
-      const response = await api.public.platformStats();
-      return response.data;
-    },
+    queryFn: async () => (await api.public.platformStats()).data,
     staleTime: 60000,
   });
 
-  const featured = useMemo(() => (listingsQuery.data || []).slice(0, 6), [listingsQuery.data]);
-  const totalListings = listingsQuery.data?.length || 0;
-
-  // Pick a real listing from the DB that matches the active slide's category, for the hero caption
-  const heroListing = useMemo(() => {
-    const all = listingsQuery.data || [];
-    return all.find((l) =>
-      l.listing_type?.toLowerCase().includes(currentSlide.query) ||
-      l.title?.toLowerCase().includes(currentSlide.query)
-    ) || all[0] || null;
-  }, [listingsQuery.data, currentSlide.query]);
-
-  const liveStats = statsQuery.data || {
-    properties_listed: totalListings,
-    verified_listings: 0,
-    completed_deals: 0,
-    active_deals: 0,
-    active_users: 0,
-    districts_covered: null,
-  };
-
+  const listings = listingsQuery.data || [];
+  const featured = useMemo(() => listings.slice(0, 6), [listings]);
+  const heroListing = featured[0];
+  const stats = statsQuery.data || {};
 
   const submitSearch = (event: React.FormEvent) => {
     event.preventDefault();
-    onExplore(query || currentSlide.query);
+    onExplore(query.trim());
   };
 
+  const statCards = [
+    { label: 'Active Listings', value: Number(stats.properties_listed || listings.length || 0).toLocaleString(), icon: Building2 },
+    { label: 'Verified Listings', value: Number(stats.verified_listings || 0).toLocaleString(), icon: ShieldCheck },
+    { label: 'Members', value: Number(stats.active_users || 0).toLocaleString(), icon: Users },
+    { label: 'Coverage', value: stats.districts_covered ? `${stats.districts_covered} Districts` : 'Rwanda', icon: MapPin },
+  ];
+
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden transition-colors duration-300" style={{ background: 'var(--color-bg-deep)' }}>
-      {/* ━━━ 01 — CINEMATIC FULL-BLEED HERO BACKGROUND CAROUSEL ━━━ */}
-      <section 
-        className="relative isolate min-h-[86svh] sm:min-h-screen flex flex-col justify-between px-3.5 pt-5 pb-4 sm:px-8 sm:pt-8 sm:pb-6 lg:px-12 lg:pt-12 lg:pb-10 overflow-hidden w-full select-none sm:select-auto"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* Full-bleed edge-to-edge background images for entire hero */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          {HERO_SLIDES.map((slide, idx) => (
-            <div
-              key={slide.id}
-              className={cn(
-                "absolute inset-0 transition-opacity duration-1000 ease-in-out",
-                activeSlide === idx ? "opacity-100" : "opacity-0 pointer-events-none"
-              )}
-            >
-              <img
-                src={slide.image}
-                alt={slide.title}
-                className={cn(
-                  "w-full h-full object-cover object-center transition-transform duration-7000 ease-out",
-                  activeSlide === idx ? "scale-105" : "scale-100"
-                )}
-                loading="eager"
-              />
-            </div>
-          ))}
+    <div className="min-h-screen overflow-x-hidden bg-[var(--color-bg-deep)] text-[var(--color-text-main)]">
+      <section className="relative isolate min-h-[calc(100svh-4rem)] overflow-hidden">
+        <img src={HERO_IMAGE} alt="" className="absolute inset-0 h-full w-full object-cover" loading="eager" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/58 to-slate-950/20" />
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[var(--color-bg-deep)] to-transparent" />
 
-          {/* Legibility scrim — lighter in light mode so the hero never reads as "black" */}
-          <div className={cn('absolute inset-0 pointer-events-none', isDark ? 'bg-black/50' : 'bg-black/25')} />
-
-          {/* Subtle shaded architectural watermark */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
-            <span className="text-[17vw] sm:text-[16vw] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-white/[0.06] leading-none whitespace-nowrap">
-              {currentSlide.watermark}
-            </span>
-          </div>
-
-          {/* Top/bottom fades melt the photo into the page canvas (theme-aware) */}
-          <div className="absolute inset-x-0 top-0 h-24 sm:h-32 bg-gradient-to-b from-[var(--color-bg-deep)] to-transparent pointer-events-none" />
-          <div className="absolute inset-x-0 bottom-0 h-40 sm:h-56 bg-gradient-to-t from-[var(--color-bg-deep)] to-transparent pointer-events-none" />
-        </div>
-
-        {/* ━━━ 40-DEGREE GREEN CORNER SYSTEM SASH (Spanning Banner) ━━━ */}
-        <div className="absolute top-0 right-0 w-44 h-44 sm:w-60 sm:h-60 overflow-hidden pointer-events-none z-20">
-          <div className="absolute top-8 sm:top-12 -right-12 sm:-right-16 w-56 sm:w-72 bg-gradient-to-r from-emerald-800 via-emerald-600 to-emerald-800 text-white font-extrabold text-[10px] sm:text-xs uppercase tracking-wider py-1.5 sm:py-2 text-center rotate-[40deg] shadow-[0_8px_24px_rgba(0,0,0,0.65)] border-y border-emerald-400/40 select-none">
-            <span className="flex items-center justify-center gap-1.5 drop-shadow-md">
-              <CheckCircle2 size={12} className="text-emerald-300 shrink-0 inline" />
-              <span>{currentSlide.cornerBadge}</span>
-            </span>
-          </div>
-        </div>
-
-        <div className="relative z-10 mx-auto w-full max-w-4xl text-center space-y-3.5 sm:space-y-4 my-auto py-3 sm:py-6">
-
-          <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white drop-shadow-[0_8px_32px_rgba(0,0,0,0.9)] leading-[1.1]">
-            {currentSlide.title}
-          </h1>
-
-          {/* System Explanation: Green background spanning entire text */}
-          <div className="flex justify-center px-2">
-            <div className={cn(
-              'inline-flex items-center gap-2 px-4 py-2 rounded-[var(--radius-card)] border text-xs sm:text-sm font-medium backdrop-blur-md shadow-[var(--shadow-depth-2)] max-w-2xl text-center',
-              isDark ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-100' : 'bg-white/95 border-emerald-200 text-emerald-900'
-            )}>
-              <CheckCircle2 size={15} className={cn('shrink-0', isDark ? 'text-emerald-400' : 'text-emerald-600')} />
-              <span className="leading-snug">{currentSlide.systemExplanation}</span>
-            </div>
-          </div>
-
-
-
-
-          {/* Clean Floating Search Bar (Single sleek inline bar on all screens) */}
-          <form onSubmit={submitSearch} className="pt-1 sm:pt-2 max-w-2xl mx-auto w-full">
-            <div className={cn(
-              'flex items-center gap-1.5 sm:gap-2 rounded-[var(--radius-card)] border p-1.5 sm:p-2 backdrop-blur-md shadow-[var(--shadow-depth-3)] transition-all',
-              isDark ? 'border-white/15 bg-black/70' : 'border-[var(--color-border)] bg-white/95'
-            )}>
-              <div className="flex flex-1 items-center gap-2 sm:gap-3 px-2 sm:px-4 min-w-0">
-                <Search size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 sm:hidden" />
-                <Search size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0 hidden sm:block" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onFocus={() => setIsPaused(true)}
-                  onBlur={() => setIsPaused(false)}
-                  placeholder="Search listings — location, type, keyword..."
-                  className="w-full bg-transparent py-2 sm:py-3 text-[var(--color-text-main)] outline-none placeholder:text-[var(--color-text-dim)] text-xs sm:text-sm min-w-0 font-medium"
-                />
-                {query && (
-                  <button
-                    type="button"
-                    onClick={() => setQuery('')}
-                    className="text-[var(--color-text-dim)] hover:text-[var(--color-text-main)] p-1 text-xs shrink-0"
-                    aria-label="Clear search"
-                  >
-                    ×
-                  </button>
-                )}
+        <div className="relative z-10 mx-auto flex min-h-[calc(100svh-4rem)] max-w-7xl flex-col justify-end px-4 pb-8 pt-24 sm:px-6 lg:px-8 lg:pb-12">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_26rem] lg:items-end">
+            <div className="max-w-3xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-emerald-100 backdrop-blur">
+                <ShieldCheck size={14} /> Rwanda marketplace
               </div>
-              <Button type="submit" variant="primary" className="shrink-0 px-4 sm:px-7 py-2 sm:py-3 text-xs sm:text-sm">
-                Search
-              </Button>
+              <h1 className="mt-5 text-4xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
+                Find property and vehicles with confidence.
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-slate-100 sm:text-lg">
+                Search homes, land, rentals, commercial spaces, and vehicles across Rwanda. Save what matters, compare details, and contact sellers from one clean workspace.
+              </p>
+
+              <form onSubmit={submitSearch} className="mt-7 max-w-2xl">
+                <div className="rounded-lg border border-white/20 bg-white p-2 shadow-2xl shadow-slate-950/30">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <label className="flex min-w-0 flex-1 items-center gap-3 rounded-md bg-slate-100 px-4">
+                      <Search size={18} className="shrink-0 text-emerald-700" />
+                      <input
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        placeholder="Search by location, property type, or keyword"
+                        className="h-12 w-full bg-transparent text-sm font-medium text-slate-950 outline-none placeholder:text-slate-500"
+                      />
+                    </label>
+                    <Button type="submit" size="lg" className="rounded-md px-7">
+                      Search
+                    </Button>
+                  </div>
+                </div>
+              </form>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {quickSearches.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => onExplore(item)}
+                    className="rounded-full border border-white/18 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition hover:bg-white/18"
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
             </div>
-          </form>
-        </div>
 
+            <div className="rounded-lg border border-white/18 bg-white/12 p-4 text-white shadow-2xl shadow-slate-950/25 backdrop-blur-md">
+              <div className="grid grid-cols-2 gap-3">
+                {statCards.map(({ label, value, icon: Icon }) => (
+                  <div key={label} className="rounded-md border border-white/14 bg-white/10 p-3">
+                    <Icon size={16} className="text-emerald-200" />
+                    <p className="mt-3 text-2xl font-bold">{value}</p>
+                    <p className="text-xs text-slate-200">{label}</p>
+                  </div>
+                ))}
+              </div>
 
-        {/* BOTTOM ROW: Minimal Caption & Slide Controls */}
-        <div className="relative z-10 mx-auto max-w-7xl w-full flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4 text-xs">
-          {/* Active slide caption — real listing from DB */}
-          {heroListing ? (
-            <div className={cn(
-              'flex items-center justify-center gap-2 backdrop-blur-md px-4 py-2 rounded-full border text-[11px] sm:text-xs max-w-full shadow-[var(--shadow-depth-2)]',
-              isDark ? 'bg-black/60 border-white/15' : 'bg-white/95 border-[var(--color-border)]'
-            )}>
-              <span className={cn(
-                'inline-flex items-center gap-1 text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full border',
-                isDark ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-              )}>
-                <CheckCircle2 size={10} />
-                <span>{heroListing.verification_level === 'verified' ? 'Verified' : 'Marketplace listing'}</span>
-              </span>
-              <span className="text-[var(--color-text-dim)]">•</span>
-              <span className="font-semibold text-[var(--color-text-main)] truncate max-w-[120px] xs:max-w-[180px] sm:max-w-[320px]">{heroListing.title}</span>
-              {heroListing.price > 0 && (
-                <>
-                  <span className="text-[var(--color-text-dim)]">•</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold whitespace-nowrap">
-                    {heroListing.price.toLocaleString()} {heroListing.currency}
-                  </span>
-                </>
-              )}
-              <button
-                type="button"
-                onClick={() => onListingClick?.(heroListing.id)}
-                className="ml-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap group"
-              >
-                <span>View</span>
-                <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
-              </button>
-            </div>
-          ) : (
-            <div className={cn(
-              'flex items-center justify-center gap-2 backdrop-blur-md px-4 py-2 rounded-full border text-[11px] sm:text-xs max-w-full shadow-[var(--shadow-depth-2)]',
-              isDark ? 'bg-black/60 border-white/15' : 'bg-white/95 border-[var(--color-border)]'
-            )}>
-              <span className={cn(
-                'inline-flex items-center gap-1 text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-full border',
-                isDark ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-              )}>
-                <CheckCircle2 size={10} />
-                <span>Live</span>
-              </span>
-              <span className="text-[var(--color-text-muted)]">{currentSlide.pillLabel}</span>
-              <button
-                type="button"
-                onClick={() => onExplore(currentSlide.query)}
-                className="ml-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] flex items-center gap-1 cursor-pointer transition-colors whitespace-nowrap group"
-              >
-                <span>Explore</span>
-                <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
-              </button>
-            </div>
-          )}
-
-
-          {/* Slide controls */}
-          <div className={cn(
-            'flex items-center gap-1.5 sm:gap-2 backdrop-blur-md px-2.5 sm:px-3 py-1.5 rounded-full border shadow-[var(--shadow-depth-2)]',
-            isDark ? 'bg-black/60 border-white/15' : 'bg-white/95 border-[var(--color-border)]'
-          )}>
-            <button
-              type="button"
-              onClick={() => setActiveSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
-              aria-label="Previous slide"
-              className="h-7 w-7 sm:h-6 sm:w-6 rounded-full hover:bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] flex items-center justify-center cursor-pointer transition-all active:scale-90"
-            >
-              <ChevronLeft size={15} />
-            </button>
-
-            <div className="flex items-center gap-1.5 px-2">
-              {HERO_SLIDES.map((_, idx) => (
+              {heroListing && (
                 <button
-                  key={idx}
                   type="button"
-                  onClick={() => setActiveSlide(idx)}
-                  aria-label={`Go to slide ${idx + 1}`}
-                  className={cn(
-                    'h-1.5 rounded-full transition-all duration-300 cursor-pointer',
-                    activeSlide === idx
-                      ? 'w-7 bg-emerald-500'
-                      : 'w-2 bg-[var(--color-border-hover)] hover:bg-[var(--color-text-dim)] hover:w-3'
-                  )}
-                />
-              ))}
+                  onClick={() => onListingClick?.(heroListing.id)}
+                  className="mt-4 w-full rounded-md border border-white/14 bg-white/10 p-3 text-left transition hover:bg-white/16"
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-200">Latest highlight</p>
+                  <p className="mt-1 truncate text-sm font-bold">{heroListing.title}</p>
+                  <p className="mt-1 text-xs text-slate-200">{heroListing.price.toLocaleString()} {heroListing.currency} · {heroListing.location}</p>
+                </button>
+              )}
             </div>
-
-            <button
-              type="button"
-              onClick={() => setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
-              aria-label="Next slide"
-              className="h-7 w-7 sm:h-6 sm:w-6 rounded-full hover:bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] flex items-center justify-center cursor-pointer transition-all active:scale-90"
-            >
-              <ChevronRight size={15} />
-            </button>
           </div>
-        </div>
-
-        {/* Subtle scroll indicator */}
-        <div className="hidden sm:flex absolute bottom-1.5 left-1/2 -translate-x-1/2 flex-col items-center text-zinc-500 animate-bounce pointer-events-none">
-          <ChevronDown size={15} />
         </div>
       </section>
 
-      {/* ━━━ 02 — CATEGORY EXPLORER ━━━ */}
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:py-20 lg:px-12">
-        <div className="mb-8 sm:mb-12 flex items-end justify-between">
-          <div className="space-y-2 sm:space-y-3">
-            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-500">Discover</p>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Browse by Category</h2>
-          </div>
-          <button
-            onClick={() => onExplore('')}
-            className="flex items-center gap-1.5 text-xs sm:text-sm transition-colors hover:text-emerald-500"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
-            View all <ArrowRight size={14} />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 lg:grid-cols-6">
-          {categories.map((cat) => {
-            const Icon = cat.icon;
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {categoryCards.map((category) => {
+            const Icon = category.icon;
             return (
               <button
-                key={cat.label}
+                key={category.label}
                 type="button"
-                onClick={() => onExplore(cat.query)}
-                className="group rounded-2xl border p-3.5 sm:p-5 text-left transition-all duration-300 hover:border-emerald-500/40 oneui-card cursor-pointer"
-                style={{
-                  borderColor: 'var(--color-border)',
-                  background: 'var(--color-bg-card)',
-                  boxShadow: 'var(--shadow-depth-1)',
-                }}
+                onClick={() => onExplore(category.query)}
+                className="group relative min-h-52 overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] text-left shadow-[var(--shadow-depth-1)] transition hover:-translate-y-0.5 hover:border-emerald-500/40 hover:shadow-[var(--shadow-depth-2)]"
               >
-                <div className="mb-3 sm:mb-4 inline-flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 transition-all group-hover:bg-emerald-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-emerald-500/25">
-                  <Icon size={18} />
+                <img src={category.image} alt="" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/88 via-slate-950/38 to-transparent" />
+                <div className="relative flex h-full min-h-52 flex-col justify-end p-5 text-white">
+                  <Icon size={22} className="mb-3 text-emerald-200" />
+                  <h2 className="text-xl font-bold">{category.label}</h2>
+                  <p className="mt-1 text-sm text-slate-200">{category.detail}</p>
                 </div>
-                <span className="block text-xs sm:text-sm font-semibold leading-tight" style={{ color: 'var(--color-text-main)' }}>{cat.label}</span>
-                <span className="mt-1 block text-[10px] sm:text-[11px] group-hover:text-zinc-400 transition-colors line-clamp-2" style={{ color: 'var(--color-text-dim)' }}>{cat.desc}</span>
               </button>
             );
           })}
         </div>
       </section>
 
-      {/* ━━━ 03 — FEATURED LISTINGS ━━━ */}
-      <section className="px-4 py-12 sm:py-20 lg:px-12 transition-colors duration-300"
-        style={{ background: 'var(--color-section-alt)', borderTop: '1px solid var(--color-section-alt-border)', borderBottom: '1px solid var(--color-section-alt-border)' }}>
+      <section className="border-y border-[var(--color-section-alt-border)] bg-[var(--color-section-alt)] px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-8 sm:mb-12 flex items-end justify-between">
-            <div className="space-y-2 sm:space-y-3">
-              <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-500">Curated</p>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Exclusive Listings</h2>
-              <p className="mt-1 text-xs sm:text-sm max-w-xl" style={{ color: 'var(--color-text-dim)' }}>Featured listings selected from the current marketplace inventory.</p>
+          <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--color-brand-emerald)]">Marketplace</p>
+              <h2 className="mt-2 text-3xl font-bold tracking-tight">Fresh listings for customers</h2>
+              <p className="mt-2 max-w-2xl text-sm text-[var(--color-text-muted)]">A quick look at current homes, land, rentals, commercial assets, and vehicles.</p>
             </div>
-            <button
-              onClick={() => onExplore('')}
-              className="flex items-center gap-1.5 text-xs sm:text-sm transition-colors hover:text-emerald-500"
-              style={{ color: 'var(--color-text-muted)' }}
-            >
-              Explore all <ArrowRight size={14} />
+            <button type="button" onClick={() => onExplore('')} className="inline-flex items-center gap-2 text-sm font-bold text-[var(--color-brand-emerald)]">
+              Explore all listings <ArrowRight size={16} />
             </button>
           </div>
 
           {featured.length > 0 ? (
-            <div className="grid gap-4 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {featured.map((listing) => (
                 <ListingCard
                   key={listing.id}
@@ -514,115 +255,96 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
           ) : listingsQuery.isLoading || listingsQuery.isFetching ? (
             <SkeletonGrid count={6} />
           ) : listingsQuery.isError ? (
-            <ErrorState
-              title="Failed to load listings"
-              message="We encountered an error loading featured properties. Please try again."
-              onRetry={() => listingsQuery.refetch()}
-            />
+            <ErrorState title="Failed to load listings" message="Featured listings could not be loaded. Please try again." onRetry={() => listingsQuery.refetch()} />
           ) : (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 rounded-2xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] flex items-center justify-center mx-auto mb-4">
-                <Building2 size={32} className="text-[var(--color-text-dim)]" />
-              </div>
-              <h3 className="text-lg font-bold text-[var(--color-text-main)]">No listings available</h3>
-              <p className="mt-2 text-sm text-[var(--color-text-muted)]">Check back soon for new listings across Rwanda.</p>
+            <div className="rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-bg-card)] p-10 text-center">
+              <Building2 size={30} className="mx-auto text-[var(--color-text-dim)]" />
+              <h3 className="mt-3 text-lg font-bold">No listings available yet</h3>
+              <p className="mt-1 text-sm text-[var(--color-text-muted)]">New listings will appear here as they are published.</p>
             </div>
           )}
-
-          <div className="mt-8 text-center md:hidden">
-            <Button variant="ghost" onClick={() => onExplore('')} className="text-xs py-2.5 hover:text-emerald-500 transition-colors" style={{ color: 'var(--color-text-muted)' }}>
-              View all listings <ArrowRight size={14} className="ml-1.5 inline" />
-            </Button>
-          </div>
         </div>
       </section>
 
-      {/* ━━━ 05 — HOW IT WORKS ━━━ */}
-      <section className="px-4 py-12 sm:py-20 lg:px-12 transition-colors duration-300"
-        style={{ background: 'var(--color-section-alt)', borderTop: '1px solid var(--color-section-alt-border)', borderBottom: '1px solid var(--color-section-alt-border)' }}>
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-10 sm:mb-16 text-center space-y-2.5 sm:space-y-3">
-            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-500">Process</p>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>How it Works</h2>
+      <section className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--color-brand-emerald)]">Customer journey</p>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight">From browsing to viewing, without confusion.</h2>
+          <p className="mt-3 text-sm leading-6 text-[var(--color-text-muted)]">
+            The homepage should get customers to the right action quickly. These steps are built around what buyers and tenants naturally need first.
+          </p>
+          <div className="mt-6 grid grid-cols-3 gap-3">
+            <MiniFact icon={BedDouble} label="Specs" />
+            <MiniFact icon={Bath} label="Details" />
+            <MiniFact icon={Landmark} label="Location" />
           </div>
+        </div>
 
-          <div className="grid gap-6 sm:gap-8 md:grid-cols-3">
-            {steps.map((s, i) => (
-              <div key={s.step} className="relative text-left p-5 sm:p-6 rounded-2xl border oneui-card"
-                style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)', boxShadow: 'var(--shadow-depth-1)' }}>
-                <div className="mb-3 sm:mb-5 inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 font-mono text-xs sm:text-sm font-bold">
-                  {s.step}
-                </div>
-                <h3 className="mb-1.5 sm:mb-3 text-base sm:text-xl font-bold" style={{ color: 'var(--color-text-main)' }}>{s.title}</h3>
-                <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>{s.desc}</p>
-                {i < 2 && (
-                  <div className="hidden md:block absolute -right-4 top-8 z-10">
-                    <div className="h-8 w-8 flex items-center justify-center rounded-full" style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}>
-                      <ArrowRight size={14} style={{ color: 'var(--color-text-dim)' }} />
-                    </div>
+        <div className="grid gap-4">
+          {customerSteps.map((step, index) => {
+            const Icon = step.icon;
+            return (
+              <div key={step.title} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 shadow-[var(--shadow-depth-1)]">
+                <div className="flex gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-[var(--color-brand-emerald)]">
+                    <Icon size={20} />
                   </div>
-                )}
+                  <div>
+                    <p className="text-xs font-bold text-[var(--color-text-dim)]">0{index + 1}</p>
+                    <h3 className="mt-1 text-lg font-bold">{step.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-[var(--color-text-muted)]">{step.desc}</p>
+                  </div>
+                </div>
               </div>
-            ))}
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="border-y border-[var(--color-section-alt-border)] bg-[var(--color-section-alt)] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-6 lg:grid-cols-3">
+            {trustItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.title} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] p-6 shadow-[var(--shadow-depth-1)]">
+                  <Icon size={22} className="text-[var(--color-brand-emerald)]" />
+                  <h3 className="mt-4 text-lg font-bold">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{item.desc}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* ━━━ 06 — MARKET STATISTICS (LIVE DATABASE AUDIT) ━━━ */}
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:py-20 lg:px-12">
-        <div className="rounded-3xl border p-6 sm:p-10 md:p-14 transition-colors duration-300"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-card)', boxShadow: 'var(--shadow-depth-2)' }}>
-          <div className="grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-4 text-center">
-            {([
-              { icon: Building2, value: Number(liveStats.properties_listed || totalListings || 0).toLocaleString(), label: 'Active Listings' },
-              { icon: CheckCircle2, value: Number(liveStats.verified_listings || 0).toLocaleString(), label: 'Verified' },
-              { icon: Users, value: Number(liveStats.active_users || 0).toLocaleString(), label: 'Platform Members' },
-              liveStats.districts_covered ? { icon: Globe, value: `${liveStats.districts_covered}`, label: 'Districts Covered' } : null,
-            ] as ({ icon: React.ElementType; value: string; label: string } | null)[])
-              .filter((s): s is { icon: React.ElementType; value: string; label: string } => s !== null)
-              .map(({ icon: Icon, value, label }) => (
-              <div key={label}>
-                <Icon size={20} className="mx-auto mb-2 text-emerald-500" />
-                <p className="text-2xl sm:text-3xl md:text-4xl font-bold font-mono" style={{ color: 'var(--color-text-main)' }}>{value}</p>
-                <p className="mt-1 text-[11px] sm:text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-[var(--shadow-depth-2)]">
+          <div className="grid lg:grid-cols-[1fr_0.85fr]">
+            <div className="p-6 sm:p-10">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--color-brand-emerald)]">Ready to move?</p>
+              <h2 className="mt-2 text-3xl font-bold tracking-tight">Start with the listings, then choose your next step.</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--color-text-muted)]">
+                Customers can browse openly. When you are ready, create an account to save favorites, track offers, and manage visit requests.
+              </p>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <Button size="lg" onClick={() => onExplore('')} className="rounded-md">
+                  Browse Listings <ChevronRight size={18} />
+                </Button>
+                <Button size="lg" variant="secondary" onClick={() => onNavigate('customer-dashboard')} className="rounded-md">
+                  My Dashboard
+                </Button>
               </div>
-            ))}
-          </div>
-
-        </div>
-      </section>
-
-      {/* ━━━ 08 — SELLER CTA ━━━ */}
-      <section className="mx-auto max-w-5xl px-4 pb-20 pt-4 sm:py-20 lg:px-12 overflow-hidden w-full">
-        <div className="relative overflow-hidden rounded-3xl border p-6 sm:p-10 md:p-14 text-center"
-          style={{
-            background: isDark
-              ? 'linear-gradient(135deg, rgba(8,126,57,0.1) 0%, rgba(255,255,255,0.02) 60%, transparent 100%)'
-              : 'linear-gradient(135deg, rgba(8,126,57,0.06) 0%, #ffffff 60%, #f0fdf4 100%)',
-            borderColor: 'var(--color-border)',
-            boxShadow: 'var(--shadow-depth-2)',
-          }}>
-          <div className="absolute top-0 right-0 h-48 w-48 sm:h-64 sm:w-64 rounded-full bg-emerald-500/[0.07] blur-[80px]" />
-          <div className="relative z-10">
-            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>Have a property to sell or rent?</h2>
-            <p className="mx-auto mt-3 sm:mt-5 max-w-xl text-xs sm:text-base leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-              Submit your property details for review, manage buyer interest, and keep listing activity in one workspace.
-            </p>
-            <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button
-                variant="primary"
-                onClick={onSell}
-                className="w-full sm:w-auto rounded-xl px-8 py-3.5 text-sm sm:text-base font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-500/20 transition-all active:scale-95 cursor-pointer"
-              >
-                List Your Property (Sale or Rent)
-              </Button>
-
+            </div>
+            <div className="border-t border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-6 sm:p-10 lg:border-l lg:border-t-0">
+              <h3 className="text-lg font-bold">Have a property to sell or rent?</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">Submit details for review, publish your listing, and manage customer interest from the seller workspace.</p>
               <button
-                onClick={() => onNavigate('about')}
-                className="text-xs sm:text-sm flex items-center justify-center gap-1.5 py-2 transition-colors cursor-pointer hover:text-emerald-500"
-                style={{ color: 'var(--color-text-muted)' }}
+                type="button"
+                onClick={onSell}
+                className="mt-6 inline-flex items-center gap-2 rounded-md bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
               >
-                Learn how it works <ArrowRight size={14} />
+                List Property <ArrowRight size={16} />
               </button>
             </div>
           </div>
@@ -631,5 +353,12 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onNavigate, onLi
     </div>
   );
 };
+
+const MiniFact = ({ icon: Icon, label }: { icon: React.ComponentType<{ size?: number; className?: string }>; label: string }) => (
+  <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3 text-center">
+    <Icon size={18} className="mx-auto text-[var(--color-brand-emerald)]" />
+    <p className="mt-2 text-xs font-bold text-[var(--color-text-muted)]">{label}</p>
+  </div>
+);
 
 export default HomePage;
