@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Home,
   Search,
-  ShieldCheck,
   Trees,
 } from 'lucide-react';
 
@@ -120,10 +119,7 @@ const HomePage: React.FC<HomePageProps> = ({ onExplore, onSell, onListingClick }
         <div className="relative z-10 mx-auto flex min-h-[82svh] max-w-7xl flex-col justify-center px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
           <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-center">
             <div className="min-w-0 max-w-[calc(100vw-2rem)] sm:max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-emerald-100 backdrop-blur">
-                <ShieldCheck size={14} /> Buy, rent, or sell in Rwanda
-              </div>
-              <h1 className="mt-5 max-w-4xl break-words text-2xl font-bold leading-tight tracking-tight text-white min-[430px]:text-3xl sm:text-6xl lg:text-7xl lg:leading-[0.96]">
+              <h1 className="max-w-4xl break-words text-2xl font-bold leading-tight tracking-tight text-white min-[430px]:text-3xl sm:text-6xl lg:text-7xl lg:leading-[0.96]">
                 {slide.title}
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-100 sm:mt-5 sm:text-xl sm:leading-7">
