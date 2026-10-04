@@ -45,6 +45,10 @@ const AdminSellerManager: React.FC = () => {
     },
   });
 
+  const sellerName = (seller: any) =>
+    seller?.name || seller?.full_name || seller?.username || seller?.email || `Seller #${seller?.id || ''}`.trim() || 'Seller';
+  const sellerPhone = (seller: any) => seller?.phone || seller?.phone_number || seller?.contact_phone || '-';
+
   const toggleVerifyMutation = useMutation({
     mutationFn: async ({ id, is_verified }: { id: number; is_verified: boolean }) => {
       return api.admin.updateSeller(id, { is_verified });
@@ -111,11 +115,11 @@ const AdminSellerManager: React.FC = () => {
         <div className="w-8 h-8 rounded-full bg-[var(--color-bg-elevated)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-muted)] shrink-0 overflow-hidden">
           {row.original.image ? <img src={row.original.image} alt="" className="w-full h-full object-cover" /> : <User size={14} />}
         </div>
-        <span className="font-semibold text-[var(--color-text-main)]">{row.original.name}</span>
+        <span className="font-semibold text-[var(--color-text-main)]">{sellerName(row.original)}</span>
       </div>
     ) },
     { accessorKey: 'email', id: 'email', header: 'Email', cell: ({ row }: any) => <span className="font-mono text-[var(--color-text-muted)]">{row.original.email}</span> },
-    { accessorKey: 'phone', id: 'phone', header: 'Phone', cell: ({ row }: any) => <span className="font-mono text-[var(--color-text-muted)]">{row.original.phone || row.original.phone_number || '-'}</span> },
+    { accessorKey: 'phone', id: 'phone', header: 'Phone', cell: ({ row }: any) => <span className="font-mono text-[var(--color-text-muted)]">{sellerPhone(row.original)}</span> },
     { accessorKey: 'id_number', id: 'id_number', header: 'National ID', cell: ({ row }: any) => <span className="font-mono text-[var(--color-text-muted)]">{row.original.id_number || '-'}</span> },
     { accessorKey: 'listing_count', id: 'listings', header: 'Listings', cell: ({ row }: any) => <span className="font-mono font-bold text-[var(--color-text-muted)]">{row.original.listing_count ?? 0}</span> },
     { accessorKey: 'is_verified', id: 'status', header: 'Status', cell: ({ row }: any) => (
@@ -227,10 +231,10 @@ const AdminSellerManager: React.FC = () => {
             <div className="flex items-start justify-between border-b border-[var(--color-border)] pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[var(--color-brand-emerald)] font-bold text-lg">
-                  {inspectSeller.name.charAt(0)}
+                  {sellerName(inspectSeller).charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-[var(--color-text-main)]">{inspectSeller.name}</h3>
+                  <h3 className="text-xl font-bold text-[var(--color-text-main)]">{sellerName(inspectSeller)}</h3>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-[var(--color-brand-emerald)] font-mono">Seller ID #{inspectSeller.id}</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
@@ -258,7 +262,7 @@ const AdminSellerManager: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
                   <Phone size={14} className="text-[var(--color-brand-emerald)]" />
-                  <span>{inspectSeller.phone || inspectSeller.phone_number || 'No phone recorded'}</span>
+                  <span>{sellerPhone(inspectSeller) !== '-' ? sellerPhone(inspectSeller) : 'No phone recorded'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
                   <MapPin size={14} className="text-[var(--color-brand-emerald)]" />

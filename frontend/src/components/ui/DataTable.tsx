@@ -85,12 +85,17 @@ export function DataTable<TData>({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize });
   const [search, setSearch] = useState('');
   const [showColumns, setShowColumns] = useState(false);
   const [internalDensity, setInternalDensity] = useState<Density>('comfortable');
 
   const density = controlledDensity ?? internalDensity;
   const setDensity = onDensityChange ?? setInternalDensity;
+
+  React.useEffect(() => {
+    setPagination((current) => ({ ...current, pageSize, pageIndex: 0 }));
+  }, [pageSize, search]);
 
   const filteredData = useMemo(() => {
     if (!search || searchKeys.length === 0) return data;
@@ -110,20 +115,24 @@ export function DataTable<TData>({
       sorting,
       columnVisibility,
       rowSelection,
+      pagination,
     },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     getRowId: getRowId ? (row) => getRowId(row as TData) : undefined,
   });
 
   const selectedRows = table.getSelectedRowModel().rows.map((r) => r.original);
-  const allPageSelected = table.getRowModel().rows.length > 0 && table.getRowModel().rows.every((r) => r.getIsSelected());
+  const pageRows = table.getRowModel().rows;
+  const allPageSelected = pageRows.length > 0 && pageRows.every((r) => r.getIsSelected());
 
   const togglePageSelection = () => {
-    table.getRowModel().rows.forEach((r) => r.toggleSelected(!allPageSelected));
+    pageRows.forEach((r) => r.toggleSelected(!allPageSelected));
   };
 
   const densityPadding = {
@@ -322,14 +331,14 @@ export function DataTable<TData>({
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
-              {table.getRowModel().rows.length === 0 ? (
+              {pageRows.length === 0 ? (
                 <tr>
                   <td colSpan={columns.length + (showBulkActions ? 1 : 0)} className="px-4 py-12">
                     <EmptyState title={emptyTitle} hint={emptyDescription} />
                   </td>
                 </tr>
               ) : (
-                table.getRowModel().rows.map((row) => (
+                pageRows.map((row) => (
                   <tr
                     key={row.id}
                     onClick={() => onRowClick?.(row.original)}
@@ -375,8 +384,8 @@ export function DataTable<TData>({
         {/* Pagination */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-[var(--color-border)] px-3 py-2">
           <p className="text-xs text-[var(--color-text-muted)] font-medium">
-            Showing <span className="font-mono font-bold text-[var(--color-text-main)]">{filteredData.length === 0 ? 0 : 1}</span> to{' '}
-            <span className="font-mono font-bold text-[var(--color-text-main)]">{filteredData.length}</span> of{' '}
+            Showing <span className="font-mono font-bold text-[var(--color-text-main)]">{filteredData.length === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1}</span> to{' '}
+            <span className="font-mono font-bold text-[var(--color-text-main)]">{Math.min(filteredData.length, (pagination.pageIndex + 1) * pagination.pageSize)}</span> of{' '}
             <span className="font-mono font-bold text-[var(--color-brand-emerald)]">{filteredData.length}</span> records
           </p>
           <div className="flex items-center gap-1">
